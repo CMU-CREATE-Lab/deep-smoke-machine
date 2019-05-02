@@ -7,5 +7,5 @@ conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
-sh deep-smoke-machine/install_packages.sh
+sh deep-smoke-machine/back-end/install_packages.sh
 ```
