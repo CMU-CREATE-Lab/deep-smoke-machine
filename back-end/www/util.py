@@ -3,6 +3,15 @@ import json
 import requests
 from collections import defaultdict
 import os
+import urllib.request
+
+# Check if a file exists
+def is_file_here(file_path):
+    return os.path.isfile(file_path)
+
+# Download a video from an url to a file
+def download_video(url, file_path):
+    urllib.request.urlretrieve(url, file_path)
 
 # Get video data from the video-labeling-tool and save to a file
 def build_dataset(file_path=None):
