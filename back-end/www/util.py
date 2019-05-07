@@ -12,20 +12,20 @@ def build_dataset(file_path=None):
 
     # Request dataset
     url_root = "https://api.smoke.createlab.org/api/v1/"
-    pos_g = iterative_query(url_root+"get_pos_gold_labels", user_token)
-    #neg_g = iterative_query(url_root+"get_neg_gold_labels", user_token)
-    #pos_r = iterative_query(url_root+"get_pos_labels_by_researcher", user_token)
-    #neg_r = iterative_query(url_root+"get_neg_labels_by_researcher", user_token)
+    videos = iterative_query(url_root+"get_pos_gold_labels", user_token)
+    videos += iterative_query(url_root+"get_neg_gold_labels", user_token)
+    videos += iterative_query(url_root+"get_pos_labels_by_researcher", user_token)
+    videos += iterative_query(url_root+"get_neg_labels_by_researcher", user_token)
 
     # Build dataset
     dataset = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    for v in pos_g:
+    for v in videos:
         # The file name contains information about camera, date, and bounding box
         # We can use this as the key of the dataset for separating training, validation, and testing sets
         key = v["file_name"].split("-")
         camera = key[0]
         date = "-".join(key[1:4])
-        bbox = "-".join(key[5:8])
+        bbox = "-".join(key[4:8])
         dataset[camera][date][bbox].append(v)
 
     # Save and return dataset
