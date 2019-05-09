@@ -23,7 +23,7 @@ def main(argv):
         cam = "-".join([key[0]] + key[4:8])
         date = "-".join(key[1:4])
         vm_by_date[date].append(v)
-        label = v["label_state_admin"]
+        label = v["label_state_admin"] # TODO: need to change this to label_state in the future
         # By date
         if label in pos:
             count_vm_by_date[date]["pos"] += 1
