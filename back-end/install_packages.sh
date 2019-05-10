@@ -11,3 +11,6 @@ conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
 
 # For plotting images
 pip install matplotlib==3.0.3
+
+# For machine learning
+pip install scikit-learn
