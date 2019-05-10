@@ -18,11 +18,12 @@ def flatten_tensor(t):
 # Extract features from pre-trained models and save them
 def main(argv):
     mode = "rgb"
-    batch_size = 16
+    batch_size = 32
     p = "../data/"
     p_feat = p + "features/"
     p_pretrain = p + "pretrained_models/"
     p_vid = p + "videos/"
+    has_gpu = torch.cuda.is_available()
 
     # Setup the model and load pre-trained weights
     if mode == "rgb":
@@ -34,7 +35,10 @@ def main(argv):
     else:
         return None
     i3d.replace_logits(157)
-    i3d.cuda()
+
+    # Use GPU or not
+    if has_gpu:
+        i3d.cuda()
 
     # Set the model to evaluation mode
     i3d.train(False)
@@ -60,7 +64,10 @@ def main(argv):
             if skip: continue
             # Extract features
             with torch.no_grad():
-                frames = Variable(d["frames"].cuda())
+                frames = d["frames"]
+                if has_gpu:
+                    frames = frames.cuda()
+                frames = Variable(frames)
                 features = i3d.extract_features(frames)
             for i in range(len(file_name)):
                 f = flatten_tensor(features[i, :, :, :, :])
