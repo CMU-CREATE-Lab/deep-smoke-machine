@@ -51,8 +51,8 @@ def main(argv):
     dates = list(vm_by_date.keys())
     np.random.shuffle(dates)
     n_dates = len(dates)
-    n_valid = int(n_dates/10)
-    n_test = int(n_dates/5)
+    n_valid = int(n_dates*0.1) # 10% for validation
+    n_test = int(n_dates*0.3) # 30% for testing
     dates_valid = dates[:n_valid]
     dates_test = dates[n_valid:n_valid+n_test]
     vm_valid = []

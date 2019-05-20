@@ -5,7 +5,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 import torch
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
-from pytorch_i3d import InceptionI3d
+from model.pytorch_i3d import InceptionI3d
 from torch.autograd import Variable
 import numpy as np
 from util import *
@@ -15,7 +15,7 @@ def flatten_tensor(t):
     t = t.squeeze()
     return t
 
-# Extract features from pre-trained models and save them
+# Extract I3D features from pre-trained models and save them
 def main(argv):
     mode = "rgb"
     batch_size = 32

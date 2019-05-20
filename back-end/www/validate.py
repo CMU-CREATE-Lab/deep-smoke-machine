@@ -2,10 +2,31 @@ import sys
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report
+from i3d_learner import I3dLearner
+from ts_learner import TsLearner
 from util import *
 
-# Cross validation of extracted features
+# Fit the model and test its performance
 def main(argv):
+    if len(argv) < 2:
+        print("Usage: python test.py [method]")
+        return
+    method = argv[1]
+    if method == "feature":
+        test_feature()
+    else:
+        test(method=method)
+
+def test(method=None):
+    if method == "i3d":
+        model = I3dLearner()
+    elif method == "ts":
+        model = TsLearner()
+    else:
+        print("Method not allowed")
+        return
+
+def test_feature():
     p = "../data/"
     p_feat = p + "features/"
 
@@ -31,15 +52,18 @@ def main(argv):
         y[phase] = label
 
     # Training
-    model = SVC()
+    print("Train...")
+    model = SVC(C=4, gamma="scale")
     model.fit(X["train"], y["train"])
 
     # Evaluation
+    print("Evaluate...")
     y_predict = {}
     for phase in ["validation", "test"]:
         y_predict[phase] = model.predict(X[phase])
         print("Phase", phase)
         print(classification_report(y[phase], y_predict[phase]))
+    print("Done")
 
 if __name__ == "__main__":
     main(sys.argv)
