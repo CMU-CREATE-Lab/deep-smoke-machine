@@ -1,5 +1,8 @@
+import torch
 from base_learner import BaseLearner
 from model.pytorch_ts import *
+from torch.utils.data import DataLoader
+from smoke_video_dataset import SmokeVideoDataset
 
 # Two-Stream ConvNet learner
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
