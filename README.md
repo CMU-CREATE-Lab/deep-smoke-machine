@@ -10,7 +10,7 @@ which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
 cd deep-smoke-machine/back-end/www
 ```
-Get video metadata from the [smoke labeling tool](http://smoke.createlab.org).
+Get video metadata from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool).
 ```sh
 python get_metadata.py
 ```
