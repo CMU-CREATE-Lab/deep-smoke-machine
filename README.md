@@ -9,3 +9,12 @@ conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
 ```
+Usage:
+```sh
+cd deep-smoke-machine/back-end/www
+python get_metadata.py
+python download_videos.py
+python extract_features.py
+python split_metadata.py
+python cross_validate.py
+```
