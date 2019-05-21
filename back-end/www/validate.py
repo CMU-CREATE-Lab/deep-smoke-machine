@@ -26,6 +26,8 @@ def test(method=None):
         print("Method not allowed")
         return
 
+    model.fit()
+
 def test_feature():
     p = "../data/"
     p_feat = p + "features/"

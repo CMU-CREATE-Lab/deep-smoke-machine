@@ -1,3 +1,4 @@
+import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
@@ -17,22 +18,26 @@ from torch.autograd import Variable
 class I3dLearner(BaseLearner):
     def __init__(self,
             batch_size=32, # size for each batch
-            num_epochs=5, # number of epochs
+            num_epochs=5, # total number of epochs for training
+            num_epochs_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
             milestones=[2, 4], # MultiStepLR parameters
             gamma=0.1, # MultiStepLR parameters
-            num_workers=4)
+            num_workers=4):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
 
         self.batch_size = batch_size
         self.num_epochs = num_epochs
+        self.num_epochs_per_update = num_epochs_per_update
         self.init_lr = init_lr
         self.weight_decay = weight_decay
         self.momentum = momentum
+        self.milestones = milestones
+        self.gamma = gamma
         self.num_workers = num_workers
 
     def fit(self,
@@ -70,6 +75,13 @@ class I3dLearner(BaseLearner):
         # Set optimizer
         optimizer = optim.SGD(i3d.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
         lr_sched = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
+
+        # Train
+        for epoch in range(self.num_epochs):
+            self.log("-"*40)
+            self.log("Step %r/%r" % (epoch, self.num_epochs))
+
+        self.log("Done fit")
 
     def predict(self, X):
         pass
