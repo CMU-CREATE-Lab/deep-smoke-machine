@@ -34,7 +34,7 @@ def main(argv):
         i3d.load_state_dict(torch.load(p_pretrain+"i3d_flow_imagenet_kinetics.pt"))
     else:
         return None
-    i3d.replace_logits(157)
+    i3d.replace_logits(2) # currently we only have two classes (0 and 1, which means no and yes)
 
     # Use GPU or not
     if has_gpu:
