@@ -42,7 +42,7 @@ def main(argv):
             count_vm_by_cam[cam]["gold_pos"] += 1
         elif label in gold_neg:
             count_vm_by_cam[cam]["gold_neg"] += 1
-    
+
     # Print label distribution
     #print(json.dumps(count_vm_by_date, indent=4))
     #print(json.dumps(count_vm_by_cam, indent=4))

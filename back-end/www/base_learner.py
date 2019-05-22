@@ -4,6 +4,7 @@ import torch.nn as nn
 import os
 import logging
 import logging.handlers
+from util import check_and_create_dir
 
 """
 Base PyTorch learners
@@ -23,7 +24,6 @@ Usage:
 """
 class BaseLearner(ABC):
     def __init__(self):
-        self.model = None
         self.logger = None
         if torch.cuda.is_available:
             self.use_cuda = True
@@ -51,14 +51,14 @@ class BaseLearner(ABC):
         pass
 
     # Save model
-    def save(self, out_path):
-        if self.model is not None:
-            torch.save(self.model.state_dict(), out_path)
+    def save(self, model, out_path):
+        if model is not None and out_path is not None:
+            torch.save(model.state_dict(), out_path)
 
     # Load model
-    def load(self, in_path):
-        if self.model is not None:
-            self.model.load_state_dict(torch.load(in_path))
+    def load(self, model, in_path):
+        if model is not None and in_path is not None:
+            model.load_state_dict(torch.load(in_path))
 
     # Log information
     def log(self, msg, lv="i"):
@@ -75,9 +75,7 @@ class BaseLearner(ABC):
     def create_logger(self, log_path=None):
         if log_path is None:
             return None
-        dir_name = os.path.dirname(log_path)
-        if dir_name != "" and not os.path.exists(dir_name):
-            os.makedirs(dir_name) # create directory if it does not exist
+        check_and_create_dir(log_path)
         handler = logging.handlers.RotatingFileHandler(log_path, mode="a", maxBytes=100000000, backupCount=200)
         logger = logging.getLogger(log_path)
         logger.setLevel(logging.INFO)

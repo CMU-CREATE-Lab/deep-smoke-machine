@@ -41,15 +41,15 @@ class SmokeVideoDataset(Dataset):
         label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
         pos = [47, 23, 19, 15]
         neg = [32, 20, 16, 12]
-        label = [0.0, 0.0] # the first and second column indicate the probability of no and yes respectively
+        labels = np.array([0.0, 0.0], dtype=np.float32) # the first and second column indicate the probability of no and yes respectively
         if label_state in pos:
-            label[1] = 1.0
+            labels[1] = 1.0
         elif label_state in neg:
-            label[0] = 1.0
-        label = np.repeat([label], frames.shape[0], axis=0) # duplicate the label for each frame (frame by frame detection)
+            labels[0] = 1.0
+        labels = np.repeat([labels], frames.shape[0], axis=0) # duplicate the label for each frame (frame by frame detection)
 
         # Return item
-        return {"frames": frames_to_tensor(frames), "label": label_to_tensor(label), "file_name": v["file_name"]}
+        return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
 
 # Load videos in the RGB format
 def load_rgb_frames(file_path, resize_to=224.0):
@@ -74,12 +74,12 @@ def load_rgb_frames(file_path, resize_to=224.0):
         frames_out.append(img)
     return np.asarray(frames_out, dtype=np.float32)
 
-def label_to_tensor(label):
+def labels_to_tensor(labels):
     """
     Converts a numpy.ndarray with shape (time x num_of_action_classes)
     to a torch.FloatTensor of shape (num_of_action_classes x time)
     """
-    return torch.from_numpy(label.transpose([1,0]))
+    return torch.from_numpy(labels.transpose([1,0]))
 
 def frames_to_tensor(frames):
     """
