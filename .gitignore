@@ -12,3 +12,4 @@ db_url*
 schema.sql
 *screenlog*
 **/data/
+*.pt

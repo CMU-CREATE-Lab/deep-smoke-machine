@@ -23,7 +23,7 @@ class I3dLearner(BaseLearner):
     def __init__(self,
             batch_size=32, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=1, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -31,7 +31,7 @@ class I3dLearner(BaseLearner):
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="saved_i3d/", # path for saving the models
-            num_steps_per_check=20, # the number of steps to save a model and log information
+            num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             num_workers=4):
         super().__init__()
@@ -172,7 +172,9 @@ class I3dLearner(BaseLearner):
                         lr_sche.step()
                         if steps % nspc == 0:
                             self.log(log_fm % (phase, steps, lr_sche.get_lr()[0], tot_loc_loss[phase]/(nspc*nspu), tot_cls_loss[phase]/(nspc*nspu), tot_loss[phase]/nspc))
-                            self.save(i3d, self.save_model_path + model_id + "-" + str(steps) + ".pt")
+                            model_p = self.save_model_path + model_id + "-" + str(steps) + ".pt"
+                            self.save(i3d, model_p)
+                            self.log("save model to " + model_p)
                             tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                 if phase == "validation":
                     self.log(log_fm % (phase, steps, lr_sche.get_lr()[0], tot_loc_loss[phase]/accum[phase], tot_cls_loss[phase]/accum[phase], (tot_loss[phase]*nspu)/accum[phase]))

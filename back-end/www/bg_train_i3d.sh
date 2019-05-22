@@ -1,5 +1,5 @@
 # Delete existing screen
-for session in $(sudo screen -ls | grep -o '[0-9]\{5\}.train_i3d')
+for session in $(sudo screen -ls | grep -o '[0-9]*.train_i3d')
 do
   sudo screen -S "${session}" -X quit
   sleep 2
