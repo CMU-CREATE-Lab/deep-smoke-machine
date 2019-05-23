@@ -1,6 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -21,7 +22,7 @@ import numpy as np
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=32, # size for each batch (8 for each GTX 1080Ti)
+            batch_size=16, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
             num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
@@ -93,7 +94,8 @@ class I3dLearner(BaseLearner):
             self.log("Create dataset for", phase)
             dataset[phase] = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
             self.log("Create dataloader for", phase)
-            dataloader[phase] = DataLoader(dataset[phase], batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers, pin_memory=True)
+            dataloader[phase] = DataLoader(dataset[phase], batch_size=self.batch_size,
+                    shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
         # Set optimizer
         optimizer = optim.SGD(i3d.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
@@ -171,16 +173,25 @@ class I3dLearner(BaseLearner):
                         optimizer.zero_grad()
                         lr_sche.step()
                         if steps % nspc == 0:
-                            self.log(log_fm % (phase, steps, lr_sche.get_lr()[0], tot_loc_loss[phase]/(nspc*nspu), tot_cls_loss[phase]/(nspc*nspu), tot_loss[phase]/nspc))
-                            model_p = self.save_model_path + model_id + "-" + str(steps) + ".pt"
-                            self.save(i3d, model_p)
-                            self.log("save model to " + model_p)
+                            lr = lr_sche.get_lr()[0]
+                            tll = tot_loc_loss[phase]/(nspc*nspu)
+                            tcl = tot_cls_loss[phase]/(nspc*nspu)
+                            tl = tot_loss[phase]/nspc
+                            self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                             tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                 if phase == "validation":
-                    self.log(log_fm % (phase, steps, lr_sche.get_lr()[0], tot_loc_loss[phase]/accum[phase], tot_cls_loss[phase]/accum[phase], (tot_loss[phase]*nspu)/accum[phase]))
+                    lr = lr_sche.get_lr()[0]
+                    tll = tot_loc_loss[phase]/accum[phase]
+                    tcl = tot_cls_loss[phase]/accum[phase]
+                    tl = (tot_loss[phase]*nspu)/accum[phase]
+                    self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    #TODO: add the early stopping logic, if the validation error increases for n consecutive times, stop training
+                    #TODO: add the early stopping logic
+                    # if the validation error increases for n consecutive times, stop training
+                    model_p = self.save_model_path + model_id + "-" + str(steps) + ".pt"
+                    self.save(i3d, model_p)
+                    self.log("save model to " + model_p)
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)
                         self.log(classification_report(true_labels[phase], pred_labels[phase]))
