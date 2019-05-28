@@ -26,7 +26,7 @@ Extract [I3D features](https://github.com/piergiaj/pytorch-i3d).
 ```sh
 python extract_features.py
 ```
-Fit and validate the model.
+Fit and validate the model. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
 - [Two-Stream ConvNet](http://papers.nips.cc/paper/5353-two-stream-convolutional)
 ```sh
