@@ -11,5 +11,6 @@ google_signin_client_id
 db_url*
 schema.sql
 *screenlog*
-**/data/
-*.pt
+**/data/*
+!**/data/pretrained_models/
+back-end/www/**/*.pt
