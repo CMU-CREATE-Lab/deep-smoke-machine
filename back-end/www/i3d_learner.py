@@ -37,7 +37,7 @@ class I3dLearner(BaseLearner):
             save_model_path="saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
-            num_workers=4):
+            num_workers=2):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
