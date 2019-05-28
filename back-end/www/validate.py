@@ -9,15 +9,15 @@ from util import *
 # Fit the model and test its performance
 def main(argv):
     if len(argv) < 2:
-        print("Usage: python test.py [method]")
+        print("Usage: python validate.py [method]")
         return
     method = argv[1]
     if method == "feature":
         test_feature()
     else:
-        test(method=method)
+        validate(method=method)
 
-def test(method=None):
+def validate(method=None):
     if method == "i3d":
         model = I3dLearner()
     elif method == "ts":
