@@ -10,7 +10,7 @@ which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
 cd deep-smoke-machine/back-end/www
 ```
-Obtain user token from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
+Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
 ```sh
 python get_metadata.py
 ```
