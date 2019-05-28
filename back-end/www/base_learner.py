@@ -6,6 +6,10 @@ import logging
 import logging.handlers
 from util import check_and_create_dir
 
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        return super().format(record)
+
 """
 Base PyTorch learners
 Usage:
@@ -70,13 +74,15 @@ class BaseLearner(ABC):
                 self.logger.warning(msg)
             elif lv == "e":
                 self.logger.error(msg)
-    
+
     # Create a logger
     def create_logger(self, log_path=None):
         if log_path is None:
             return None
         check_and_create_dir(log_path)
         handler = logging.handlers.RotatingFileHandler(log_path, mode="a", maxBytes=100000000, backupCount=200)
+        formatter = RequestFormatter("[%(asctime)s] %(levelname)s: %(message)s")
+        handler.setFormatter(formatter)
         logger = logging.getLogger(log_path)
         logger.setLevel(logging.INFO)
         for hdlr in logger.handlers[:]:

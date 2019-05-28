@@ -1,6 +1,5 @@
 #TODO: add the early stopping logic
 # if the validation error increases for n consecutive times, stop training
-#TODO: prepend time to each line in the log
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
@@ -203,4 +202,5 @@ class I3dLearner(BaseLearner):
         self.log("Done fit")
 
     def predict(self, X):
+        self.log("predict")
         pass
