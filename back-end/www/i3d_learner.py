@@ -1,3 +1,7 @@
+#TODO: add the early stopping logic
+# if the validation error increases for n consecutive times, stop training
+#TODO: prepend time to each line in the log
+
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 #os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
@@ -187,8 +191,6 @@ class I3dLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    #TODO: add the early stopping logic
-                    # if the validation error increases for n consecutive times, stop training
                     model_p = self.save_model_path + model_id + "-" + str(steps) + ".pt"
                     self.save(i3d, model_p)
                     self.log("save model to " + model_p)

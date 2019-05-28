@@ -6,9 +6,17 @@ from util import *
 
 # Split metadata into training, validation, and test sets
 def main(argv):
-    vm = load_json("../data/metadata.json")
+    # Check
+    if len(argv) > 1:
+        if argv[1] != "confirm":
+            print("Must confirm by running: python split_metadata.py confirm")
+            return
+    else:
+        print("Must confirm by running: python split_metadata.py confirm")
+        return
 
     # Index metadata by date, camera, or bounding box
+    vm = load_json("../data/metadata.json")
     vm_by_date = defaultdict(list)
     count_vm_by_date = defaultdict(lambda: defaultdict(int))
     count_vm_by_cam = defaultdict(lambda: defaultdict(int))

@@ -4,14 +4,24 @@ from util import *
 
 # Get video metadata and save to a file
 def main(argv):
+    # Check
+    if len(argv) > 1:
+        if argv[1] != "confirm":
+            print("Must confirm by running: python get_metadata.py confirm")
+            return
+    else:
+        print("Must confirm by running: python get_metadata.py confirm")
+        return
+
+    # Get metadata
     print("Get video metadata...")
     vm = get_video_metadata()
-    
+
     # Save and return dataset
     file_path = "../data/metadata.json"
     check_and_create_dir(file_path)
     save_json(vm, file_path)
-    
+
     print("Done.")
 
 # Get video metadata from the video-labeling-tool
@@ -25,7 +35,7 @@ def get_video_metadata():
     videos += iterative_query(url_root+"get_neg_gold_labels", user_token)
     videos += iterative_query(url_root+"get_pos_labels_by_researcher", user_token)
     videos += iterative_query(url_root+"get_neg_labels_by_researcher", user_token)
- 
+
     return videos
 
 # Query a paginated api call iteratively until getting all the data
