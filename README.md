@@ -1,5 +1,5 @@
 # deep-smoke-machine
-Deep learning for smoke detection.
+Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool).
 ```sh
 git clone https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
 sudo chown -R $USER deep-smoke-machine
