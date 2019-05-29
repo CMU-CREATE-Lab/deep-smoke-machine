@@ -1,5 +1,5 @@
 # deep-smoke-machine
-Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool).
+Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04, Nvidia drivers, cuda, and cuDNN are installed.
 ```sh
 git clone https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
 sudo chown -R $USER deep-smoke-machine
@@ -39,11 +39,11 @@ Fit and validate the model. Pretrained weights are obtained from the [pytorch-i3
 - [Two-Stream ConvNet](http://papers.nips.cc/paper/5353-two-stream-convolutional)
 ```sh
 # Use I3D features + SVM
-python validate.py feature
+python train.py svm
 
 # Use Two-Stream Inflated 3D ConvNet
-python validate.py i3d
+python train.py i3d
 
 # Use Two-Stream ConvNet
-python validate.py ts
+python train.py ts
 ```
