@@ -21,9 +21,9 @@ import numpy as np
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=16, # size for each batch (8 for each GTX 1080Ti)
+            batch_size=8, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=1, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -32,7 +32,7 @@ class I3dLearner(BaseLearner):
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
-            parallel=True, # use nn.DataParallel or not
+            parallel=False, # use nn.DataParallel or not
             num_workers=2):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
@@ -90,9 +90,9 @@ class I3dLearner(BaseLearner):
         dataset = {}
         dataloader = {}
         for phase in ["train", "validation"]:
-            self.log("Create dataset for", phase)
+            self.log("Create dataset for " + phase)
             dataset[phase] = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
-            self.log("Create dataloader for", phase)
+            self.log("Create dataloader for " + phase)
             dataloader[phase] = DataLoader(dataset[phase], batch_size=self.batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
