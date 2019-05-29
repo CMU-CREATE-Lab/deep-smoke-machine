@@ -81,7 +81,7 @@ class BaseLearner(ABC):
             return None
         check_and_create_dir(log_path)
         handler = logging.handlers.RotatingFileHandler(log_path, mode="a", maxBytes=100000000, backupCount=200)
-        formatter = RequestFormatter("[%(asctime)s] %(levelname)s: %(message)s")
+        formatter = RequestFormatter("[%(asctime)s] %(levelname)s:\n\t%(message)s")
         handler.setFormatter(formatter)
         logger = logging.getLogger(log_path)
         logger.setLevel(logging.INFO)

@@ -9,7 +9,7 @@ done
 sudo rm screenlog.0
 
 # For python in conda env
-sudo screen -dmSL "train_ts" bash -c "export PATH='/opt/miniconda3/bin:$PATH'; . '/opt/miniconda3/etc/profile.d/conda.sh'; conda activate deep-smoke-machine; python validate.py ts"
+sudo screen -dmSL "train_ts" bash -c "export PATH='/opt/miniconda3/bin:$PATH'; . '/opt/miniconda3/etc/profile.d/conda.sh'; conda activate deep-smoke-machine; python train.py ts"
 
 # List screens
 sudo screen -ls

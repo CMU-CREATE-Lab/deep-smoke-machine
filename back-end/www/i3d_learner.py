@@ -1,10 +1,6 @@
-#TODO: add the early stopping logic
-# if the validation error increases for n consecutive times, stop training
-
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -112,7 +108,7 @@ class I3dLearner(BaseLearner):
         epochs = 0
         nspu = self.num_steps_per_update
         nspc = self.num_steps_per_check
-        model_id = str(uuid.uuid4())[0:7]
+        model_id = str(uuid.uuid4())[0:7] + "-i3d"
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
