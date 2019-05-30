@@ -53,9 +53,13 @@ python train.py i3d
 # Use Two-Stream ConvNet
 python train.py ts
 ```
-Test the performance of a model.
+Test the performance of a model on the test set.
 ```sh
 python test.py [method] [model_path]
+
+# Use I3D features + SVM
 python test.py svm saved_svm/e5ca667-svm.pkl
+
+# Use Two-Stream Inflated 3D ConvNet
 python test.py i3d saved_i3d/99ca217/99ca217-i3d-64022.pt
 ```
