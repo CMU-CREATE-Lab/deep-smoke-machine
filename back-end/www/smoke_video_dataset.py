@@ -29,7 +29,7 @@ class SmokeVideoDataset(Dataset):
         if self.mode == "rgb":
             frames = load_rgb_frames(file_path)
         elif self.mode == "flow":
-            return None
+            frames = load_flow_frames(file_path)
         else:
             return None
 
@@ -59,6 +59,31 @@ def load_rgb_frames(file_path, resize_to=224.0):
     frames = op.vid_to_imgs(rgb_vid_path=file_path)
     t, h, w, c = frames.shape
     
+    # Resize and scale images for the network structure
+    frames_out = []
+    need_resize = False
+    if w < resize_to or h < resize_to:
+        d = resize_to - min(w, h)
+        sc = 1 + d / min(w, h)
+        need_resize = True
+    for i in range(t):
+        img = frames[i, :, :, :]
+        if need_resize:
+            img = cv.resize(img, dsize=(0, 0), fx=sc, fy=sc)
+        img = (img / 255.) * 2 - 1
+        frames_out.append(img)
+    return np.asarray(frames_out, dtype=np.float32)
+
+
+# Load videos in HSV format with optical flow computed
+def load_flow_frames(file_path, resize_to=224.0):
+    op = OpticalFlow()
+
+    # The vid_to_imgs function gives (time, height, width, channel)
+    rgb = op.vid_to_imgs(rgb_vid_path=file_path)
+    frames = op.batch_optical_flow(rgb)
+    t, h, w, c = frames.shape
+
     # Resize and scale images for the network structure
     frames_out = []
     need_resize = False
