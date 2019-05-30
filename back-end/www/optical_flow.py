@@ -115,8 +115,8 @@ class OpticalFlow(object):
     #   flow_4d_out_p (string): path for saving the 4D optical flow image array (raw images)
     #   save_path (string): path for saving the 4D hsv image array (optical flow)
     # Saved:
-    #   4d RGB array in pytorch readable format (tensor)
-    #   4d HSV array in pytorch readable format (tensor)
+    #   4d RGB array in format (time, height, width, channel)
+    #   4d HSV array in format (time, height, width, channel)
     def step(self, rgb_vid_in_p=None, rgb_4d_out_p=None, flow_4d_out_p=None, save_path=None):
         # print("process video from %s" % rgb_vid_in_p)
         if rgb_vid_in_p == None:
@@ -126,18 +126,6 @@ class OpticalFlow(object):
         self.rgb_filtered = np.copy(self.rgb_4d)
 
         flow_4d = self.batch_optical_flow(rgb_4d, save_path)
-
-        # Reshape rgb_4d to a pytorch readable format (tensor):
-        # (Channel, time in frames, height, width)
-        rgb_4d = rgb_4d.swapaxes(0, 3)
-        rgb_4d = rgb_4d.swapaxes(1, 3)
-        rgb_4d = rgb_4d.swapaxes(2, 3)
-
-        # Reshape flow_4d to a pytorch readable format (tensor):
-        # (Channel, time in frames, height, width)
-        flow_4d = flow_4d.swapaxes(0, 3)
-        flow_4d = flow_4d.swapaxes(1, 3)
-        flow_4d = flow_4d.swapaxes(2, 3)
 
         # Save rgb_4d to path rgb_4d_out_p
         if rgb_4d_out_p != None:
