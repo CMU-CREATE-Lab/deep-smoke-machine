@@ -34,7 +34,6 @@ class SvmLearner(BaseLearner):
 
         # Train
         model = SVC(C=self.C, gamma="scale")
-        self.model = model
         model.fit(d["train"]["feature"], d["train"]["label"])
 
         # Validate
@@ -49,11 +48,28 @@ class SvmLearner(BaseLearner):
         model_id = str(uuid.uuid4())[0:7] + "-svm"
         check_and_create_dir(self.save_model_path)
         self.save(model, self.save_model_path + model_id + ".pkl")
-        print("Done")
 
-    def predict(self, X):
-        self.log("predict")
-        pass
+        print("Done fit")
+
+    def predict(self,
+            p_metadata_test="../data/metadata_test.json",
+            p_feat="../data/features/",
+            p_model=None):
+
+        if p_model is None:
+            self.log("Need to provide model path")
+            return
+
+        self.log("="*60)
+        self.log("="*60)
+        self.log("Start testing...")
+
+        model = self.load(p_model)
+        d = self.dataset(p_feat, p_metadata_test)
+        label_pred = model.predict(d["feature"])
+        self.log(classification_report(d["label"], label_pred))
+
+        print("Done predict")
 
     def save(self, model, out_path):
         if model is not None and out_path is not None:
