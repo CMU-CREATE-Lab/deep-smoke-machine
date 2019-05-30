@@ -119,9 +119,9 @@ class OpticalFlow(object):
     #   4d HSV array in pytorch readable format (tensor)
     def step(self, rgb_vid_in_p=None, rgb_4d_out_p=None, flow_4d_out_p=None, save_path=None):
         # print("process video from %s" % rgb_vid_in_p)
-        if self.rgb_vid_in_p == None:
+        if rgb_vid_in_p == None:
             return None
-        rgb_4d = self.vid_to_imgs(self.rgb_vid_in_p)
+        rgb_4d = self.vid_to_imgs(rgb_vid_in_p)
         self.rgb_4d = np.copy(rgb_4d)
         self.rgb_filtered = np.copy(self.rgb_4d)
 
