@@ -23,7 +23,7 @@ class I3dLearner(BaseLearner):
     def __init__(self,
             batch_size=16, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=1, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -53,6 +53,58 @@ class I3dLearner(BaseLearner):
         self.parallel = parallel
         self.num_workers = num_workers
 
+    def set_model(self, mode, p_pretrain, is_self_trained=False):
+        # Setup the model based on mode
+        if mode == "rgb":
+            model = InceptionI3d(400, in_channels=3)
+        elif mode == "flow":
+            model = InceptionI3d(400, in_channels=2)
+        else:
+            return None
+
+        # Load i3d pre-trained weights
+        if p_pretrain is not None and not is_self_trained:
+            self.load(model, p_pretrain)
+
+        # Set the number of output classes in the model
+        model.replace_logits(self.num_of_action_classes)
+
+        # Load self-trained weights from fine-tuned models
+        if p_pretrain is not None and is_self_trained:
+            self.load(model, p_pretrain)
+
+        # Use GPU or not
+        if self.use_cuda:
+            model.cuda()
+            if self.parallel and torch.cuda.device_count() > 1:
+                self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
+                model = nn.DataParallel(model)
+
+        return model
+
+    def set_dataloader(self, metadata_path, p_vid, mode):
+        dataloader = {}
+        for phase in metadata_path:
+            self.log("Create dataloader for " + phase)
+            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
+            dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
+                    shuffle=True, num_workers=self.num_workers, pin_memory=True)
+
+        return dataloader
+
+    def labels_to_list(self, labels):
+        # Convert labels obtained from the dataloader to a list of action classes
+        return np.argmax(labels.numpy().max(axis=2), axis=1).tolist()
+
+    def to_variable(self, v):
+        if self.use_cuda:
+            v = v.cuda() # move to gpu
+        return Variable(v)
+
+    def make_pred(self, model, frames):
+        # Upsample prediction to frame length (because we want prediction for each frame)
+        return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
+
     def fit(self,
             mode="rgb",
             p_metadata_train="../data/metadata_train.json",
@@ -65,39 +117,20 @@ class I3dLearner(BaseLearner):
         self.log("="*60)
         self.log("Start training...")
 
-        # Setup the model and load pre-trained weights
+        # Set model
         if mode == "rgb":
-            i3d = InceptionI3d(400, in_channels=3)
-            self.load(i3d, p_pretrain_rgb)
+            model = self.set_model(mode, p_pretrain_rgb)
         elif mode == "flow":
-            i3d = InceptionI3d(400, in_channels=2)
-            self.load(i3d, p_pretrain_flow)
+            model = self.set_model(mode, p_pretrain_flow)
         else:
             return None
 
-        # Set the number of output classes in the model
-        i3d.replace_logits(self.num_of_action_classes)
-
-        # Use GPU or not
-        if self.use_cuda:
-            i3d.cuda()
-            if self.parallel and torch.cuda.device_count() > 1:
-                self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
-                i3d = nn.DataParallel(i3d)
-
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        dataset = {}
-        dataloader = {}
-        for phase in ["train", "validation"]:
-            self.log("Create dataset for", phase)
-            dataset[phase] = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
-            self.log("Create dataloader for", phase)
-            dataloader[phase] = DataLoader(dataset[phase], batch_size=self.batch_size,
-                    shuffle=True, num_workers=self.num_workers, pin_memory=True)
+        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
 
         # Set optimizer
-        optimizer = optim.SGD(i3d.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
+        optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
         lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set logging format
@@ -108,6 +141,7 @@ class I3dLearner(BaseLearner):
         epochs = 0
         nspu = self.num_steps_per_update
         nspc = self.num_steps_per_check
+        nspu_nspc = nspu * nspc
         model_id = str(uuid.uuid4())[0:7] + "-i3d"
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
@@ -130,30 +164,20 @@ class I3dLearner(BaseLearner):
                 if phase == "train":
                     epochs += 1
                     self.log("epochs: %d steps: %d/%d" % (epochs, steps, self.max_steps))
-                    i3d.train(True) # set model to training mode
+                    model.train(True) # set model to training mode
                 else:
-                    i3d.train(False) # set model to evaluate mode
+                    model.train(False) # set model to evaluate mode
                 optimizer.zero_grad()
                 # Iterate over data
                 for d in dataloader[phase]:
                     accum[phase] += 1
-                    # Get inputs
-                    frames = d["frames"]
-                    if self.use_cuda:
-                        frames = frames.cuda()
-                    frames = Variable(frames)
+                    # Get prediction
+                    frames = self.to_variable(d["frames"])
                     labels = d["labels"]
-                    # Save true labels
-                    true_labels[phase] += np.argmax(labels.numpy().max(axis=2), axis=1).tolist()
-                    # Move to GPU
-                    if self.use_cuda:
-                        labels = labels.cuda()
-                    labels = Variable(labels)
-                    # Upsample prediction to frame length (because we want prediction for each frame)
-                    pred = i3d(frames)
-                    pred = F.interpolate(pred, frames.size(2), mode="linear", align_corners=True)
-                    # Save predicted labels
-                    pred_labels[phase] += np.argmax(pred.cpu().detach().numpy().max(axis=2), axis=1).tolist()
+                    true_labels[phase] += self.labels_to_list(labels)
+                    labels = self.to_variable(labels)
+                    pred = self.make_pred(model, frames)
+                    pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
                     # Compute localization loss
                     loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
                     tot_loc_loss[phase] += loc_loss.data
@@ -173,8 +197,8 @@ class I3dLearner(BaseLearner):
                         lr_sche.step()
                         if steps % nspc == 0:
                             lr = lr_sche.get_lr()[0]
-                            tll = tot_loc_loss[phase]/(nspc*nspu)
-                            tcl = tot_cls_loss[phase]/(nspc*nspu)
+                            tll = tot_loc_loss[phase]/nspu_nspc
+                            tcl = tot_cls_loss[phase]/nspu_nspc
                             tl = tot_loss[phase]/nspc
                             self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                             tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
@@ -186,9 +210,8 @@ class I3dLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    model_p = self.save_model_path + model_id + "-" + str(steps) + ".pt"
-                    self.save(i3d, model_p)
-                    self.log("save model to " + model_p)
+                    p_model = self.save_model_path + model_id + "-" + str(steps) + ".pt"
+                    self.save(model, p_model)
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)
                         self.log(classification_report(true_labels[phase], pred_labels[phase]))
@@ -197,6 +220,39 @@ class I3dLearner(BaseLearner):
 
         self.log("Done fit")
 
-    def predict(self, X):
-        self.log("predict")
-        pass
+    def predict(self,
+            mode="rgb",
+            p_metadata_test="../data/metadata_test.json",
+            p_vid="../data/videos/",
+            p_model=None):
+
+        self.log("="*60)
+        self.log("="*60)
+        self.log("Start testing...")
+
+        # Set model
+        model = self.set_model(mode, p_model, is_self_trained=True)
+
+        # Load dataset
+        metadata_path = {"test": p_metadata_test}
+        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
+
+        # Test
+        model.train(False)
+        true_labels = []
+        pred_labels = []
+        counter = 0
+        with torch.no_grad():
+            for d in dataloader["test"]:
+                if counter % 20 == 0:
+                    self.log("Process batch " + str(counter))
+                counter += 1
+                frames = self.to_variable(d["frames"])
+                labels = d["labels"]
+                true_labels += self.labels_to_list(labels)
+                labels = self.to_variable(labels)
+                pred = self.make_pred(model, frames)
+                pred_labels += self.labels_to_list(pred.cpu().detach())
+        self.log(classification_report(true_labels, pred_labels))
+
+        self.log("Done test")

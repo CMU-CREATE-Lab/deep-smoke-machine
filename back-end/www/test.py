@@ -8,12 +8,12 @@ from util import *
 
 # Test model performance
 def main(argv):
-    if len(argv) < 2:
+    if len(argv) < 3:
         print("Usage: python test.py [method] [model_path]")
         return
     method = argv[1]
     model_path = argv[2]
-    if model is None or model_path is None:
+    if method is None or model_path is None:
         print("Usage: python test.py [method] [model_path]")
         return
     test(method=method, model_path=model_path)
@@ -29,10 +29,8 @@ def test(method=None, model_path=None):
         print("Method not allowed")
         return
 
-    # Load model weights
-    model.load(model, model_path)
-
     # Evaluate the model on test set
+    model.predict(p_model=model_path)
 
 if __name__ == "__main__":
     main(sys.argv)
