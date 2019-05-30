@@ -43,6 +43,7 @@ def main(argv):
         flow_4d_out_p = str(flow_dir + file_name)
         # TODO: save rgb frames to ../data/frames/[file_name].npy
         # TODO: save optical flows to ../data/flows/[file_name].npy
+        # Saves files to disk in format (time, height, width, channel) as numpy array
         op.step(rgb_vid_in_p=video, rgb_4d_out_p=rgb_4d_out_p, flow_4d_out_p=flow_4d_out_p)
 
 
