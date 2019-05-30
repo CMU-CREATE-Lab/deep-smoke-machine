@@ -26,6 +26,10 @@ Download all videos in the metadata file.
 ```sh
 python download_videos.py confirm
 ```
+Process all videos into rgb frames and optical flows. Save all data to the disk.
+```sh
+python process_videos.py confirm
+```
 Split the metadata into three sets: train, validation, and test.
 ```sh
 python split_metadata.py confirm
