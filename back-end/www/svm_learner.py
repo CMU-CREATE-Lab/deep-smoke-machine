@@ -10,7 +10,7 @@ import numpy as np
 class SvmLearner(BaseLearner):
     def __init__(self,
             C=4, # SVM parameters
-            save_model_path="saved_svm/"):
+            save_model_path="../data/saved_svm/"):
         super().__init__()
         self.create_logger(log_path="SvmLearner.log")
         self.log("Use SVM learner with I3D features")

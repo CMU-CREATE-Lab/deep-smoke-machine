@@ -30,7 +30,7 @@ class I3dLearner(BaseLearner):
             milestones=[300, 1000], # MultiStepLR parameters (steps for decreasing the learning rate)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            save_model_path="saved_i3d/", # path for saving the models
+            save_model_path="../data/saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             num_workers=2):
