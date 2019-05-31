@@ -9,11 +9,11 @@ class MotionCNN(nn.Module):
         self.pool = nn.MaxPool3d(kernel_size=3, stride=2)
         self.renorm = nn.LocalResponseNorm(size=2)
 
-        self.conv1 = nn.conv3d(in_channels=2, out_channels=96, kernel=7, stride=2)
-        self.conv2 = nn.conv3d(in_channels=96, out_channels=256, kernel=5, stride=2)
-        self.conv3 = nn.conv3d(in_channels=256, out_channels=512, kernel=3, stride=1)
-        self.conv4 = nn.conv3d(in_channels=512, out_channels=512, kenel=3, stride=1)
-        self.conv5 = nn.conv3d(in_channels=512, out_channels=512, kenel=3, stride=1)
+        self.conv1 = nn.Conv3d(in_channels=2, out_channels=96, kernel=7, stride=2)
+        self.conv2 = nn.Conv3d(in_channels=96, out_channels=256, kernel=5, stride=2)
+        self.conv3 = nn.Conv3d(in_channels=256, out_channels=512, kernel=3, stride=1)
+        self.conv4 = nn.Conv3d(in_channels=512, out_channels=512, kenel=3, stride=1)
+        self.conv5 = nn.Conv3d(in_channels=512, out_channels=512, kenel=3, stride=1)
 
         self.full_conn1 = nn.Linear(in_features=self.in_dim, out_features=4096)
         self.full_conn2 = nn.Linear(in_features=4096, out_features=2048)
