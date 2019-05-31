@@ -4,16 +4,6 @@ from util import *
 
 # Download all videos in the metadata json file
 def main(argv):
-    # Check
-    if len(argv) > 1:
-        if argv[1] != "confirm":
-            print("Must confirm by running: python download_videos.py confirm")
-            return
-    else:
-        print("Must confirm by running: python download_videos.py confirm")
-        return
-
-    # Download
     vm = load_json("../data/metadata.json")
     video_root_path = "../data/videos/"
     check_and_create_dir(video_root_path)

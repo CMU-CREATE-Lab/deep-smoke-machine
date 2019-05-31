@@ -142,7 +142,7 @@ class I3dLearner(BaseLearner):
         nspu = self.num_steps_per_update
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
-        model_id = str(uuid.uuid4())[0:7] + "-i3d"
+        model_id = str(uuid.uuid4())[0:7] + "-i3d-" + model
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
@@ -179,6 +179,7 @@ class I3dLearner(BaseLearner):
                     pred = self.make_pred(model, frames)
                     pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
                     # Compute localization loss
+                    #TODO: think about if we need the localization loss
                     loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
                     tot_loc_loss[phase] += loc_loss.data
                     # Compute classification loss (with max-pooling along time, batch x channel x time)

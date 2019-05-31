@@ -27,8 +27,7 @@ class SmokeVideoDataset(Dataset):
         file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
 
         if not is_file_here(file_path):
-            raise ValueError("File not pre-downloaded: %s" % (file_path))
-
+            raise ValueError("Cannot find file: %s" % (file_path))
 
         # Load rgb or optical flow as a data point
         if self.mode == "rgb":
