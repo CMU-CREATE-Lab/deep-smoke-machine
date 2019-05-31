@@ -23,15 +23,18 @@ class SmokeVideoDataset(Dataset):
 
     def __getitem__(self, idx):
         v = self.metadata[idx]
-        file_path = os.path.join(self.root_dir, v["file_name"] + ".mp4")
-        # TODO: file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
-        # TODO: check if file exists, if not, raise an error
+
+        file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
+
+        if not is_file_here(file_path):
+            raise ValueError("File not pre-downloaded: %s" % (file_path))
+
 
         # Load rgb or optical flow as a data point
         if self.mode == "rgb":
-            frames = load_rgb_frames(file_path)
+            frames = load_frames(file_path)
         elif self.mode == "flow":
-            frames = load_flow_frames(file_path)
+            frames = load_frames(file_path)
         else:
             return None
 
@@ -53,13 +56,12 @@ class SmokeVideoDataset(Dataset):
         # Return item
         return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
 
-# Load videos in the RGB format
-# TODO: modify this function to load rgb frames directly and resize it
-def load_rgb_frames(file_path, resize_to=224.0):
-    op = OpticalFlow()
 
-    # The vid_to_imgs function gives (time, height, width, channel)
-    frames = op.vid_to_imgs(rgb_vid_path=file_path)
+# Load preprocessed videos from file_path
+def load_frames(file_path, resize_to=224.0):
+
+    # Saved numpy files should be read in with format (time, height, width, channel)
+    frames = np.load(file_path)
     t, h, w, c = frames.shape
 
     # Resize and scale images for the network structure
@@ -77,31 +79,6 @@ def load_rgb_frames(file_path, resize_to=224.0):
         frames_out.append(img)
     return np.asarray(frames_out, dtype=np.float32)
 
-
-# Load videos in HSV format with optical flow computed
-# TODO: modify this function to load optical flows directly and resize it
-def load_flow_frames(file_path, resize_to=224.0):
-    op = OpticalFlow()
-
-    # The vid_to_imgs function gives (time, height, width, channel)
-    rgb = op.vid_to_imgs(rgb_vid_path=file_path)
-    frames = op.batch_optical_flow(rgb)
-    t, h, w, c = frames.shape
-
-    # Resize and scale images for the network structure
-    frames_out = []
-    need_resize = False
-    if w < resize_to or h < resize_to:
-        d = resize_to - min(w, h)
-        sc = 1 + d / min(w, h)
-        need_resize = True
-    for i in range(t):
-        img = frames[i, :, :, :]
-        if need_resize:
-            img = cv.resize(img, dsize=(0, 0), fx=sc, fy=sc)
-        img = (img / 255.) * 2 - 1
-        frames_out.append(img)
-    return np.asarray(frames_out, dtype=np.float32)
 
 def labels_to_tensor(labels):
     """
@@ -110,8 +87,6 @@ def labels_to_tensor(labels):
     """
     return torch.from_numpy(labels.transpose([1,0]))
 
-# TODO: remove transpose if the array is in the correct shape
-# TODO: change the comments in this function accordingly
 def frames_to_tensor(frames):
     """
     Converts a numpy.ndarray with shape (time x height x width x channel)
