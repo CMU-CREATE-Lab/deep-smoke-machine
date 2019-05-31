@@ -16,7 +16,7 @@ import numpy as np
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
 class TsLearner(BaseLearner):
     def __init__(self,
-                 batch_size=8,
+                 batch_size=4,
                  lr=0.001,
                  max_steps=64e3,
                  momentum=0.9,
