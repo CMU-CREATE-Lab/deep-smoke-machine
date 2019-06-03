@@ -85,8 +85,9 @@ class SpatialCNN(nn.Module):
 
         mock_input = torch.randn(4, 3, 36, 224, 224)
         mock_output = self.model(mock_input)
-        flattened_outputed = torch.flatten(mock_output, start_dim=1)
-        fc_in_dim = flattened_outputed[1]
+        flattened_output = torch.flatten(mock_output, start_dim=1)
+        fc_in_dim = ((flattened_output[1]).shape).item() # Get number of nodes from flattened value's size, then convert 0 dim tensor to integer
+
 
         self.full_conn1 = nn.Linear(in_features=fc_in_dim, out_features=4096)
         self.full_conn2 = nn.Linear(in_features=4096, out_features=2048)
