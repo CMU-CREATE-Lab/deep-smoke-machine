@@ -7,7 +7,7 @@ class MotionCNN(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv3d(in_channels=3, out_channels=96, kernel_size=7, stride=2),
+            nn.Conv3d(in_channels=2, out_channels=96, kernel_size=7, stride=2),
             nn.MaxPool3d(kernel_size=3, stride=1),
             nn.ReLU(),
             nn.LocalResponseNorm(size=2),
@@ -106,5 +106,3 @@ class SpatialCNN(nn.Module):
         x = self.full_conn3(x)
 
         return F.softmax(x, dim=0)
-
-
