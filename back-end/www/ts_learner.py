@@ -156,7 +156,7 @@ class TsLearner(BaseLearner):
                     true_labels[phase] += self.labels_to_list(labels)
                     labels = self.to_variable(d["labels"])
                     pred = ts(frames)
-                    pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
+                    pred_labels[phase] += pred.cpu().detach()
                     # Compute localization loss
                     loc_loss = criterion(pred, labels)
                     tot_loc_loss[phase] += loc_loss.data
