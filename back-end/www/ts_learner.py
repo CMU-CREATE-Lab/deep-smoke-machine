@@ -10,6 +10,7 @@ from torch.autograd import Variable
 import uuid
 from sklearn.metrics import classification_report
 import numpy as np
+import random
 
 
 # Two-Stream ConvNet learner
@@ -47,6 +48,15 @@ class TsLearner(BaseLearner):
             self.device = torch.device("cpu")
         self.parallel = parallel
         self.save_model_path = save_model_path
+
+    def random_frames_from_batch(self, data):
+        b, c, f, h, w = list(data.shape)
+        new_batch = torch.zeros(b, c, h, w)
+        for i in range(b):
+            frame = random.randint(0, f - 1)
+            new_batch[i, :, :, :] = data[i, :, frame, :, :]
+        return new_batch
+
 
     def set_dataloader(self, metadata_path, p_vid, mode):
         dataloader = {}
@@ -138,7 +148,9 @@ class TsLearner(BaseLearner):
                 for d in dataloader[phase]:
                     accum[phase] += 1
                     # Get inputs
-                    frames, labels = self.to_variable(d["frames"]), d["labels"]
+                    frames, labels = d["frames"], d["labels"]
+                    frames = self.random_frames_from_batch(frames)
+                    frames = self.to_variable(frames)
                     true_labels[phase] += self.labels_to_list(labels)
                     labels = self.to_variable(d["labels"])
                     pred = self.make_pred(ts, frames)
