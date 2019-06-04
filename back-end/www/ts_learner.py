@@ -158,7 +158,8 @@ class TsLearner(BaseLearner):
                     true_labels[phase] += self.labels_to_list(labels)
                     labels = self.to_variable(d["labels"])
                     pred = ts(frames)
-                    pred_labels[phase] += list(pred.cpu().detach())
+                    _, predicted = torch.max(pred, dim=1)
+                    pred_labels[phase] += list(predicted.cpu().detach())
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
                     cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
