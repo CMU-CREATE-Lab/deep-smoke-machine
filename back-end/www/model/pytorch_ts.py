@@ -60,7 +60,7 @@ class SpatialCNN(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(in_channels=2, out_channels=96, kernel_size=7, stride=2),
+            nn.Conv2d(in_channels=3, out_channels=96, kernel_size=7, stride=2),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(),
             nn.LocalResponseNorm(size=2),
