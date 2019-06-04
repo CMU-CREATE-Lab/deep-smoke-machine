@@ -85,7 +85,7 @@ class TsLearner(BaseLearner):
             mode="rgb",
             p_metadata_train="../data/metadata_train.json",
             p_metadata_validation="../data/metadata_validation.json",
-            p_vid="../data/videos/"):
+            p_vid="../data/"):
 
         self.log("="*60)
         self.log("="*60)
@@ -93,9 +93,11 @@ class TsLearner(BaseLearner):
 
         if mode == "rgb":
             ts = SpatialCNN()
+            p_vid = p_vid + "rgb/"
 
         elif mode == "flow":
             ts = MotionCNN()
+            p_vid = p_vid + "flow/"
 
         ts = ts.to(self.device)
 
