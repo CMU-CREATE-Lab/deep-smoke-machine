@@ -112,7 +112,7 @@ class TsLearner(BaseLearner):
         criterion = nn.BCEWithLogitsLoss()
 
         # Set logging format
-        log_fm = "%s step: %d lr: %r loc_loss: %.4f cls_loss: %.4f loss: %.4f"
+        log_fm = "%s step: %d lr: %r loss: %.4f"
 
         # Train and validate
         steps = 0
@@ -157,14 +157,11 @@ class TsLearner(BaseLearner):
                     labels = self.to_variable(d["labels"])
                     pred = ts(frames)
                     pred_labels[phase] += list(pred.cpu().detach())
-                    # Compute localization loss
-                    loc_loss = criterion(pred, torch.max(labels, dim=2)[0])
-                    tot_loc_loss[phase] += loc_loss.data
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
                     cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
-                    loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
+                    loss = cls_loss / nspu
                     tot_loss[phase] += loss.data
                     loss.backward()
                     # Accumulate gradients during training
@@ -174,17 +171,13 @@ class TsLearner(BaseLearner):
                         optimizer.step()
                         optimizer.zero_grad()
                         if steps % nspc == 0:
-                            tll = tot_loc_loss[phase]/nspu_nspc
-                            tcl = tot_cls_loss[phase]/nspu_nspc
                             tl = tot_loss[phase]/nspc
-                            self.log(log_fm % (phase, steps, self.lr, tll, tcl, tl))
-                            tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
+                            self.log(log_fm % (phase, steps, self.lr, tl))
+                            tot_loss[phase] = 0.0
                 if phase == "validation":
-                    tll = tot_loc_loss[phase]/accum[phase]
-                    tcl = tot_cls_loss[phase]/accum[phase]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
-                    self.log(log_fm % (phase, steps, self.lr, tll, tcl, tl))
-                    tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
+                    self.log(log_fm % (phase, steps, self.lr, tl))
+                    tot_loss[phase] = 0.0
                     accum[phase] = 0
                     p_model = self.save_model_path + model_id + "-" + str(steps) + ".pt"
                     self.save(ts, p_model)
@@ -232,8 +225,8 @@ class TsLearner(BaseLearner):
                 labels = d["labels"]
                 true_labels += self.labels_to_list(labels)
                 labels = self.to_variable(labels)
-                pred = self.make_pred(ts, frames)
-                pred_labels += self.labels_to_list(pred.cpu().detach())
+                pred = ts(frames)
+                pred_labels += list(pred.cpu().detach())
         self.log(classification_report(true_labels, pred_labels))
 
         self.log("Done test")
