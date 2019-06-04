@@ -11,6 +11,7 @@ import uuid
 from sklearn.metrics import classification_report
 import numpy as np
 import random
+from util import check_and_create_dir
 
 
 # Two-Stream ConvNet learner
@@ -48,6 +49,7 @@ class TsLearner(BaseLearner):
             self.device = torch.device("cpu")
         self.parallel = parallel
         self.save_model_path = save_model_path
+        check_and_create_dir(self.save_model_path)
 
     def random_frames_from_batch(self, data):
         b, c, f, h, w = list(data.shape)
