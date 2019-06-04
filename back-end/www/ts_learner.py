@@ -156,12 +156,12 @@ class TsLearner(BaseLearner):
                     true_labels[phase] += self.labels_to_list(labels)
                     labels = self.to_variable(d["labels"])
                     pred = ts(frames)
-                    pred_labels[phase] += pred.cpu().detach()
+                    pred_labels[phase] += list(pred.cpu().detach())
                     # Compute localization loss
-                    loc_loss = criterion(pred, labels)
+                    loc_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_loc_loss[phase] += loc_loss.data
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
-                    cls_loss = criterion(torch.max(pred, dim=2)[0], torch.max(labels, dim=2)[0])
+                    cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
                     loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
