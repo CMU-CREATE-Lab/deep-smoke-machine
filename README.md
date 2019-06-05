@@ -12,7 +12,7 @@ cd deep-smoke-machine/back-end/www
 ```
 If the deep-smoke-machine/back-end/www/optical_flow submodule is empty, run the following:
 ```sh
-git submodule update --init
+git submodule update --init --recursive
 ```
 Install PyTorch.
 ```sh
