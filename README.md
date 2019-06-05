@@ -8,11 +8,13 @@ conda activate deep-smoke-machine
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
-cd deep-smoke-machine/back-end/www
+cd deep-smoke-machine/back-end/www/
 ```
 If the deep-smoke-machine/back-end/www/optical_flow submodule is empty, run the following:
 ```sh
+cd optical_flow/
 git submodule update --init --recursive
+git checkout master
 ```
 Install PyTorch.
 ```sh
