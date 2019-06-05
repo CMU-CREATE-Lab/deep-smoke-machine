@@ -24,7 +24,7 @@ class TsLearner(BaseLearner):
                  momentum=0.9,
                  num_workers=1,
                  num_of_action_classes=2,
-                 num_steps_per_update=3,
+                 num_steps_per_update=8,
                  num_steps_per_check=10,
                  use_cuda = torch.cuda.is_available(),
                  parallel=False,
