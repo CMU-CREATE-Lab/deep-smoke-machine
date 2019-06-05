@@ -11,9 +11,9 @@ sh deep-smoke-machine/back-end/install_packages.sh
 cd deep-smoke-machine/back-end/www
 ```
 If the deep-smoke-machine/back-end/www/optical_flow submodule is empty, run the following:
-``sh
+```sh
 git submodule update --init
-``
+```
 Install PyTorch.
 ```sh
 # For cuda 9.0
