@@ -7,7 +7,7 @@ from optical_flow.optical_flow import OpticalFlow
 # Process videos into rgb frame files and optical flow files
 # The file format is numpy.array
 def main(argv):
-    op = OpticalFlow()
+    op = OpticalFlow(flow_type=2)
 
     rgb_dir = "../data/rgb/"
     flow_dir = "../data/flow/"

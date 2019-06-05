@@ -2,7 +2,6 @@ import torch
 from torch.utils.data import Dataset
 import cv2 as cv
 import numpy as np
-from optical_flow.optical_flow import OpticalFlow
 from util import *
 
 # The smoke video dataset
@@ -45,7 +44,8 @@ class SmokeVideoDataset(Dataset):
         label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
         pos = [47, 23, 19, 15]
         neg = [32, 20, 16, 12]
-        labels = np.array([0.0, 0.0], dtype=np.float32) # the first and second column indicate the probability of no and yes respectively
+        labels = np.array([0.0, 0.0], dtype=np.float32)
+        # the 1st and 2nd column in the labels array show the probability of no and yes respectively
         if label_state in pos:
             labels[1] = 1.0
         elif label_state in neg:
