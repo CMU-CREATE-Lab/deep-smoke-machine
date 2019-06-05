@@ -10,4 +10,4 @@ pip install opencv-python==4.1.0.25
 pip install matplotlib==3.0.3
 
 # For machine learning
-pip install scikit-learn
+pip install scikit-learn==0.21.2

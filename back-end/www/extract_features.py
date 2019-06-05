@@ -18,12 +18,13 @@ def flatten_tensor(t):
 # Extract I3D features from pre-trained models and save them
 def main(argv):
     mode = "rgb"
-    batch_size = 32
+    batch_size = 16
     p = "../data/"
     p_feat = p + "features/"
     p_pretrain = p + "pretrained_models/"
-    p_vid = p + "videos/"
+    p_vid = p + "rgb/"
     has_gpu = torch.cuda.is_available()
+    num_workers = 2
 
     # Setup the model and load pre-trained weights
     if mode == "rgb":
@@ -51,7 +52,7 @@ def main(argv):
         print("Create dataset for", phase)
         dataset = SmokeVideoDataset(metadata_path=p+"metadata_"+phase+".json", root_dir=p_vid, mode=mode)
         print("Create dataloader for", phase)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
         # Iterate over data batches
         for d in dataloader:
             # Skip if all the files exist
