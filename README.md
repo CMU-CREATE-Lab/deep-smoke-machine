@@ -1,7 +1,7 @@
 # deep-smoke-machine
 Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04, Nvidia drivers, cuda, and cuDNN are installed.
 ```sh
-git clone https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
+git clone --recursive https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
 sudo chown -R $USER deep-smoke-machine
 conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
@@ -10,6 +10,10 @@ which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
 cd deep-smoke-machine/back-end/www
 ```
+If the deep-smoke-machine/back-end/www/optical_flow submodule is empty, run the following:
+``sh
+git submodule update --init
+``
 Install PyTorch.
 ```sh
 # For cuda 9.0
