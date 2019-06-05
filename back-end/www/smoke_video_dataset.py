@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import cv2 as cv
 import numpy as np
-from optical_flow import OpticalFlow
+from optical_flow.optical_flow import OpticalFlow
 from util import *
 
 # The smoke video dataset

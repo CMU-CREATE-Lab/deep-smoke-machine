@@ -2,7 +2,7 @@ import sys
 from util import *
 import cv2 as cv
 import numpy as np
-from optical_flow import OpticalFlow
+from optical_flow.optical_flow import OpticalFlow
 
 # Process videos into rgb frame files and optical flow files
 # The file format is numpy.array
