@@ -23,8 +23,8 @@ def main(argv):
         file_name = video_data["file_name"]
         if is_file_here(rgb_dir + file_name + ".npy") and is_file_here(flow_dir + file_name + ".npy"): continue
         video = str(video_dir + file_name + ".mp4")
-        rgb_4d_out_p = str(rgb_dir + file_name)
-        flow_4d_out_p = str(flow_dir + file_name)
+        rgb_4d_out_p = str(rgb_dir + file_name + ".npy")
+        flow_4d_out_p = str(flow_dir + file_name + ".npy")
         # Saves files to disk in format (time, height, width, channel) as numpy array
         op.step(rgb_vid_in_p=video, rgb_4d_out_p=rgb_4d_out_p, flow_4d_out_p=flow_4d_out_p)
 
