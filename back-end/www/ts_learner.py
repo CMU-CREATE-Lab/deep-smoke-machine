@@ -5,6 +5,7 @@ from model.pytorch_ts import *
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
 import torch.optim as optim
+from torch.optim import lr_scheduler
 import torch.nn.functional as F
 from torch.autograd import Variable
 import uuid
@@ -18,13 +19,15 @@ from util import check_and_create_dir
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
 class TsLearner(BaseLearner):
     def __init__(self,
-                 batch_size=4,
-                 lr=0.001,
+                 batch_size=8,
+                 lr=0.01,
                  max_steps=64e3,
                  momentum=0.9,
+                 milestones = [300, 500, 1000],
+                 gamma = 0.1,
                  num_workers=1,
                  num_of_action_classes=2,
-                 num_steps_per_update=8,
+                 num_steps_per_update=2,
                  num_steps_per_check=10,
                  use_cuda = torch.cuda.is_available(),
                  parallel=False,
@@ -38,6 +41,8 @@ class TsLearner(BaseLearner):
         self.lr = lr
         self.max_steps = max_steps
         self.momentum = momentum
+        self.milestones = milestones
+        self.gamma = gamma
         self.num_workers = num_workers
         self.num_of_action_classes = num_of_action_classes
         self.num_steps_per_update = num_steps_per_update
@@ -109,6 +114,7 @@ class TsLearner(BaseLearner):
 
         # Set optimizer
         optimizer = optim.SGD(params=ts.parameters(), lr=self.lr, momentum=self.momentum)
+        lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set Loss Function
         criterion = nn.BCEWithLogitsLoss()
@@ -164,7 +170,7 @@ class TsLearner(BaseLearner):
                     cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
-                    loss = cls_loss / nspu
+                    loss = cls_loss # / nspu
                     tot_loss[phase] += loss.data
                     loss.backward()
                     # Accumulate gradients during training
@@ -173,13 +179,16 @@ class TsLearner(BaseLearner):
                         accum[phase] = 0
                         optimizer.step()
                         optimizer.zero_grad()
+                        lr_sche.step()
                         if steps % nspc == 0:
+                            lr = lr_sche.get_lr()[0]
                             tl = tot_loss[phase]/nspc
-                            self.log(log_fm % (phase, steps, self.lr, tl))
+                            self.log(log_fm % (phase, steps, lr, tl))
                             tot_loss[phase] = 0.0
                 if phase == "validation":
+                    lr = lr_sche.get_lr()[0]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
-                    self.log(log_fm % (phase, steps, self.lr, tl))
+                    self.log(log_fm % (phase, steps, lr, tl))
                     tot_loss[phase] = 0.0
                     accum[phase] = 0
                     p_model = self.save_model_path + model_id + "-" + str(steps) + ".pt"
