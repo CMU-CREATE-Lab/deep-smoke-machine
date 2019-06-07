@@ -16,12 +16,14 @@ from util import check_and_create_dir
 import uuid
 from sklearn.metrics import classification_report
 import numpy as np
+from torchvision import transforms
+from video_transforms import *
 
 # Two-Stream Inflated 3D ConvNet learner
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=16, # size for each batch (8 for each GTX 1080Ti)
+            batch_size=8, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
             num_steps_per_update=1, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
@@ -32,8 +34,9 @@ class I3dLearner(BaseLearner):
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
-            parallel=True, # use nn.DataParallel or not
-            num_workers=2):
+            parallel=False, # use nn.DataParallel or not
+            augment=True, # use data augmentation or not
+            num_workers=1):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
@@ -51,9 +54,10 @@ class I3dLearner(BaseLearner):
         self.save_model_path = save_model_path
         self.num_steps_per_check = num_steps_per_check
         self.parallel = parallel
+        self.augment = augment
         self.num_workers = num_workers
 
-    def set_model(self, mode, p_pretrain, is_self_trained=False):
+    def set_model(self, mode, p_pretrain):
         # Setup the model based on mode
         if mode == "rgb":
             model = InceptionI3d(400, in_channels=3)
@@ -63,8 +67,13 @@ class I3dLearner(BaseLearner):
             return None
 
         # Load i3d pre-trained weights
-        if p_pretrain is not None and not is_self_trained:
-            self.load(model, p_pretrain)
+        is_self_trained = False
+        try:
+            if p_pretrain is not None:
+                self.load(model, p_pretrain)
+        except:
+            # Not pre-trained weights
+            is_self_trained = True
 
         # Set the number of output classes in the model
         model.replace_logits(self.num_of_action_classes)
@@ -82,11 +91,11 @@ class I3dLearner(BaseLearner):
 
         return model
 
-    def set_dataloader(self, metadata_path, p_vid, mode):
+    def set_dataloader(self, metadata_path, p_frame, mode, tf):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
-            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
+            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_frame, mode=mode, transform=tf[phase])
             dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
@@ -106,28 +115,30 @@ class I3dLearner(BaseLearner):
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
     def fit(self,
-            mode="rgb",
+            mode="rgb", # can be "rgb" or "flow"
+            p_frame=None, # the path to load rgb or optical flow frames
+            p_model=None, # the path to load the pretrained or previously self-trained model
             p_metadata_train="../data/metadata_train.json",
-            p_metadata_validation="../data/metadata_validation.json",
-            p_vid="../data/videos/",
-            p_pretrain_rgb="../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt",
-            p_pretrain_flow="../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"):
+            p_metadata_validation="../data/metadata_validation.json"):
 
         self.log("="*60)
         self.log("="*60)
         self.log("Start training...")
 
+        # Check
+        if p_frame is None:
+            self.log("Please specify p_frame, the path to load rgb or optical flow frames")
+
         # Set model
-        if mode == "rgb":
-            model = self.set_model(mode, p_pretrain_rgb)
-        elif mode == "flow":
-            model = self.set_model(mode, p_pretrain_flow)
-        else:
-            return None
+        model = self.set_model(mode, p_model)
+        if model is None: return None
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
+        transform = None
+        if self.augment:
+            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None)}
+        dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
 
         # Set optimizer
         optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
@@ -222,21 +233,26 @@ class I3dLearner(BaseLearner):
         self.log("Done fit")
 
     def predict(self,
-            mode="rgb",
-            p_metadata_test="../data/metadata_test.json",
-            p_vid="../data/videos/",
-            p_model=None):
+            mode="rgb", # can be "rgb" or "flow"
+            p_frame=None, # the path to load rgb or optical flow frames
+            p_model=None, # the path to load the previously self-trained model
+            p_metadata_test="../data/metadata_test.json"):
 
         self.log("="*60)
         self.log("="*60)
         self.log("Start testing...")
 
+        # Check
+        if p_frame is None:
+            self.log("Please specify p_frame, the path to load rgb or optical flow frames")
+
         # Set model
-        model = self.set_model(mode, p_model, is_self_trained=True)
+        model = self.set_model(mode, p_model)
+        if model is None: return None
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
+        dataloader = self.set_dataloader(metadata_path, p_frame, mode)
 
         # Test
         model.train(False)

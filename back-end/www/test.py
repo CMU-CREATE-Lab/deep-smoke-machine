@@ -19,18 +19,23 @@ def main(argv):
     test(method=method, model_path=model_path)
 
 def test(method=None, model_path=None):
-    if method == "i3d":
+    if method == "i3d-rgb":
         model = I3dLearner()
+        frame_path="../data/rgb/"
+        model.predict(mode="rgb", p_frame=frame_path, p_model=model_path)
+    elif method == "i3d-flow":
+        model = I3dLearner()
+        frame_path="../data/flow/"
+        model.predict(mode="flow", p_frame=frame_path, p_model=model_path)
     elif method == "ts":
         model = TsLearner()
+        model.predict(p_model=model_path)
     elif method == "svm":
         model = SvmLearner()
+        model.predict(p_model=model_path)
     else:
         print("Method not allowed")
         return
-
-    # Evaluate the model on test set
-    model.predict(p_model=model_path)
 
 if __name__ == "__main__":
     main(sys.argv)
