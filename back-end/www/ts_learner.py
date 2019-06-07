@@ -20,11 +20,12 @@ from util import check_and_create_dir
 class TsLearner(BaseLearner):
     def __init__(self,
                  batch_size=8,
-                 lr=0.01,
+                 lr=0.1,
                  max_steps=64e3,
                  momentum=0.9,
-                 milestones = [300, 500, 1000],
+                 milestones = [40, 500, 1000],
                  gamma = 0.1,
+                 weight_decay = 0.000001,
                  num_workers=1,
                  num_of_action_classes=2,
                  num_steps_per_update=2,
@@ -43,6 +44,7 @@ class TsLearner(BaseLearner):
         self.momentum = momentum
         self.milestones = milestones
         self.gamma = gamma
+        self.weight_decay = weight_decay
         self.num_workers = num_workers
         self.num_of_action_classes = num_of_action_classes
         self.num_steps_per_update = num_steps_per_update
@@ -113,7 +115,7 @@ class TsLearner(BaseLearner):
         dataloader = self.set_dataloader(metadata_path, p_vid, mode)
 
         # Set optimizer
-        optimizer = optim.SGD(params=ts.parameters(), lr=self.lr, momentum=self.momentum)
+        optimizer = optim.SGD(params=ts.parameters(), lr=self.lr, momentum=self.momentum, weight_decay = self.weight_decay)
         lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set Loss Function
@@ -170,7 +172,7 @@ class TsLearner(BaseLearner):
                     cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
-                    loss = cls_loss # / nspu
+                    loss = cls_loss / nspu
                     tot_loss[phase] += loss.data
                     loss.backward()
                     # Accumulate gradients during training
