@@ -75,14 +75,14 @@ class SpatialCNN(nn.Module):
                       stride=1),
             nn.ReLU(),
 
-            nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3,
-                      stride=1),
-            nn.ReLU(),
+            #nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3,
+            #          stride=1),
+            #nn.ReLU(),
 
-            nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3,
-                      stride=1),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.ReLU(),
+            #nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3,
+            #          stride=1),
+            #nn.MaxPool2d(kernel_size=3, stride=2),
+            #nn.ReLU(),
         )
 
         mock_input = torch.randn(4, 3, 224, 224)
@@ -92,8 +92,10 @@ class SpatialCNN(nn.Module):
 
 
         self.full_conn1 = nn.Linear(in_features=fc_in_dim, out_features=4096)
-        self.full_conn2 = nn.Linear(in_features=4096, out_features=2048)
-        self.full_conn3 = nn.Linear(in_features=2048, out_features=2)
+        #self.full_conn2 = nn.Linear(in_features=4096, out_features=2048)
+        #self.full_conn3 = nn.Linear(in_features=2048, out_features=2)
+        self.full_conn3 = nn.Linear(in_features=4096, out_features=2)
+
 
     def forward(self, x):
         x = self.model(x)
@@ -101,10 +103,10 @@ class SpatialCNN(nn.Module):
         x = torch.flatten(x, start_dim=1)  # Flattens layers without losing batches
 
         x = self.full_conn1(x)
-        x = F.dropout(x)
+        # x = F.dropout(x)
 
-        x = self.full_conn2(x)
-        x = F.dropout(x)
+        #x = self.full_conn2(x)
+        # x = F.dropout(x)
 
         x = self.full_conn3(x)
 
