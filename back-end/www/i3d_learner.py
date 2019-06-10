@@ -1,6 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -12,7 +13,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
-from util import check_and_create_dir
 import uuid
 from sklearn.metrics import classification_report
 import numpy as np
@@ -23,20 +23,20 @@ from video_transforms import *
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=32, # size for each batch (8 for each GTX 1080Ti)
+            batch_size=24, # size for each batch (8 max for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=3, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[300, 1000], # MultiStepLR parameters (steps for decreasing the learning rate)
+            milestones=[1000, 3000], # MultiStepLR parameters (steps for decreasing the learning rate)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=4):
+            num_workers=3):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
@@ -153,7 +153,6 @@ class I3dLearner(BaseLearner):
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
         model_id = str(uuid.uuid4())[0:7] + "-i3d-" + mode
-        check_and_create_dir(self.save_model_path + model_id + "/")
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss

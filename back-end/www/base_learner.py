@@ -63,6 +63,7 @@ class BaseLearner(ABC):
                 state_dict = model.module.state_dict() # nn.DataParallel model
             except AttributeError:
                 state_dict = model.state_dict() # single GPU model
+            check_and_create_dir(out_path)
             torch.save(state_dict, out_path)
 
     # Load model

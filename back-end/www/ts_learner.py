@@ -12,8 +12,6 @@ import uuid
 from sklearn.metrics import classification_report
 import numpy as np
 import random
-from util import check_and_create_dir
-
 
 # Two-Stream ConvNet learner
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
@@ -130,7 +128,6 @@ class TsLearner(BaseLearner):
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
         model_id = str(uuid.uuid4())[0:7] + "-ts-" + mode
-        check_and_create_dir(self.save_model_path + model_id + "/")
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
