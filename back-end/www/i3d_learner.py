@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 #os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,3" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,2" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -23,9 +23,9 @@ from video_transforms import *
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=24, # size for each batch (8 max for each GTX 1080Ti)
+            batch_size=16, # size for each batch (8 max for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=3, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -36,7 +36,7 @@ class I3dLearner(BaseLearner):
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=3):
+            num_workers=4):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
