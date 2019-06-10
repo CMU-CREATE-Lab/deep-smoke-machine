@@ -23,9 +23,9 @@ from video_transforms import *
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=8, # size for each batch (8 for each GTX 1080Ti)
+            batch_size=32, # size for each batch (8 for each GTX 1080Ti)
             max_steps=64e3, # total number of steps for training
-            num_steps_per_update=1, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -34,9 +34,9 @@ class I3dLearner(BaseLearner):
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
             num_steps_per_check=10, # the number of steps to save a model and log information
-            parallel=False, # use nn.DataParallel or not
+            parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=1):
+            num_workers=4):
         super().__init__()
         self.create_logger(log_path="I3dLearner.log")
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
@@ -50,7 +50,6 @@ class I3dLearner(BaseLearner):
         self.milestones = milestones
         self.gamma = gamma
         self.num_of_action_classes = num_of_action_classes
-        check_and_create_dir(save_model_path)
         self.save_model_path = save_model_path
         self.num_steps_per_check = num_steps_per_check
         self.parallel = parallel
@@ -137,7 +136,7 @@ class I3dLearner(BaseLearner):
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
         transform = None
         if self.augment:
-            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None)}
+            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
         dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
 
         # Set optimizer
@@ -153,7 +152,8 @@ class I3dLearner(BaseLearner):
         nspu = self.num_steps_per_update
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
-        model_id = str(uuid.uuid4())[0:7] + "-i3d-" + model
+        model_id = str(uuid.uuid4())[0:7] + "-i3d-" + mode
+        check_and_create_dir(self.save_model_path + model_id + "/")
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
@@ -222,7 +222,7 @@ class I3dLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    p_model = self.save_model_path + model_id + "-" + str(steps) + ".pt"
+                    p_model = self.save_model_path + model_id + "/" + str(steps) + ".pt"
                     self.save(model, p_model)
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)

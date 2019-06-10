@@ -73,10 +73,12 @@ class SvmLearner(BaseLearner):
 
     def save(self, model, out_path):
         if model is not None and out_path is not None:
+            self.log("Save model to " + out_path)
             joblib.dump(model, out_path)
 
     def load(self, in_path):
         if in_path is not None:
+            self.log("Load model from " + in_path)
             model = joblib.load(in_path)
             return model
         else:

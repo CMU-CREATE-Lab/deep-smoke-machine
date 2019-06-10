@@ -32,7 +32,7 @@ class TsLearner(BaseLearner):
                  num_steps_per_check=10,
                  use_cuda = torch.cuda.is_available(),
                  parallel=False,
-                 save_model_path="saved_ts/",  # path for saving the models
+                 save_model_path="../data/saved_ts/",  # path for saving the models
                  ):
         super().__init__()
         self.create_logger(log_path="TsLearner.log")
@@ -56,7 +56,6 @@ class TsLearner(BaseLearner):
             self.device = torch.device("cpu")
         self.parallel = parallel
         self.save_model_path = save_model_path
-        check_and_create_dir(self.save_model_path)
 
     def random_frames_from_batch(self, data):
         b, c, f, h, w = list(data.shape)
@@ -131,6 +130,7 @@ class TsLearner(BaseLearner):
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
         model_id = str(uuid.uuid4())[0:7] + "-ts-" + mode
+        check_and_create_dir(self.save_model_path + model_id + "/")
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
@@ -193,7 +193,7 @@ class TsLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tl))
                     tot_loss[phase] = 0.0
                     accum[phase] = 0
-                    p_model = self.save_model_path + model_id + "-" + str(steps) + ".pt"
+                    p_model = self.save_model_path + model_id + "/" + str(steps) + ".pt"
                     self.save(ts, p_model)
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)

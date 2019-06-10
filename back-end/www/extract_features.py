@@ -22,7 +22,7 @@ def main(argv):
     p = "../data/"
     p_feat = p + "features/"
     p_pretrain = p + "pretrained_models/"
-    p_vid = p + "rgb/"
+    p_frame = p + "rgb/"
     has_gpu = torch.cuda.is_available()
     num_workers = 2
 
@@ -50,7 +50,7 @@ def main(argv):
     # Loop all datasets
     for phase in ["train", "validation", "test"]:
         print("Create dataset for", phase)
-        dataset = SmokeVideoDataset(metadata_path=p+"metadata_"+phase+".json", root_dir=p_vid, mode=mode)
+        dataset = SmokeVideoDataset(metadata_path=p+"metadata_"+phase+".json", root_dir=p_frame, mode=mode)
         print("Create dataloader for", phase)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
         # Iterate over data batches
@@ -62,7 +62,9 @@ def main(argv):
                 if not is_file_here(p_feat+fn+".npy"):
                     skip = False
                     break
-            if skip: continue
+            if skip:
+                print("Skip this batch")
+                continue
             # Extract features
             with torch.no_grad():
                 frames = d["frames"]
