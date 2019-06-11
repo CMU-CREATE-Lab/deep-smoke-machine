@@ -1,8 +1,18 @@
 # deep-smoke-machine
 Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04, Nvidia drivers, cuda, and cuDNN are installed.
+
+Clone this repository and set the permission.
 ```sh
 git clone --recursive https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
-sudo chown -R $USER deep-smoke-machine
+sudo chown -R $USER deep-smoke-machine/
+sudo addgroup [group_name]
+sudo usermod -a -G [group_name] [user_name]
+groups [user_name]
+sudo chmod -R 775 deep-smoke-machine/
+sudo chgrp [group_name] deep-smoke-machine/
+```
+Create conda environment and install packages. It is important to install pip first inside the newly created conda environment.
+```sh
 conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
 conda install pip
