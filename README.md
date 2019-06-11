@@ -65,13 +65,16 @@ Train the model with the training and validation sets. Pretrained weights are ob
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
 - [Two-Stream ConvNet](http://papers.nips.cc/paper/5353-two-stream-convolutional)
 ```sh
-python train.py [method]
+python train.py [method] [optional_model_path]
 
 # Use I3D features + SVM
 python train.py svm
 
 # Use Two-Stream Inflated 3D ConvNet
 python train.py i3d
+
+# Use Two-Stream Inflated 3D ConvNet and resume from a weight
+python train.py i3d ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 
 # Use Two-Stream ConvNet
 python train.py ts
@@ -81,8 +84,8 @@ Test the performance of a model on the test set.
 python test.py [method] [model_path]
 
 # Use I3D features + SVM
-python test.py svm saved_svm/e5ca667-svm.pkl
+python test.py svm ../data/saved_svm/e5ca667-svm.pkl
 
 # Use Two-Stream Inflated 3D ConvNet
-python test.py i3d saved_i3d/99ca217/99ca217-i3d-64022.pt
+python test.py i3d ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 ```
