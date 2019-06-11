@@ -29,7 +29,7 @@ class I3dLearner(BaseLearner):
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[1000, 3000], # MultiStepLR parameters (steps for decreasing the learning rate)
+            milestones=[2000, 4000], # MultiStepLR parameters (steps for decreasing the learning rate)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
@@ -134,7 +134,7 @@ class I3dLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        transform = None
+        transform = {"train": None, "validation": None}
         if self.augment:
             transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
         dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
@@ -251,7 +251,8 @@ class I3dLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
-        dataloader = self.set_dataloader(metadata_path, p_frame, mode)
+        transform = {"test": None}
+        dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
 
         # Test
         model.train(False)
