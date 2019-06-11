@@ -11,6 +11,14 @@ groups [user_name]
 sudo chmod -R 775 deep-smoke-machine/
 sudo chgrp [group_name] deep-smoke-machine/
 ```
+For git to ignore permission changes.
+```sh
+# For only this repository
+git config core.fileMode false
+
+# For globally
+git config --global core.fileMode false
+```
 Create conda environment and install packages. It is important to install pip first inside the newly created conda environment.
 ```sh
 conda create -n deep-smoke-machine
