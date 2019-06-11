@@ -73,7 +73,7 @@ python train.py svm
 # Use Two-Stream Inflated 3D ConvNet
 python train.py i3d
 
-# Use Two-Stream Inflated 3D ConvNet and resume from a weight
+# Use Two-Stream Inflated 3D ConvNet and resume from a model
 python train.py i3d ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 
 # Use Two-Stream ConvNet
