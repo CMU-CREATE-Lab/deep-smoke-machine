@@ -1,6 +1,9 @@
 # deep-smoke-machine
-Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04, Nvidia drivers, cuda, and cuDNN are installed.
+Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed.
 
+# Install Nvidia drivers, cuda, and cuDNN
+
+# Setup this tool
 Clone this repository and set the permission.
 ```sh
 git clone --recursive https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
@@ -46,6 +49,8 @@ Install system packages.
 sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
+
+# Use this tool
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
 ```sh
 python get_metadata.py confirm
@@ -57,14 +62,23 @@ python split_metadata.py confirm
 Download all videos in the metadata file.
 ```sh
 python download_videos.py
+
+# Background script (on the background using the "screen" command)
+sh bg_download_videos.sh
 ```
-Process all videos into rgb frames and optical flows. Save all data to the disk.
+Process all videos into rgb frames and optical flows, then save all data to the disk.
 ```sh
 python process_videos.py
+
+# Background script (on the background using the "screen" command)
+sh bg_process_videos.sh
 ```
 Extract [I3D features](https://github.com/piergiaj/pytorch-i3d).
 ```sh
 python extract_features.py
+
+# Background script (on the background using the "screen" command)
+sh bg_extract_features.sh
 ```
 Train the model with the training and validation sets. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
@@ -77,9 +91,11 @@ python train.py svm
 
 # Use Two-Stream Inflated 3D ConvNet (rgb mode)
 python train.py i3d-rgb
+sh bg_train_i3d_rgb.sh
 
-# Use Two-Stream Inflated 3D ConvNet and resume from a model (flow mode)
+# Use Two-Stream Inflated 3D ConvNet and resume from a saved model (flow mode)
 python train.py i3d-flow ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
+sh bg_train_i3d_flow.sh
 
 # Use Two-Stream ConvNet
 python train.py ts
@@ -94,3 +110,9 @@ python test.py svm ../data/saved_svm/e5ca667-svm.pkl
 # Use Two-Stream Inflated 3D ConvNet (rgb mode)
 python test.py i3d-rgb ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 ```
+Recommended training strategy
+1. Set an initial learning rate (e.g., 0.001)
+2. Keep this learning rate and train the model until the training error decreases too slow or until the validation error increases (a sign of overfitting)
+3. Decrease the learning rate (e.g., by a factor of 10)
+4. Load the best model weight from the ones that were trained using the previous learning rate
+5. Repeat step 2, 3, and 4 until convergence
