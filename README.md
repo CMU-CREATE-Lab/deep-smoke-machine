@@ -2,7 +2,70 @@
 Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed.
 
 # Install Nvidia drivers, cuda, and cuDNN
-
+Disable the nouveau driver.
+```sh
+sudo vim /etc/modprobe.d/blacklist.conf
+# Add the following to this file
+# Blacklist nouveau driver (for nvidia driver installation)
+blacklist nouveau
+blacklist lbm-nouveau
+options nouveau modeset=0
+alias nouveau off
+alias lbm-nouveau off
+```
+Regenerate the kernel initramfs.
+```sh
+sudo update-initramfs -u
+sudo reboot now
+```
+Install cuda and the nvidia driver. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/cuda/).
+```sh
+sudo apt-get remove --purge '^nvidia-.*'
+sudo apt-get install ubuntu-desktop # only for desktop version, not server version
+sudo apt-get autoremove
+sudo apt install build-essential
+sudo apt-get install linux-headers-$(uname -r)
+wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run
+sudo sh cuda_10.1.168_418.67_linux.run
+```
+Check Nvidia driver install. Should be no nouveau.
+```sh
+sudo nvidia-smi
+dpkg -l | grep nvidia
+lsmod | grep nvidia
+lspci | grep -i nvidia
+lsmod | grep nouveau
+dpkg -l | grep -i nouveau
+```
+Add cuda runtime library.
+```sh
+sudo bash -c "echo /usr/local/cuda/lib64/ > /etc/ld.so.conf.d/cuda.conf"
+sudo ldconfig
+```
+Add cuda environment path.
+```sh
+sudo vim /etc/environment
+# add :/usr/local/cuda/bin (including the ":") at the end of the PATH="/[some_path]:/[some_path]" string (inside the quotes)
+sudo reboot now
+```
+Check cuda installation.
+```sh
+cd /usr/local/cuda/samples
+sudo make
+cd /usr/local/cuda/samples/bin/x86_64/linux/release
+./deviceQuery
+```
+Install cuDNN. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#install-linux). Visit [Nvidia's page](https://developer.nvidia.com/cudnn) to download cuDNN to your local machine. Then, move the file to the Ubuntu server.
+```sh
+rsync -av /[path_on_local]/cudnn-10.1-linux-x64-v7.6.0.64.tgz [user_name]@[server_name]:[path_on_server]
+ssh [user_name]@[server_name]:[path_on_server]
+cd [path_on_server]
+sudo tar -xzvf cudnn-10.1-linux-x64-v7.6.0.64.tgz
+sudo cp cuda/include/cudnn.h /usr/local/cuda/include
+sudo cp cuda/lib64/libcudnn* /usr/local/cuda/lib64
+sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
+```
+ 
 # Setup this tool
 Clone this repository and set the permission.
 ```sh
@@ -44,7 +107,7 @@ conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
 # For cuda 10.0
 conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
 ```
-Install system packages.
+Install system packages for OpenCV.
 ```sh
 sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
@@ -110,9 +173,9 @@ python test.py svm ../data/saved_svm/e5ca667-svm.pkl
 # Use Two-Stream Inflated 3D ConvNet (rgb mode)
 python test.py i3d-rgb ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 ```
-Recommended training strategy
+Recommended training strategy:
 1. Set an initial learning rate (e.g., 0.001)
-2. Keep this learning rate and train the model until the training error decreases too slow or until the validation error increases (a sign of overfitting)
+2. Keep this learning rate and train the model until the training error decreases too slow (or fluctuate) or until the validation error increases (a sign of overfitting)
 3. Decrease the learning rate (e.g., by a factor of 10)
 4. Load the best model weight from the ones that were trained using the previous learning rate
 5. Repeat step 2, 3, and 4 until convergence
