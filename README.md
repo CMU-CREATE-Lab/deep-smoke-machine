@@ -31,10 +31,10 @@ sudo sh cuda_10.1.168_418.67_linux.run
 Check Nvidia driver install. Should be no nouveau.
 ```sh
 sudo nvidia-smi
-dpkg -l | grep nvidia
-lsmod | grep nvidia
+dpkg -l | grep -i nvidia
+lsmod | grep -i nvidia
 lspci | grep -i nvidia
-lsmod | grep nouveau
+lsmod | grep -i nouveau
 dpkg -l | grep -i nouveau
 ```
 Add cuda runtime library.
