@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 #os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -29,7 +29,7 @@ class I3dLearner(BaseLearner):
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[2000, 4000], # MultiStepLR parameters (steps for decreasing the learning rate)
+            milestones=[3000, 6000], # MultiStepLR parameters (steps for decreasing the learning rate)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
