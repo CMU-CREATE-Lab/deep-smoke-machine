@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 #os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="0,2" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
