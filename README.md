@@ -28,7 +28,7 @@ sudo apt-get install linux-headers-$(uname -r)
 wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run
 sudo sh cuda_10.1.168_418.67_linux.run
 ```
-Check Nvidia driver install. Should be no nouveau.
+Check if Nvidia driver is installed. Should be no nouveau.
 ```sh
 sudo nvidia-smi
 dpkg -l | grep -i nvidia
