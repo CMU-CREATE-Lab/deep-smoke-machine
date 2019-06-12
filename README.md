@@ -58,7 +58,7 @@ cd /usr/local/cuda/samples/bin/x86_64/linux/release
 Install cuDNN. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#install-linux). Visit [Nvidia's page](https://developer.nvidia.com/cudnn) to download cuDNN to your local machine. Then, move the file to the Ubuntu server.
 ```sh
 rsync -av /[path_on_local]/cudnn-10.1-linux-x64-v7.6.0.64.tgz [user_name]@[server_name]:[path_on_server]
-ssh [user_name]@[server_name]:[path_on_server]
+ssh [user_name]@[server_name]
 cd [path_on_server]
 sudo tar -xzvf cudnn-10.1-linux-x64-v7.6.0.64.tgz
 sudo cp cuda/include/cudnn.h /usr/local/cuda/include
