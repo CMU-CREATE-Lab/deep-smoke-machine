@@ -41,6 +41,11 @@ conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
 # For cuda 10.0
 conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
 ```
+Install system packages.
+```sh
+sudo apt update
+sudo apt install -y libsm6 libxext6 libxrender-dev
+```
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
 ```sh
 python get_metadata.py confirm
