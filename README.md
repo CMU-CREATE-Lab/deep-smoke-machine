@@ -70,11 +70,11 @@ python train.py [method] [optional_model_path]
 # Use I3D features + SVM
 python train.py svm
 
-# Use Two-Stream Inflated 3D ConvNet
-python train.py i3d
+# Use Two-Stream Inflated 3D ConvNet (rgb mode)
+python train.py i3d-rgb
 
-# Use Two-Stream Inflated 3D ConvNet and resume from a model
-python train.py i3d ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
+# Use Two-Stream Inflated 3D ConvNet and resume from a model (flow mode)
+python train.py i3d-flow ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 
 # Use Two-Stream ConvNet
 python train.py ts
@@ -86,6 +86,6 @@ python test.py [method] [model_path]
 # Use I3D features + SVM
 python test.py svm ../data/saved_svm/e5ca667-svm.pkl
 
-# Use Two-Stream Inflated 3D ConvNet
-python test.py i3d ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
+# Use Two-Stream Inflated 3D ConvNet (rgb mode)
+python test.py i3d-rgb ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
 ```
