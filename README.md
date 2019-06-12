@@ -9,7 +9,7 @@ sudo addgroup [group_name]
 sudo usermod -a -G [group_name] [user_name]
 groups [user_name]
 sudo chmod -R 775 deep-smoke-machine/
-sudo chgrp [group_name] deep-smoke-machine/
+sudo chgrp -R [group_name] deep-smoke-machine/
 ```
 For git to ignore permission changes.
 ```sh
