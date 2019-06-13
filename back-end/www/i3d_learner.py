@@ -24,12 +24,12 @@ from video_transforms import *
 class I3dLearner(BaseLearner):
     def __init__(self,
             batch_size=16, # size for each batch (8 max for each GTX 1080Ti)
-            max_steps=100000, # total number of steps for training
+            max_steps=70000, # total number of steps for training
             num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.001, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[6000, 30000], # MultiStepLR parameters (steps for decreasing the learning rate)
+            milestones=[10000, 30000], # MultiStepLR parameters (steps for decreasing the learning rate)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
