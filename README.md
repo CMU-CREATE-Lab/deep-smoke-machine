@@ -112,6 +112,9 @@ Install system packages for OpenCV.
 sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
+# Using Tensorboard
+For using tensorboard in Pytorch to visualize model performance, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
+
 
 # Use this tool
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
