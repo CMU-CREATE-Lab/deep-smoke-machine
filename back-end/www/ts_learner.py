@@ -10,26 +10,31 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import uuid
 from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
 import numpy as np
 import random
+from torchvision import transforms
+from video_transforms import *
+from torch.utils.tensorboard import SummaryWriter
 
 # Two-Stream ConvNet learner
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
 class TsLearner(BaseLearner):
     def __init__(self,
-                 batch_size=8,
-                 lr=0.1,
+                 batch_size=32,
+                 lr=0.001,
                  max_steps=64e3,
                  momentum=0.9,
-                 milestones = [40, 500, 1000],
+                 #milestones = [40, 500, 1000],
                  gamma = 0.1,
                  weight_decay = 0.000001,
                  num_workers=1,
                  num_of_action_classes=2,
-                 num_steps_per_update=2,
+                 num_steps_per_update=1,
                  num_steps_per_check=10,
-                 use_cuda = torch.cuda.is_available(),
-                 parallel=False,
+                 use_cuda=torch.cuda.is_available(),
+                 parallel=True,
+                 augment=True,
                  save_model_path="../data/saved_ts/",  # path for saving the models
                  ):
         super().__init__()
@@ -40,7 +45,7 @@ class TsLearner(BaseLearner):
         self.lr = lr
         self.max_steps = max_steps
         self.momentum = momentum
-        self.milestones = milestones
+        #self.milestones = milestones
         self.gamma = gamma
         self.weight_decay = weight_decay
         self.num_workers = num_workers
@@ -48,11 +53,8 @@ class TsLearner(BaseLearner):
         self.num_steps_per_update = num_steps_per_update
         self.num_steps_per_check = num_steps_per_check
         self.use_cuda = use_cuda
-        if self.use_cuda:
-            self.device = torch.device("cuda:0")
-        else:
-            self.device = torch.device("cpu")
         self.parallel = parallel
+        self.augment = augment
         self.save_model_path = save_model_path
 
     def random_frames_from_batch(self, data):
@@ -63,12 +65,20 @@ class TsLearner(BaseLearner):
             new_batch[i, :, :, :] = data[i, :, frame, :, :]
         return new_batch
 
+    def compress_videos_to_frames(self, n):
+        b, c, t, h, w = n.shape
+        ret = torch.zeros(b, c*t, h, w)
+        frame = 0
+        for channel in range(c*t):
+            ret[:,channel,:,:] = n[:,channel%3, frame,:,:]
+            if channel > 0 and channel % 3 == 0: frame += 1
+        return ret
 
-    def set_dataloader(self, metadata_path, p_vid, mode):
+    def set_dataloader(self, metadata_path, p_vid, mode, tf):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
-            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode)
+            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode, transform=tf[phase])
             dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
@@ -80,7 +90,7 @@ class TsLearner(BaseLearner):
 
     def to_variable(self, v):
         if self.use_cuda:
-            v = v.to(self.device) # move to gpu
+            v = v.cuda()  # move to gpu
         return Variable(v)
 
     def make_pred(self, model, frames):
@@ -105,15 +115,26 @@ class TsLearner(BaseLearner):
             ts = MotionCNN()
             p_vid = p_vid + "flow/"
 
-        ts = ts.to(self.device)
+        if self.use_cuda:
+            ts.cuda()
+            if self.parallel and torch.cuda.device_count() > 1:
+                self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
+                ts = nn.DataParallel(ts)
+        
+        writer_train = SummaryWriter("../data/ts_runs/ts_train")
+        writer_val = SummaryWriter("../data/ts_runs/ts_val")
+
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
+        transform = None
+        if self.augment:
+            transform  = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
+        dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
 
         # Set optimizer
         optimizer = optim.SGD(params=ts.parameters(), lr=self.lr, momentum=self.momentum, weight_decay = self.weight_decay)
-        lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
+        # lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set Loss Function
         criterion = nn.BCEWithLogitsLoss()
@@ -158,7 +179,7 @@ class TsLearner(BaseLearner):
                     accum[phase] += 1
                     # Get inputs
                     frames, labels = d["frames"], d["labels"]
-                    frames = self.random_frames_from_batch(frames)
+                    frames = self.compress_videos_to_frames(frames)
                     frames = self.to_variable(frames)
                     true_labels[phase] += self.labels_to_list(labels)
                     labels = self.to_variable(d["labels"])
@@ -178,15 +199,19 @@ class TsLearner(BaseLearner):
                         accum[phase] = 0
                         optimizer.step()
                         optimizer.zero_grad()
-                        lr_sche.step()
+                        # lr_sche.step()
                         if steps % nspc == 0:
-                            lr = lr_sche.get_lr()[0]
+                            #lr = lr_sche.get_lr()[0]
+                            lr = self.lr
                             tl = tot_loss[phase]/nspc
+                            writer_train.add_scalar("Training Loss", tl)
                             self.log(log_fm % (phase, steps, lr, tl))
                             tot_loss[phase] = 0.0
                 if phase == "validation":
-                    lr = lr_sche.get_lr()[0]
+                    # lr = lr_sche.get_lr()[0]
+                    lr = self.lr
                     tl = (tot_loss[phase]*nspu)/accum[phase]
+                    writer_val.add_scalar("Validation Loss", tl)
                     self.log(log_fm % (phase, steps, lr, tl))
                     tot_loss[phase] = 0.0
                     accum[phase] = 0
@@ -194,6 +219,9 @@ class TsLearner(BaseLearner):
                     self.save(ts, p_model)
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)
+                        accuracy = accuracy_score(true_labels[phase], pred_labels[phase])
+                        if phase == "train": writer_train.add_scalar("Train Accuracy", accuracy)
+                        elif phase == "validation": writer_val.add_scalar("Val Accuracy", accuracy)
                         self.log(classification_report(true_labels[phase], pred_labels[phase]))
                         pred_labels[phase] = []
                         true_labels[phase] = []
@@ -203,22 +231,30 @@ class TsLearner(BaseLearner):
     def predict(self,
                 mode="rgb",
                 p_metadata_test="../data/metadata_test.json",
-                p_vid="../data/videos/",
+                p_vid="../data/",
                 p_model=None):
         self.log("="*60)
         self.log("="*60)
         self.log("Start testing...")
 
-
-        # Load dataset
-        metadata_path = {"test": p_metadata_test}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode)
-
         if mode == "rgb":
             ts = SpatialCNN()
+            p_vid = p_vid + "rgb/"
 
         elif mode == "flow":
             ts = MotionCNN()
+            p_vid = p_vid + "flow/"
+
+        if self.use_cuda:
+            ts.cuda()
+            if self.parallel and torch.cuda.device_count() > 1:
+                self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
+                ts = nn.DataParallel(ts)
+
+        # Load dataset
+        metadata_path = {"test": p_metadata_test}
+        transform = {"test": None}
+        dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
 
         self.load(ts, p_model)
 
@@ -232,12 +268,15 @@ class TsLearner(BaseLearner):
                 if counter % 20 == 0:
                     self.log("Process batch " + str(counter))
                 counter += 1
-                frames = self.to_variable(d["frames"])
-                labels = d["labels"]
+                # Get inputs
+                frames, labels = d["frames"], d["labels"]
+                frames = self.compress_videos_to_frames(frames)
+                frames = self.to_variable(frames)
                 true_labels += self.labels_to_list(labels)
-                labels = self.to_variable(labels)
+                labels = self.to_variable(d["labels"])
                 pred = ts(frames)
-                pred_labels += list(pred.cpu().detach())
+                _, predicted = torch.max(pred, dim=1)
+                pred_labels += list(predicted.cpu().detach())
         self.log(classification_report(true_labels, pred_labels))
 
         self.log("Done test")
