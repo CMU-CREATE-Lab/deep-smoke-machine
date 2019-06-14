@@ -60,7 +60,7 @@ class SpatialCNN(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=96, kernel_size=7, stride=2),
+            nn.Conv2d(in_channels=108, out_channels=96, kernel_size=7, stride=2),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(),
             nn.LocalResponseNorm(size=2),
@@ -85,7 +85,7 @@ class SpatialCNN(nn.Module):
             #nn.ReLU(),
         )
 
-        mock_input = torch.randn(4, 3, 224, 224)
+        mock_input = torch.randn(32, 108, 224, 224)
         mock_output = self.model(mock_input)
         flattened_output = torch.flatten(mock_output, start_dim=1)
         fc_in_dim = flattened_output.shape[1] # Get number of nodes from flattened value's size, then convert 0 dim tensor to integer
