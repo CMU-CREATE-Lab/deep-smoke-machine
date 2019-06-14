@@ -12,3 +12,8 @@ pip install matplotlib==3.0.3
 
 # For machine learning
 pip install scikit-learn==0.21.2
+
+# For TensorBoard
+pip install tb-nightly
+pip install tensorflow
+pip install future
