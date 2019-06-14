@@ -36,6 +36,8 @@ class TsLearner(BaseLearner):
                  parallel=True,
                  augment=True,
                  save_model_path="../data/saved_ts/",  # path for saving the models
+                 train_writer_p="../data/ts_runs/ts_train",
+                 val_writer_p="../data/ts_runs/ts_val"
                  ):
         super().__init__()
         self.create_logger(log_path="TsLearner.log")
@@ -56,6 +58,8 @@ class TsLearner(BaseLearner):
         self.parallel = parallel
         self.augment = augment
         self.save_model_path = save_model_path
+        self.train_writer_p = train_writer_p
+        self.val_writer_p = val_writer_p
 
     def random_frames_from_batch(self, data):
         b, c, f, h, w = list(data.shape)
@@ -121,8 +125,8 @@ class TsLearner(BaseLearner):
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
                 ts = nn.DataParallel(ts)
         
-        writer_train = SummaryWriter("../data/ts_runs/ts_train")
-        writer_val = SummaryWriter("../data/ts_runs/ts_val")
+        writer_train = SummaryWriter(self.train_writer_p)
+        writer_val = SummaryWriter(self.val_writer_p)
 
 
         # Load datasets
@@ -204,14 +208,14 @@ class TsLearner(BaseLearner):
                             #lr = lr_sche.get_lr()[0]
                             lr = self.lr
                             tl = tot_loss[phase]/nspc
-                            writer_train.add_scalar("Training Loss", tl)
+                            writer_train.add_scalar("Training Loss", tl, global_step=steps)
                             self.log(log_fm % (phase, steps, lr, tl))
                             tot_loss[phase] = 0.0
                 if phase == "validation":
                     # lr = lr_sche.get_lr()[0]
                     lr = self.lr
                     tl = (tot_loss[phase]*nspu)/accum[phase]
-                    writer_val.add_scalar("Validation Loss", tl)
+                    writer_val.add_scalar("Validation Loss", tl, global_step=steps)
                     self.log(log_fm % (phase, steps, lr, tl))
                     tot_loss[phase] = 0.0
                     accum[phase] = 0
@@ -220,8 +224,8 @@ class TsLearner(BaseLearner):
                     for phase in ["train", "validation"]:
                         self.log("Performance for " + phase)
                         accuracy = accuracy_score(true_labels[phase], pred_labels[phase])
-                        if phase == "train": writer_train.add_scalar("Train Accuracy", accuracy)
-                        elif phase == "validation": writer_val.add_scalar("Val Accuracy", accuracy)
+                        if phase == "train": writer_train.add_scalar("Train Accuracy", accuracy, global_step=steps)
+                        elif phase == "validation": writer_val.add_scalar("Val Accuracy", accuracy, global_step=steps)
                         self.log(classification_report(true_labels[phase], pred_labels[phase]))
                         pred_labels[phase] = []
                         true_labels[phase] = []
