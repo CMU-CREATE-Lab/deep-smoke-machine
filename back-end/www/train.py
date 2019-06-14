@@ -34,9 +34,12 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         model.fit(mode="flow", p_frame=frame_path, p_model=model_path)
-    elif method == "ts":
+    elif method == "ts-rgb":
         model = TsLearner()
-        model.fit()
+        model.fit(mode="rgb")
+    elif method == "ts-flow":
+        model = TsLearner()
+        model.fit(mode="flow")
     elif method == "svm":
         model = SvmLearner()
         model.fit()
