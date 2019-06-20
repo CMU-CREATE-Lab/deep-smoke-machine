@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+#os.environ["CUDA_VISIBLE_DEVICES"]="1,2" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -23,13 +23,14 @@ from video_transforms import *
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=16, # size for each batch (8 max for each GTX 1080Ti)
-            max_steps=70000, # total number of steps for training
-            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr=0.001, # initial learning rate
+            batch_size=32, # size for each batch (8 max for each GTX 1080Ti)
+            max_steps=20000, # total number of steps for training
+            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
+            init_lr=0.01, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[10000, 30000], # MultiStepLR parameters (steps for decreasing the learning rate)
+            milestones=[500, 1000, 2000], # MultiStepLR parameters (for i3d-rgb)
+            #milestones=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             save_model_path="../data/saved_i3d/", # path for saving the models
