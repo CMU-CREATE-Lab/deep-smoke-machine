@@ -15,6 +15,7 @@ from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import uuid
 from sklearn.metrics import classification_report
+from sklearn.metrics import precision_recall_fscore_support
 import numpy as np
 from torchvision import transforms
 from video_transforms import *
@@ -30,16 +31,13 @@ class I3dLearner(BaseLearner):
             init_lr=0.01, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones=[500, 1000, 2000], # MultiStepLR parameters (for i3d-rgb)
-            #milestones=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
+            milestones_rgb=[500, 1000, 2000], # MultiStepLR parameters (for i3d-rgb)
+            milestones_flow=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            save_model_path="../data/saved_i3d/model/", # path for saving the models
-            save_tensorboard_path="../data/saved_i3d/run/", # path for saving tensorboard data
-            save_log_path="../data/saved_i3d/log/", # path for saving log files
             num_workers=4):
         super().__init__()
 
@@ -49,15 +47,13 @@ class I3dLearner(BaseLearner):
         self.init_lr = init_lr
         self.weight_decay = weight_decay
         self.momentum = momentum
-        self.milestones = milestones
+        self.milestones_rgb = milestones_rgb
+        self.milestones_flow = milestones_flow
         self.gamma = gamma
         self.num_of_action_classes = num_of_action_classes
         self.num_steps_per_check = num_steps_per_check
         self.parallel = parallel
         self.augment = augment
-        self.save_model_path = save_model_path
-        self.save_tensorboard_path = save_tensorboard_path
-        self.save_log_path = save_log_path
         self.num_workers = num_workers
 
     def log_parameters(self):
@@ -68,15 +64,13 @@ class I3dLearner(BaseLearner):
         text += "init_lr: " + str(self.init_lr) + "\n"
         text += "weight_decay: " + str(self.weight_decay) + "\n"
         text += "momentum: " + str(self.momentum) + "\n"
-        text += "milestones: " + str(self.milestones) + "\n"
+        text += "milestones_rgb: " + str(self.milestones_rgb) + "\n"
+        text += "milestones_flow: " + str(self.milestones_flow) + "\n"
         text += "gamma: " + str(self.gamma) + "\n"
         text += "num_of_action_classes: " + str(self.num_of_action_classes) + "\n"
         text += "num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
         text += "parallel: " + str(self.parallel) + "\n"
         text += "augment: " + str(self.augment) + "\n"
-        text += "save_model_path: " + self.save_model_path + "\n"
-        text += "save_tensorboard_path: " + self.save_tensorboard_path + "\n"
-        text += "save_log_path: " + self.save_log_path + "\n"
         text += "num_workers: " + str(self.num_workers)
         self.log(text)
 
@@ -141,15 +135,24 @@ class I3dLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame=None, # the path to load rgb or optical flow frames
             p_model=None, # the path to load the pretrained or previously self-trained model
+            save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
+            save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save tensorboard data ([model_id] will be replaced)
+            save_log_path="../data/saved_i3d/[model_id]/log/fit.log", # path to save log files ([model_id] will be replaced)
             p_metadata_train="../data/metadata_train.json",
             p_metadata_validation="../data/metadata_validation.json"):
 
         model_id = str(uuid.uuid4())[0:7] + "-i3d-" + mode
-        self.create_logger(log_path=self.save_log_path + model_id + ".log")
+        save_model_path = save_model_path.replace("[model_id]", model_id)
+        save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
+        save_log_path = save_log_path.replace("[model_id]", model_id)
+        self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start training model: " + model_id)
+        self.log("save_model_path: " + save_model_path)
+        self.log("save_tensorboard_path: " + save_tensorboard_path)
+        self.log("save_log_path: " + save_log_path)
         self.log_parameters()
 
         # Check
@@ -157,8 +160,8 @@ class I3dLearner(BaseLearner):
             self.log("Please specify p_frame, the path to load rgb or optical flow frames")
 
         # Create tensorboard writter
-        writer_t = SummaryWriter(self.save_tensorboard_path + model_id + "/train/")
-        writer_v = SummaryWriter(self.save_tensorboard_path + model_id + "/validation/")
+        writer_t = SummaryWriter(save_tensorboard_path + "/train/")
+        writer_v = SummaryWriter(save_tensorboard_path + "/validation/")
 
         # Set model
         model = self.set_model(mode, p_model)
@@ -173,7 +176,8 @@ class I3dLearner(BaseLearner):
 
         # Set optimizer
         optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
-        lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
+        milestones = self.milestones_rgb if mode == "rgb" else self.milestones_flow
+        lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
 
         # Set logging format
         log_fm = "%s step: %d lr: %r loc_loss: %.4f cls_loss: %.4f loss: %.4f"
@@ -236,9 +240,10 @@ class I3dLearner(BaseLearner):
                         accum[phase] = 0
                         optimizer.step()
                         optimizer.zero_grad()
+                        lr = lr_sche.get_lr()[0]
+                        writer_t.add_scalar("learning_rate", lr, global_step=steps)
                         lr_sche.step()
                         if steps % nspc == 0:
-                            lr = lr_sche.get_lr()[0]
                             tll = tot_loc_loss[phase]/nspu_nspc
                             tcl = tot_cls_loss[phase]/nspu_nspc
                             tl = tot_loss[phase]/nspc
@@ -254,12 +259,13 @@ class I3dLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    p_model = self.save_model_path + model_id + "/" + str(steps) + ".pt"
-                    self.save(model, p_model)
+                    self.save(model, save_model_path + "/" + str(steps) + ".pt")
                     for ps in ["train", "validation"]:
-                        #writer.add_scalar(ps + "_weighted_fscore", tl, global_step=steps)
-                        #writer.add_scalar(ps + "_precision", tl, global_step=steps)
-                        #writer.add_scalar(ps + "_Recall", tl, global_step=steps)
+                        prfs = precision_recall_fscore_support(true_labels[ps], pred_labels[ps], average="weighted")
+                        writer = writer_t if ps == "train" else writer_v
+                        writer.add_scalar("precision", prfs[0], global_step=steps)
+                        writer.add_scalar("recall", prfs[1], global_step=steps)
+                        writer.add_scalar("weighted_fscore", prfs[2], global_step=steps)
                         self.log("Performance for " + ps)
                         self.log(classification_report(true_labels[ps], pred_labels[ps]))
                         pred_labels[ps] = []
@@ -271,13 +277,15 @@ class I3dLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame=None, # the path to load rgb or optical flow frames
             p_model=None, # the path to load the previously self-trained model
+            save_log_path="../data/saved_i3d/predict.log", # path to save log files
             p_metadata_test="../data/metadata_test.json"):
 
-        self.create_logger(log_path=self.save_log_path + "predict.log")
+        self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start testing...")
+        self.log("save_log_path: " + save_log_path)
 
         # Check
         if p_frame is None:
