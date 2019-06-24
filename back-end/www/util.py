@@ -25,3 +25,10 @@ def load_json(fpath):
 def save_json(content, fpath):
     with open(fpath, "w") as f:
         json.dump(content, f)
+
+# Compute a confusion matrix of samples
+# y_true: true labels
+# y_pred: predicted labels
+# n_min: minimum number of samples to return for each cell in the matrix
+def confusion_matrix_of_samples(y_true, y_pred, n=None):
+    pass

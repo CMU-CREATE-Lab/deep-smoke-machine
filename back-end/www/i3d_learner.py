@@ -1,7 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-#os.environ["CUDA_VISIBLE_DEVICES"]="1,2" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -20,12 +19,15 @@ import numpy as np
 from torchvision import transforms
 from video_transforms import *
 from torch.utils.tensorboard import SummaryWriter
+from util import *
 
 # Two-Stream Inflated 3D ConvNet learner
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size=32, # size for each batch (8 max for each GTX 1080Ti)
+            batch_size_train=32, # size for each batch for training (8 max for each GTX 1080Ti)
+            batch_size_test=128, # size for each batch for testing (32 max for each GTX 1080Ti)
+            batch_size_extract_features=32, # size for each batch for extracting features
             max_steps=20000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr=0.01, # initial learning rate
@@ -38,10 +40,19 @@ class I3dLearner(BaseLearner):
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=4):
+            num_workers=4, # number of workers for the dataloader
+            mode="rgb", # can be "rgb" or "flow"
+            p_frame_rgb="../data/rgb/", # path to load rgb frame
+            p_frame_flow="../data/flow/", # path to load optical flow frame
+            p_metadata_train="../data/metadata_train.json", # path to load metadata for training
+            p_metadata_validation="../data/metadata_validation.json", # path to load metadata for validation
+            p_metadata_test="../data/metadata_test.json" # path to load metadata for testing
+            ):
         super().__init__()
 
-        self.batch_size = batch_size
+        self.batch_size_train = batch_size_train
+        self.batch_size_test = batch_size_test
+        self.batch_size_extract_features = batch_size_extract_features
         self.max_steps = max_steps
         self.num_steps_per_update = num_steps_per_update
         self.init_lr = init_lr
@@ -55,10 +66,18 @@ class I3dLearner(BaseLearner):
         self.parallel = parallel
         self.augment = augment
         self.num_workers = num_workers
+        self.mode = mode
+        self.p_frame_rgb = p_frame_rgb
+        self.p_frame_flow = p_frame_flow
+        self.p_metadata_train = p_metadata_train
+        self.p_metadata_validation = p_metadata_validation
+        self.p_metadata_test = p_metadata_test
 
     def log_parameters(self):
         text = ""
-        text += "batch_size: " + str(self.batch_size) + "\n"
+        text += "batch_size_train: " + str(self.batch_size_train) + "\n"
+        text += "batch_size_test: " + str(self.batch_size_test) + "\n"
+        text += "batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
         text += "max_steps: " + str(self.max_steps) + "\n"
         text += "num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
         text += "init_lr: " + str(self.init_lr) + "\n"
@@ -71,10 +90,16 @@ class I3dLearner(BaseLearner):
         text += "num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
         text += "parallel: " + str(self.parallel) + "\n"
         text += "augment: " + str(self.augment) + "\n"
-        text += "num_workers: " + str(self.num_workers)
+        text += "num_workers: " + str(self.num_workers) + "\n"
+        text += "mode: " + self.mode + "\n"
+        text += "p_frame_rgb: " + self.p_frame_rgb + "\n"
+        text += "p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "p_metadata_train: " + self.p_metadata_train + "\n"
+        text += "p_metadata_validation: " + self.p_metadata_validation + "\n"
+        text += "p_metadata_test: " + self.p_metadata_test
         self.log(text)
 
-    def set_model(self, mode, p_pretrain):
+    def set_model(self, mode, p_model, parallel):
         # Setup the model based on mode
         if mode == "rgb":
             model = InceptionI3d(400, in_channels=3)
@@ -86,8 +111,8 @@ class I3dLearner(BaseLearner):
         # Load i3d pre-trained weights
         is_self_trained = False
         try:
-            if p_pretrain is not None:
-                self.load(model, p_pretrain)
+            if p_model is not None:
+                self.load(model, p_model)
         except:
             # Not pre-trained weights
             is_self_trained = True
@@ -96,24 +121,24 @@ class I3dLearner(BaseLearner):
         model.replace_logits(self.num_of_action_classes)
 
         # Load self-trained weights from fine-tuned models
-        if p_pretrain is not None and is_self_trained:
-            self.load(model, p_pretrain)
+        if p_model is not None and is_self_trained:
+            self.load(model, p_model)
 
         # Use GPU or not
         if self.use_cuda:
             model.cuda()
-            if self.parallel and torch.cuda.device_count() > 1:
+            if parallel and torch.cuda.device_count() > 1:
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
                 model = nn.DataParallel(model)
 
         return model
 
-    def set_dataloader(self, metadata_path, p_frame, mode, tf):
+    def set_dataloader(self, metadata_path, p_frame, mode, tf, batch_size):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
             dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_frame, mode=mode, transform=tf[phase])
-            dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
+            dataloader[phase] = DataLoader(dataset, batch_size=batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
         return dataloader
@@ -131,17 +156,19 @@ class I3dLearner(BaseLearner):
         # Upsample prediction to frame length (because we want prediction for each frame)
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
+    def flatten_tensor(self, t):
+        t = t.reshape(1, -1)
+        t = t.squeeze()
+        return t
+
     def fit(self,
-            mode="rgb", # can be "rgb" or "flow"
-            p_frame=None, # the path to load rgb or optical flow frames
             p_model=None, # the path to load the pretrained or previously self-trained model
             save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
-            save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save tensorboard data ([model_id] will be replaced)
-            save_log_path="../data/saved_i3d/[model_id]/log/fit.log", # path to save log files ([model_id] will be replaced)
-            p_metadata_train="../data/metadata_train.json",
-            p_metadata_validation="../data/metadata_validation.json"):
+            save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
+            save_log_path="../data/saved_i3d/[model_id]/log/train.log" # path to save log files ([model_id] will be replaced)
+            ):
 
-        model_id = str(uuid.uuid4())[0:7] + "-i3d-" + mode
+        model_id = str(uuid.uuid4())[0:7] + "-i3d-" + self.mode
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
@@ -155,28 +182,27 @@ class I3dLearner(BaseLearner):
         self.log("save_log_path: " + save_log_path)
         self.log_parameters()
 
-        # Check
-        if p_frame is None:
-            self.log("Please specify p_frame, the path to load rgb or optical flow frames")
+        # Set path
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+
+        # Set model
+        model = self.set_model(self.mode, p_model, self.parallel)
+        if model is None: return None
+
+        # Load datasets
+        metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
+        transform = {"train": None, "validation": None}
+        if self.augment:
+            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
+        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_train)
 
         # Create tensorboard writter
         writer_t = SummaryWriter(save_tensorboard_path + "/train/")
         writer_v = SummaryWriter(save_tensorboard_path + "/validation/")
 
-        # Set model
-        model = self.set_model(mode, p_model)
-        if model is None: return None
-
-        # Load datasets
-        metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        transform = {"train": None, "validation": None}
-        if self.augment:
-            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
-        dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
-
         # Set optimizer
         optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
-        milestones = self.milestones_rgb if mode == "rgb" else self.milestones_flow
+        milestones = self.milestones_rgb if self.mode == "rgb" else self.milestones_flow
         lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
 
         # Set logging format
@@ -213,7 +239,7 @@ class I3dLearner(BaseLearner):
                 else:
                     model.train(False) # set model to evaluate mode
                 optimizer.zero_grad()
-                # Iterate over data
+                # Iterate over batch data
                 for d in dataloader[phase]:
                     accum[phase] += 1
                     # Get prediction
@@ -259,7 +285,7 @@ class I3dLearner(BaseLearner):
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
-                    self.save(model, save_model_path + "/" + str(steps) + ".pt")
+                    self.save(model, save_model_path + str(steps) + ".pt")
                     for ps in ["train", "validation"]:
                         prfs = precision_recall_fscore_support(true_labels[ps], pred_labels[ps], average="weighted")
                         writer = writer_t if ps == "train" else writer_v
@@ -271,14 +297,12 @@ class I3dLearner(BaseLearner):
                         pred_labels[ps] = []
                         true_labels[ps] = []
 
-        self.log("Done fit")
+        self.log("Done training")
 
     def predict(self,
-            mode="rgb", # can be "rgb" or "flow"
-            p_frame=None, # the path to load rgb or optical flow frames
-            p_model=None, # the path to load the previously self-trained model
-            save_log_path="../data/saved_i3d/predict.log", # path to save log files
-            p_metadata_test="../data/metadata_test.json"):
+            p_model=None, # the path to load the pretrained or previously self-trained model
+            save_log_path="../data/saved_i3d/test.log" # path to save log files
+            ):
 
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
@@ -287,25 +311,25 @@ class I3dLearner(BaseLearner):
         self.log("Start testing...")
         self.log("save_log_path: " + save_log_path)
 
-        # Check
-        if p_frame is None:
-            self.log("Please specify p_frame, the path to load rgb or optical flow frames")
+        # Set path
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Set model
-        model = self.set_model(mode, p_model)
+        model = self.set_model(self.mode, p_model, self.parallel)
         if model is None: return None
 
         # Load dataset
-        metadata_path = {"test": p_metadata_test}
+        metadata_path = {"test": self.p_metadata_test}
         transform = {"test": None}
-        dataloader = self.set_dataloader(metadata_path, p_frame, mode, transform)
+        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_test)
 
         # Test
-        model.train(False)
+        model.train(False) # set the model to evaluation mode
         true_labels = []
         pred_labels = []
         counter = 0
         with torch.no_grad():
+            # Iterate over batch data
             for d in dataloader["test"]:
                 if counter % 20 == 0:
                     self.log("Process batch " + str(counter))
@@ -318,4 +342,60 @@ class I3dLearner(BaseLearner):
                 pred_labels += self.labels_to_list(pred.cpu().detach())
         self.log(classification_report(true_labels, pred_labels))
 
-        self.log("Done test")
+        self.log("Done testing")
+
+    def extract_features(self,
+            p_model=None, # the path to load the pretrained or previously self-trained model
+            p_feat_rgb="../data/i3d_features_rgb/", # path to save rgb features
+            p_feat_flow="../data/i3d_features_flow/" # path to save flow features
+            ):
+
+        self.log("="*60)
+        self.log("="*60)
+        self.log("Use Two-Stream Inflated 3D ConvNet learner")
+        self.log("Start extracting features...")
+
+        # Set path
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+        p_feat = p_feat_rgb if self.mode == "rgb" else p_feat_flow
+        check_and_create_dir(p_feat) # check the directory for saving features
+
+        # Set model
+        model = self.set_model(self.mode, p_model, False)
+        if model is None: return None
+
+        # Load datasets
+        metadata_path = {"train": self.p_metadata_train,
+                "validation": self.p_metadata_validation, "test": self.p_metadata_test}
+        transform = {"train": None, "validation": None, "test": None}
+        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_extract_features)
+
+        # Extract features
+        model.train(False) # set the model to evaluation mode
+        for phase in ["train", "validation", "test"]:
+            self.log("phase " + phase)
+            counter = 0
+            # Iterate over batch data
+            for d in dataloader[phase]:
+                counter += 1
+                # Skip if all the files in this batch exist
+                skip = True
+                file_name = d["file_name"]
+                for fn in file_name:
+                    if not is_file_here(p_feat + fn + ".npy"):
+                        skip = False
+                        break
+                if skip:
+                    self.log("Skip " + phase + " batch " + str(counter))
+                    continue
+                # Compute features
+                with torch.no_grad():
+                    frames = self.to_variable(d["frames"])
+                    features = model.extract_features(frames)
+                for i in range(len(file_name)):
+                    f = self.flatten_tensor(features[i, :, :, :, :])
+                    fn = file_name[i]
+                    self.log("Save " + self.mode + " feature " + fn + ".npy")
+                    np.save(os.path.join(p_feat, fn), f.data.cpu().numpy())
+
+        self.log("Done extracting features")

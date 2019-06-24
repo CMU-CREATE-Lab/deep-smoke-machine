@@ -112,6 +112,7 @@ Install system packages for OpenCV.
 sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
+
 # Using Tensorboard
 Create a logging directory 
 
@@ -125,10 +126,7 @@ After writing model data to the directory, launch tensorboard
 tensorboard --logdir=model_runs
 ```
 
-After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser.
-
-For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
-
+After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
 
 # Use this tool
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
@@ -155,10 +153,19 @@ sh bg_process_videos.sh
 ```
 Extract [I3D features](https://github.com/piergiaj/pytorch-i3d).
 ```sh
-python extract_features.py
+python extract_features.py [method] [optional_model_path]
+
+# Extract features from pretrained i3d
+python extract_features.py i3d-rgb
+python extract_features.py i3d-flow
+
+# Extract features from a saved i3d model
+python extract_features.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
+python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
 
 # Background script (on the background using the "screen" command)
-sh bg_extract_features.sh
+sh bg_extract_features_i3d_rgb.sh
+sh bg_extract_features_i3d_flow.sh
 ```
 Train the model with the training and validation sets. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
@@ -166,29 +173,37 @@ Train the model with the training and validation sets. Pretrained weights are ob
 ```sh
 python train.py [method] [optional_model_path]
 
-# Use I3D features + SVM
-python train.py svm
+# Use I3D features + SVM (rgb or flow mode)
+python train.py svm-rgb
+python train.py svm-flow
 
-# Use Two-Stream Inflated 3D ConvNet (rgb mode)
+# Use Two-Stream Inflated 3D ConvNet (rgb or flow mode)
 python train.py i3d-rgb
-sh bg_train_i3d_rgb.sh
+python train.py i3d-flow
 
-# Use Two-Stream Inflated 3D ConvNet and resume from a saved model (flow mode)
-python train.py i3d-flow ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
+# Background script (on the background using the "screen" command)
+sh bg_train_i3d_rgb.sh
 sh bg_train_i3d_flow.sh
 
-# Use Two-Stream ConvNet
-python train.py ts
+# Use Two-Stream Inflated 3D ConvNet and resume from a saved model (rgb or flow mode)
+python train.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
+python train.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
+
+# Use Two-Stream ConvNet (rgb or flow mode)
+python train.py ts-rgb
+python train.py ts-flow
 ```
 Test the performance of a model on the test set.
 ```sh
 python test.py [method] [model_path]
 
-# Use I3D features + SVM
-python test.py svm ../data/saved_svm/e5ca667-svm.pkl
+# Use I3D features + SVM (rgb or flow mode)
+python test.py svm-rgb ../data/saved_svm/445cc62-svm-rgb.pkl
+python test.py svm-flow ../data/saved_svm/b376702-svm-flow.pkl
 
-# Use Two-Stream Inflated 3D ConvNet (rgb mode)
-python test.py i3d-rgb ../data/saved_i3d/99ca217-i3d-rgb/64022.pt
+# Use Two-Stream Inflated 3D ConvNet (rgb or flow mode)
+python test.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
+python test.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
 ```
 Recommended training strategy:
 1. Set an initial learning rate (e.g., 0.001)

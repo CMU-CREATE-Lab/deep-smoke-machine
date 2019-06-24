@@ -1,9 +1,7 @@
 import sys
-import numpy as np
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
-from util import *
 
 # Train the model
 def main(argv):
@@ -23,25 +21,26 @@ def main(argv):
 
 def train(method=None, model_path=None):
     if method == "i3d-rgb":
-        model = I3dLearner()
-        frame_path = "../data/rgb/"
+        model = I3dLearner(mode="rgb")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        model.fit(mode="rgb", p_frame=frame_path, p_model=model_path)
+        model.fit(p_model=model_path)
     elif method == "i3d-flow":
-        model = I3dLearner()
-        frame_path = "../data/flow/"
+        model = I3dLearner(mode="flow")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        model.fit(mode="flow", p_frame=frame_path, p_model=model_path)
+        model.fit(p_model=model_path)
     elif method == "ts-rgb":
         model = TsLearner()
         model.fit(mode="rgb")
     elif method == "ts-flow":
         model = TsLearner()
         model.fit(mode="flow")
-    elif method == "svm":
-        model = SvmLearner()
+    elif method == "svm-rgb":
+        model = SvmLearner(mode="rgb")
+        model.fit()
+    elif method == "svm-flow":
+        model = SvmLearner(mode="flow")
         model.fit()
     else:
         print("Method not allowed")

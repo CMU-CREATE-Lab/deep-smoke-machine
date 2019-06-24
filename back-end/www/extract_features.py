@@ -1,83 +1,36 @@
 import sys
-import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-import torch
-from torch.utils.data import DataLoader
-from smoke_video_dataset import SmokeVideoDataset
-from model.pytorch_i3d import InceptionI3d
-from torch.autograd import Variable
-import numpy as np
-from util import *
+from i3d_learner import I3dLearner
 
-def flatten_tensor(t):
-    t = t.reshape(1, -1)
-    t = t.squeeze()
-    return t
-
-# Extract I3D features from pre-trained models and save them
+# Extract features
 def main(argv):
-    mode = "rgb"
-    batch_size = 16
-    p = "../data/"
-    p_feat = p + "features/"
-    p_pretrain = p + "pretrained_models/"
-    p_frame = p + "rgb/"
-    has_gpu = torch.cuda.is_available()
-    num_workers = 2
+    if len(argv) < 2:
+        print("Usage: python extract_features.py [method]")
+        print("Optional usage: python extract_features.py [method] [model_path]")
+        return
+    method = argv[1]
+    if method is None:
+        print("Usage: python extract_features.py [method]")
+        print("Optional usage: python extract_features.py [method] [model_path]")
+        return
+    model_path = None
+    if len(argv) > 2:
+        model_path = argv[2]
+    extract_features(method=method, model_path=model_path)
 
-    # Setup the model and load pre-trained weights
-    if mode == "rgb":
-        i3d = InceptionI3d(400, in_channels=3)
-        i3d.load_state_dict(torch.load(p_pretrain+"i3d_rgb_imagenet_kinetics.pt"))
-    elif mode == "flow":
-        i3d = InceptionI3d(400, in_channels=2)
-        i3d.load_state_dict(torch.load(p_pretrain+"i3d_flow_imagenet_kinetics.pt"))
+def extract_features(method=None, model_path=None):
+    if method == "i3d-rgb":
+        model = I3dLearner(mode="rgb")
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        model.extract_features(p_model=model_path)
+    elif method == "i3d-flow":
+        model = I3dLearner(mode="flow")
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
+        model.extract_features(p_model=model_path)
     else:
-        return None
-    i3d.replace_logits(2) # currently we only have two classes (0 and 1, which means no and yes)
-
-    # Use GPU or not
-    if has_gpu:
-        i3d.cuda()
-
-    # Set the model to evaluation mode
-    i3d.train(False)
-
-    # Check the directory for saving features
-    check_and_create_dir(p_feat)
-
-    # Loop all datasets
-    for phase in ["train", "validation", "test"]:
-        print("Create dataset for", phase)
-        dataset = SmokeVideoDataset(metadata_path=p+"metadata_"+phase+".json", root_dir=p_frame, mode=mode)
-        print("Create dataloader for", phase)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
-        # Iterate over data batches
-        for d in dataloader:
-            # Skip if all the files exist
-            skip = True
-            file_name = d["file_name"]
-            for fn in file_name:
-                if not is_file_here(p_feat+fn+".npy"):
-                    skip = False
-                    break
-            if skip:
-                print("Skip this batch")
-                continue
-            # Extract features
-            with torch.no_grad():
-                frames = d["frames"]
-                if has_gpu:
-                    frames = frames.cuda()
-                frames = Variable(frames)
-                features = i3d.extract_features(frames)
-            for i in range(len(file_name)):
-                f = flatten_tensor(features[i, :, :, :, :])
-                fn = file_name[i]
-                print("Save feature", fn)
-                np.save(os.path.join(p_feat, fn), f.data.cpu().numpy())
-    print("Done")
+        print("Method not allowed")
+        return
 
 if __name__ == "__main__":
     main(sys.argv)

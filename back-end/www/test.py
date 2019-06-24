@@ -1,10 +1,7 @@
 import sys
-import numpy as np
-from sklearn.metrics import classification_report
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
-from util import *
 
 # Test model performance
 def main(argv):
@@ -20,18 +17,19 @@ def main(argv):
 
 def test(method=None, model_path=None):
     if method == "i3d-rgb":
-        model = I3dLearner()
-        frame_path="../data/rgb/"
-        model.predict(mode="rgb", p_frame=frame_path, p_model=model_path)
+        model = I3dLearner(mode="rgb")
+        model.predict(p_model=model_path)
     elif method == "i3d-flow":
-        model = I3dLearner()
-        frame_path="../data/flow/"
-        model.predict(mode="flow", p_frame=frame_path, p_model=model_path)
+        model = I3dLearner(mode="flow")
+        model.predict(p_model=model_path)
     elif method == "ts":
         model = TsLearner()
         model.predict(p_model=model_path)
-    elif method == "svm":
-        model = SvmLearner()
+    elif method == "svm-rgb":
+        model = SvmLearner(mode="rgb")
+        model.predict(p_model=model_path)
+    elif method == "svm-flow":
+        model = SvmLearner(mode="flow")
         model.predict(p_model=model_path)
     else:
         print("Method not allowed")
