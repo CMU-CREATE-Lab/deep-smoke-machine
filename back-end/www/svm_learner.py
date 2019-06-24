@@ -57,6 +57,7 @@ class SvmLearner(BaseLearner):
             label_pred[phase] = model.predict(d[phase]["feature"])
             self.log("phase: " + phase)
             self.log(classification_report(d[phase]["label"], label_pred[phase]))
+            #print(confusion_matrix_of_samples(d[phase]["label"], label_pred[phase]))
 
         # Save
         model_id = str(uuid.uuid4())[0:7] + "-svm-" + self.mode

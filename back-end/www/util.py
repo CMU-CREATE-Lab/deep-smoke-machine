@@ -4,6 +4,8 @@ Helper functions
 
 import json
 import os
+from collections import defaultdict
+from random import sample
 
 # Check if a file exists
 def is_file_here(file_path):
@@ -30,5 +32,24 @@ def save_json(content, fpath):
 # y_true: true labels
 # y_pred: predicted labels
 # n_min: minimum number of samples to return for each cell in the matrix
-def confusion_matrix_of_samples(y_true, y_pred, n=None):
-    pass
+def confusion_matrix_of_samples(y_true, y_pred, n=32):
+    if len(y_true) != len(y_pred):
+        print("Error! y_true and y_pred have different lengths.")
+        return
+    if y_true is None or y_pred is None:
+        print("Error! y_true or y_pred is None.")
+        return
+
+    # Build the confusion matrix
+    cm = defaultdict(lambda: defaultdict(list))
+    for i in range(len(y_true)):
+        cm[y_true[i]][y_pred[i]].append(i)
+
+    # Randomly sample the confusion matrix
+    if n is not None:
+        for u in cm:
+            for v in cm[u]:
+                s = cm[u][v] # get the items
+                if len(s) > n: # need to sample from the items
+                    cm[u][v] = sample(s, n)
+    return cm
