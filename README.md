@@ -114,18 +114,14 @@ sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
 
 # Using Tensorboard
-Create a logging directory 
-
+Create a logging directory
 ```
-mkdir model_runs
+mkdir run
 ```
-Write data to the model_runs directory while running the model
-
-After writing model data to the directory, launch tensorboard
+Write data to the model_runs directory while running the model. After writing model data to the directory, launch tensorboard.
 ```
-tensorboard --logdir=model_runs
+tensorboard --logdir=run
 ```
-
 After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
 
 # Use this tool
