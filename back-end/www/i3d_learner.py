@@ -133,14 +133,13 @@ class I3dLearner(BaseLearner):
 
         return model
 
-    def set_dataloader(self, metadata_path, p_frame, mode, tf, batch_size):
+    def set_dataloader(self, metadata_path, root_dir, transform, batch_size):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
-            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_frame, mode=mode, transform=tf[phase])
+            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=root_dir, transform=transform[phase])
             dataloader[phase] = DataLoader(dataset, batch_size=batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
-
         return dataloader
 
     def labels_to_list(self, labels):
@@ -172,6 +171,7 @@ class I3dLearner(BaseLearner):
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
@@ -194,7 +194,7 @@ class I3dLearner(BaseLearner):
         transform = {"train": None, "validation": None}
         if self.augment:
             transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
-        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_train)
+        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
 
         # Create tensorboard writter
         writer_t = SummaryWriter(save_tensorboard_path + "/train/")
@@ -321,7 +321,7 @@ class I3dLearner(BaseLearner):
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
         transform = {"test": None}
-        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_test)
+        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
 
         # Test
         model.train(False) # set the model to evaluation mode
@@ -368,7 +368,7 @@ class I3dLearner(BaseLearner):
         metadata_path = {"train": self.p_metadata_train,
                 "validation": self.p_metadata_validation, "test": self.p_metadata_test}
         transform = {"train": None, "validation": None, "test": None}
-        dataloader = self.set_dataloader(metadata_path, p_frame, self.mode, transform, self.batch_size_extract_features)
+        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features)
 
         # Extract features
         model.train(False) # set the model to evaluation mode

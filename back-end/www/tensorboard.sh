@@ -1,1 +1,1 @@
-tensorboard --logdir=../data/saved_i3d/
+tensorboard --logdir=../data/

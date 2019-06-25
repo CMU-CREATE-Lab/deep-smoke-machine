@@ -6,7 +6,7 @@ from util import *
 
 # The smoke video dataset
 class SmokeVideoDataset(Dataset):
-    def __init__(self, metadata_path=None, root_dir=None, mode="rgb", transform=None):
+    def __init__(self, metadata_path=None, root_dir=None, transform=None):
         """
         metadata_path (string): the full path to the video metadata json file
         root_dir (string): the root directory that stores video files
@@ -14,7 +14,6 @@ class SmokeVideoDataset(Dataset):
         """
         self.metadata = load_json(metadata_path)
         self.root_dir = root_dir
-        self.mode = mode # can be "rgb" or "flow"
         self.transform = transform
 
     def __len__(self):
@@ -23,42 +22,36 @@ class SmokeVideoDataset(Dataset):
     def __getitem__(self, idx):
         v = self.metadata[idx]
 
+        # Load rgb or optical flow frames as one data point
         file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
-
         if not is_file_here(file_path):
             raise ValueError("Cannot find file: %s" % (file_path))
-
-        # Load rgb or optical flow as a data point
-        if self.mode == "rgb":
-            frames = load_frames(file_path)
-        elif self.mode == "flow":
-            frames = load_frames(file_path)
-        else:
-            return None
+        frames = load_frames(file_path)
 
         # Transform the data point (e.g., data augmentation)
         if self.transform:
             frames = self.transform(frames)
 
-        # Determine the label of the data point
+        # Process label state to labels
         label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
         pos = [47, 23, 19, 15]
         neg = [32, 20, 16, 12]
         labels = np.array([0.0, 0.0], dtype=np.float32)
-        # the 1st and 2nd column in the labels array show the probability of no and yes respectively
+
+        # The 1st and 2nd column in the labels array show the probability of no and yes respectively
         if label_state in pos:
             labels[1] = 1.0
         elif label_state in neg:
             labels[0] = 1.0
-        labels = np.repeat([labels], frames.shape[0], axis=0) # duplicate the label for each frame (frame by frame detection)
+
+        # Duplicate the label for each frame (frame by frame detection)
+        labels = np.repeat([labels], frames.shape[0], axis=0)
 
         # Return item
         return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
 
-
 # Load preprocessed videos from file_path
 def load_frames(file_path, resize_to=224.0):
-
     # Saved numpy files should be read in with format (time, height, width, channel)
     frames = np.load(file_path)
     t, h, w, c = frames.shape
@@ -78,7 +71,6 @@ def load_frames(file_path, resize_to=224.0):
         frames_out.append(img)
     return np.asarray(frames_out, dtype=np.float32)
 
-
 def labels_to_tensor(labels):
     """
     Converts a numpy.ndarray with shape (time x num_of_action_classes)
@@ -92,3 +84,38 @@ def frames_to_tensor(frames):
     to a torch.FloatTensor of shape (channel x time x height x width)
     """
     return torch.from_numpy(frames.transpose([3,0,1,2]))
+
+# The smoke video feature dataset
+class SmokeVideoFeatureDataset(Dataset):
+    def __init__(self, metadata_path=None, root_dir=None):
+        """
+        metadata_path (string): the full path to the video metadata json file
+        root_dir (string): the root directory that stores video feature files
+        """
+        self.metadata = load_json(metadata_path)
+        self.root_dir = root_dir
+
+    def __len__(self):
+        return len(self.metadata)
+
+    def __getitem__(self, idx):
+        v = self.metadata[idx]
+
+        # Load rgb or optical flow features as one data point
+        feature_file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
+        if not is_file_here(feature_file_path):
+            raise ValueError("Cannot find file: %s" % (feature_file_path))
+        feature = np.load(feature_file_path)
+
+        # Process label state to labels
+        label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
+        pos = [47, 23, 19, 15]
+        neg = [32, 20, 16, 12]
+        label = None
+        if label_state in pos:
+            label = 1
+        elif label_state in neg:
+            label = 0
+
+        # Return item
+        return {"feature": feature, "label": label, "file_name": v["file_name"]}

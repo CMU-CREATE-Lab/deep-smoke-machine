@@ -28,11 +28,20 @@ def save_json(content, fpath):
     with open(fpath, "w") as f:
         json.dump(content, f)
 
+# Convert a defaultdict to dict
+def ddict_to_dict(d):
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d[k] = ddict_to_dict(v)
+    return dict(d)
+
 # Compute a confusion matrix of samples
+# The first key is the true label
+# The second key is the predicted label
 # y_true: true labels
 # y_pred: predicted labels
 # n_min: minimum number of samples to return for each cell in the matrix
-def confusion_matrix_of_samples(y_true, y_pred, n=32):
+def confusion_matrix_of_samples(y_true, y_pred, n=16):
     if len(y_true) != len(y_pred):
         print("Error! y_true and y_pred have different lengths.")
         return
@@ -52,4 +61,5 @@ def confusion_matrix_of_samples(y_true, y_pred, n=32):
                 s = cm[u][v] # get the items
                 if len(s) > n: # need to sample from the items
                     cm[u][v] = sample(s, n)
-    return cm
+
+    return ddict_to_dict(cm)
