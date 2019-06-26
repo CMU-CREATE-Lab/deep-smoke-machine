@@ -194,8 +194,8 @@ Test the performance of a model on the test set.
 python test.py [method] [model_path]
 
 # Use I3D features + SVM (rgb or flow mode)
-python test.py svm-rgb ../data/saved_svm/445cc62-svm-rgb.pkl
-python test.py svm-flow ../data/saved_svm/b376702-svm-flow.pkl
+python test.py svm-rgb ../data/saved_svm/445cc62-svm-rgb/model/model.pkl
+python test.py svm-flow ../data/saved_svm/b376702-svm-flow/model/model.pkl
 
 # Use Two-Stream Inflated 3D ConvNet (rgb or flow mode)
 python test.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt

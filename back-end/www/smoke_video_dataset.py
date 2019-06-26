@@ -57,6 +57,8 @@ def load_frames(file_path, resize_to=224.0):
     t, h, w, c = frames.shape
 
     # Resize and scale images for the network structure
+    #TODO: maybe use opencv to normalize the image
+    #frames = cv.normalize(frames, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
     frames_out = []
     need_resize = False
     if w < resize_to or h < resize_to:

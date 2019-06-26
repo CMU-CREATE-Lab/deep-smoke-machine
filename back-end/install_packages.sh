@@ -17,3 +17,4 @@ pip install scikit-learn==0.21.2
 pip install tb-nightly
 pip install tensorflow
 pip install future
+pip install moviepy
