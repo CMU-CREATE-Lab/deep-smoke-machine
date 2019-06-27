@@ -14,7 +14,7 @@ pip install matplotlib==3.0.3
 pip install scikit-learn==0.21.2
 
 # For TensorBoard
-pip install tb-nightly
-pip install tensorflow
-pip install future
-pip install moviepy
+pip install tb-nightly==1.15.0a20190624
+pip install tensorflow==1.14.0
+pip install future==0.17.1
+pip install moviepy==1.0.0
