@@ -84,8 +84,8 @@ class SvmLearner(BaseLearner):
         self.log_parameters()
 
         # Set model
-        #model = SVC(C=self.C, gamma="scale")
-        model = LinearSVC(C=self.C, max_iter=10)
+        model = SVC(C=self.C, gamma="scale")
+        #model = LinearSVC(C=self.C, max_iter=10)
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
