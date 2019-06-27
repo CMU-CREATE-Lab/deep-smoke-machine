@@ -27,13 +27,19 @@ def compute_and_save_flow(video_data):
     rgb_dir = "../data/rgb/"
     flow_dir = "../data/flow/"
     file_name = video_data["file_name"]
-    if is_file_here(rgb_dir + file_name + ".npy") and is_file_here(flow_dir + file_name + ".npy"): return
-    video = str(video_dir + file_name + ".mp4")
+    rgb_vid_in_p = str(video_dir + file_name + ".mp4")
     rgb_4d_out_p = str(rgb_dir + file_name + ".npy")
     flow_4d_out_p = str(flow_dir + file_name + ".npy")
+    if is_file_here(rgb_4d_out_p):
+        rgb_4d_out_p = None
+    if is_file_here(flow_4d_out_p):
+        flow_4d_out_p = None
+    if rgb_4d_out_p is None and flow_4d_out_p is None:
+        return
     # Saves files to disk in format (time, height, width, channel) as numpy array
-    op = OpticalFlow(flow_type=2) # TVL1 optical flow
-    op.step(rgb_vid_in_p=video, rgb_4d_out_p=rgb_4d_out_p, flow_4d_out_p=flow_4d_out_p)
+    op = OpticalFlow(rgb_vid_in_p=rgb_vid_in_p, rgb_4d_out_p=rgb_4d_out_p,
+            flow_4d_out_p=flow_4d_out_p, flow_type=2) # TVL1 optical flow
+    op.process()
 
 if __name__ == "__main__":
     main(sys.argv)

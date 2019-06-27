@@ -85,13 +85,19 @@ def write_video_summary(writer, cm, file_name, p_frame, global_step=None, fps=12
             for idx in items:
                 frames = np.load(p_frame + file_name[idx] + ".npy")
                 shape = frames.shape
-                if shape[3] == 2: # this means that the file is optical flows
-                    h = np.expand_dims(frames[:, :, :, 0], axis=3)
-                    s = np.ones((shape[0], shape[1], shape[2], 1)) * 255 # dimension to pad
-                    v = np.expand_dims(frames[:, :, :, 1], axis=3)
-                    frames = np.concatenate((h, s, v), axis=3).astype(np.float32)
-                    for i in range(shape[0]): # convert hsv to rgb for each frame
-                        frames[i, :, :, :] = cv.cvtColor(frames[i, :, :, :], cv.COLOR_HSV2RGB)
+                if shape[3] == 2: # this means that the file is optical flows (x and y)
+                    tmp = np.zeros((shape[0], shape[1], shape[2], 3), dtype=np.float64)
+                    for i in range(shape[0]):
+                        # To visualize the flow, we need to first convert flow x and y to hsv
+                        flow_x = frames[i, :, :, 0]
+                        flow_y = frames[i, :, :, 1]
+                        magnitude, angle = cv.cartToPolar(flow_x / 255, flow_y / 255, angleInDegrees=True)
+                        tmp[i, :, :, 0] = angle # channel 0 represents direction
+                        tmp[i, :, :, 1] = 1 # channel 1 represents saturation
+                        tmp[i, :, :, 2] = magnitude # channel 2 represents magnitude
+                        # Convert the hsv to rgb
+                        tmp[i, :, :, :] = cv.cvtColor(tmp[i, :, :, :], cv.COLOR_HSV2RGB)
+                    frames = tmp
                 frames = frames / 255 # tensorboard needs the range between 0 and 1
                 frames = frames.transpose([0,3,1,2])
                 grid.append(frames)
