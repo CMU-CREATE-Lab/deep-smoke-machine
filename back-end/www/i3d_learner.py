@@ -20,6 +20,8 @@ from torchvision import transforms
 from video_transforms import *
 from torch.utils.tensorboard import SummaryWriter
 from util import *
+import re
+import time
 
 # Two-Stream Inflated 3D ConvNet learner
 # https://arxiv.org/abs/1705.07750
@@ -166,12 +168,14 @@ class I3dLearner(BaseLearner):
             save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
             save_log_path="../data/saved_i3d/[model_id]/log/train.log" # path to save log files ([model_id] will be replaced)
             ):
-
+        # Set path
         model_id = str(uuid.uuid4())[0:7] + "-i3d-" + self.mode
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
+        # Set logger
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
@@ -181,9 +185,6 @@ class I3dLearner(BaseLearner):
         self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
         self.log_parameters()
-
-        # Set path
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Set model
         model = self.set_model(self.mode, p_model, self.parallel)
@@ -220,6 +221,7 @@ class I3dLearner(BaseLearner):
         tot_cls_loss = {} # total classification loss
         pred_labels = {} # predicted labels
         true_labels = {} # true labels
+        file_name = {} # file names of the labels
         for phase in ["train", "validation"]:
             accum[phase] = 0
             tot_loss[phase] = 0.0
@@ -227,6 +229,7 @@ class I3dLearner(BaseLearner):
             tot_cls_loss[phase] = 0.0
             pred_labels[phase] = []
             true_labels[phase] = []
+            file_name[phase] = []
         while steps < self.max_steps:
             self.log("-"*40)
             # Each epoch has a training and validation phase
@@ -242,6 +245,7 @@ class I3dLearner(BaseLearner):
                 # Iterate over batch data
                 for d in dataloader[phase]:
                     accum[phase] += 1
+                    file_name[phase] += d["file_name"]
                     # Get prediction
                     frames = self.to_variable(d["frames"])
                     labels = d["labels"]
@@ -249,8 +253,7 @@ class I3dLearner(BaseLearner):
                     labels = self.to_variable(labels)
                     pred = self.make_pred(model, frames)
                     pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
-                    # Compute localization loss
-                    #TODO: think about if we need the localization loss
+                    # Compute localization loss (TODO: think about if we need the localization loss)
                     loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
                     tot_loc_loss[phase] += loc_loss.data
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
@@ -263,30 +266,43 @@ class I3dLearner(BaseLearner):
                     # Accumulate gradients during training
                     if (accum[phase] == nspu) and phase == "train":
                         steps += 1
-                        accum[phase] = 0
-                        optimizer.step()
-                        optimizer.zero_grad()
-                        lr = lr_sche.get_lr()[0]
-                        writer_t.add_scalar("learning_rate", lr, global_step=steps)
-                        lr_sche.step()
                         if steps % nspc == 0:
+                            # Save learning rate and loss to the log and tensorboard
+                            lr = lr_sche.get_lr()[0]
                             tll = tot_loc_loss[phase]/nspu_nspc
                             tcl = tot_cls_loss[phase]/nspu_nspc
                             tl = tot_loss[phase]/nspc
+                            writer_t.add_scalar("localization_loss", tll, global_step=steps)
+                            writer_t.add_scalar("classification_loss", tcl, global_step=steps)
                             writer_t.add_scalar("loss", tl, global_step=steps)
+                            writer_t.add_scalar("learning_rate", lr, global_step=steps)
                             self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
+                            # Reset
                             tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
+                        # Reset
+                        accum[phase] = 0
+                        # Update learning rate and optimizer
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        lr_sche.step()
                 if phase == "validation":
+                    # Save learning rate and loss to the log and tensorboard
                     lr = lr_sche.get_lr()[0]
                     tll = tot_loc_loss[phase]/accum[phase]
                     tcl = tot_cls_loss[phase]/accum[phase]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
+                    writer_v.add_scalar("localization_loss", tll, global_step=steps)
+                    writer_v.add_scalar("classification_loss", tcl, global_step=steps)
                     writer_v.add_scalar("loss", tl, global_step=steps)
+                    writer_v.add_scalar("learning_rate", lr, global_step=steps)
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
+                    # Reset
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     accum[phase] = 0
+                    # Save model
                     self.save(model, save_model_path + str(steps) + ".pt")
                     for ps in ["train", "validation"]:
+                        # Save precision, recall, and f-score to the log and tensorboard
                         prfs = precision_recall_fscore_support(true_labels[ps], pred_labels[ps], average="weighted")
                         writer = writer_t if ps == "train" else writer_v
                         writer.add_scalar("precision", prfs[0], global_step=steps)
@@ -294,25 +310,46 @@ class I3dLearner(BaseLearner):
                         writer.add_scalar("weighted_fscore", prfs[2], global_step=steps)
                         self.log("Performance for " + ps)
                         self.log(classification_report(true_labels[ps], pred_labels[ps]))
+                        # Add video summary to tensorboard
+                        cm = confusion_matrix_of_samples(true_labels[ps], pred_labels[ps])
+                        write_video_summary(writer, cm, file_name[ps], p_frame, global_step=steps)
+                        # Reset
                         pred_labels[ps] = []
                         true_labels[ps] = []
+                        file_name[ps] = []
+
+        # This is a hack to give the summary writer some time to write the data
+        # Without this hack, the last added video will be missing
+        time.sleep(10)
 
         self.log("Done training")
 
     def predict(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
-            save_log_path="../data/saved_i3d/test.log" # path to save log files
+            save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
+            save_log_path="../data/saved_i3d/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)
             ):
+        # Check
+        if p_model is None:
+            self.log("Need to provide model path")
+            return
 
+        # Set path
+        model_id = re.search(r'\b/[0-9a-fA-F]{7}-i3d-(rgb|flow)/\b', p_model).group()[1:-1]
+        if model_id is None:
+            model_id = "unknown-model-id"
+        save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
+        save_log_path = save_log_path.replace("[model_id]", model_id)
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+
+        # Set logger
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
-        self.log("Start testing...")
+        self.log("Start testing with mode: " + self.mode)
+        self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
-
-        # Set path
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Set model
         model = self.set_model(self.mode, p_model, self.parallel)
@@ -323,8 +360,12 @@ class I3dLearner(BaseLearner):
         transform = {"test": None}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
 
+        # Create tensorboard writter
+        writer = SummaryWriter(save_tensorboard_path + "/test/")
+
         # Test
         model.train(False) # set the model to evaluation mode
+        file_name = []
         true_labels = []
         pred_labels = []
         counter = 0
@@ -334,13 +375,24 @@ class I3dLearner(BaseLearner):
                 if counter % 20 == 0:
                     self.log("Process batch " + str(counter))
                 counter += 1
+                file_name += d["file_name"]
                 frames = self.to_variable(d["frames"])
                 labels = d["labels"]
                 true_labels += self.labels_to_list(labels)
                 labels = self.to_variable(labels)
                 pred = self.make_pred(model, frames)
                 pred_labels += self.labels_to_list(pred.cpu().detach())
+
+        # Save precision, recall, and f-score to the log
         self.log(classification_report(true_labels, pred_labels))
+
+        # Add video summary to tensorboard
+        cm = confusion_matrix_of_samples(true_labels, pred_labels)
+        write_video_summary(writer, cm, file_name, p_frame)
+
+        # This is a hack to give the summary writer some time to write the data
+        # Without this hack, the last added video will be missing
+        time.sleep(10)
 
         self.log("Done testing")
 
@@ -349,16 +401,16 @@ class I3dLearner(BaseLearner):
             p_feat_rgb="../data/i3d_features_rgb/", # path to save rgb features
             p_feat_flow="../data/i3d_features_flow/" # path to save flow features
             ):
-
-        self.log("="*60)
-        self.log("="*60)
-        self.log("Use Two-Stream Inflated 3D ConvNet learner")
-        self.log("Start extracting features...")
-
         # Set path
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
         p_feat = p_feat_rgb if self.mode == "rgb" else p_feat_flow
         check_and_create_dir(p_feat) # check the directory for saving features
+
+        # Log
+        self.log("="*60)
+        self.log("="*60)
+        self.log("Use Two-Stream Inflated 3D ConvNet learner")
+        self.log("Start extracting features...")
 
         # Set model
         model = self.set_model(self.mode, p_model, False)

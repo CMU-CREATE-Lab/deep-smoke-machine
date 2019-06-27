@@ -38,6 +38,19 @@ class SvmLearner(BaseLearner):
         self.p_metadata_validation = p_metadata_validation
         self.p_metadata_test = p_metadata_test
 
+    def log_parameters(self):
+        text = ""
+        text += "C: " + str(self.C) + "\n"
+        text += "mode: " + str(self.mode) + "\n"
+        text += "p_feat_rgb: " + self.p_feat_rgb + "\n"
+        text += "p_feat_flow: " + self.p_feat_flow + "\n"
+        text += "p_frame_rgb: " + self.p_frame_rgb + "\n"
+        text += "p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "p_metadata_train: " + self.p_metadata_train + "\n"
+        text += "p_metadata_validation: " + self.p_metadata_validation + "\n"
+        text += "p_metadata_test: " + self.p_metadata_test
+        self.log(text)
+
     def set_dataloader(self, metadata_path, root_dir):
         dataloader = {}
         for phase in metadata_path:
@@ -46,44 +59,33 @@ class SvmLearner(BaseLearner):
             dataloader[phase] = DataLoader(dataset, batch_size=len(dataset), shuffle=False, num_workers=0, pin_memory=False)
         return dataloader
 
-    def write_video_summary(self, writer, cm, file_name, p_frame, global_step=0):
-        for u in cm:
-            for v in cm[u]:
-                tag = "true_%d_prediction_%d" % (u, v)
-                grid = []
-                items = cm[u][v]
-                for idx in items:
-                    frames = np.load(p_frame + file_name[idx] + ".npy")
-                    frames = frames.transpose([0,3,1,2])
-                    frames = frames / 255 # tensorboard needs the range between 0 and 1
-                    grid.append(frames)
-                grid = torch.from_numpy(np.array(grid))
-                writer.add_video(tag, grid, global_step=global_step, fps=12)
-
     def fit(self,
             save_model_path="../data/saved_svm/[model_id]/model/", # path to save the models ([model_id] will be replaced)
             save_tensorboard_path="../data/saved_svm/[model_id]/run/", # path to save data ([model_id] will be replaced)
             save_log_path="../data/saved_svm/[model_id]/log/train.log" # path to save log files ([model_id] will be replaced)
             ):
-
+        # Set path
         model_id = str(uuid.uuid4())[0:7] + "-svm-" + self.mode
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
+        # Set logger
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use SVM learner with I3D features")
-        self.log("Start training with mode: " + self.mode)
-
-        # Set path
-        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+        self.log("Start training model: " + model_id)
+        self.log("save_model_path: " + save_model_path)
+        self.log("save_tensorboard_path: " + save_tensorboard_path)
+        self.log("save_log_path: " + save_log_path)
+        self.log_parameters()
 
         # Set model
-        model = SVC(C=self.C, gamma="scale")
-        #model = LinearSVC(C=self.C, max_iter=10)
+        #model = SVC(C=self.C, gamma="scale")
+        model = LinearSVC(C=self.C, max_iter=10)
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
@@ -99,16 +101,18 @@ class SvmLearner(BaseLearner):
             for d in dataloader[phase]:
                 file_name = d["file_name"]
                 feature = d["feature"].numpy()
-                label = d["label"].numpy()
+                true_labels = d["label"].numpy()
                 if phase == "train":
-                    model.fit(feature, label)
-                label_pred = model.predict(feature)
-                self.log(classification_report(label, label_pred))
-                cm = confusion_matrix_of_samples(label, label_pred)
-                writer = writer_t if phase == "train" else writer_v
-                self.write_video_summary(writer, cm, file_name, p_frame)
+                    model.fit(feature, true_labels)
+                pred_labels = model.predict(feature)
+            # Save precision, recall, and f-score to the log
+            self.log(classification_report(true_labels, pred_labels))
+            # Add video summary to tensorboard
+            cm = confusion_matrix_of_samples(true_labels, pred_labels)
+            writer = writer_t if phase == "train" else writer_v
+            write_video_summary(writer, cm, file_name, p_frame, global_step=1)
 
-        # Save
+        # Save model
         self.save(model, save_model_path + "model.pkl")
 
         # This is a hack to give the summary writer some time to write the data
@@ -122,26 +126,28 @@ class SvmLearner(BaseLearner):
             save_tensorboard_path="../data/saved_svm/[model_id]/run/", # path to save data ([model_id] will be replaced)
             save_log_path="../data/saved_svm/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)
             ):
-
+        # Check
         if p_model is None:
             self.log("Need to provide model path")
             return
 
+        # Set path
         model_id = re.search(r'\b/[0-9a-fA-F]{7}-svm-(rgb|flow)/\b', p_model).group()[1:-1]
         if model_id is None:
             model_id = "unknown-model-id"
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
+        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
+        # Set logger
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use SVM learner with I3D features")
         self.log("Start testing with mode: " + self.mode)
-
-        # Set path
-        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+        self.log("save_tensorboard_path: " + save_tensorboard_path)
+        self.log("save_log_path: " + save_log_path)
 
         # Set model
         model = self.load(p_model)
@@ -157,11 +163,15 @@ class SvmLearner(BaseLearner):
         for d in dataloader["test"]:
             file_name = d["file_name"]
             feature = d["feature"].numpy()
-            label = d["label"].numpy()
-            label_pred = model.predict(feature)
-            self.log(classification_report(label, label_pred))
-            cm = confusion_matrix_of_samples(label, label_pred)
-            self.write_video_summary(writer, cm, file_name, p_frame)
+            true_labels = d["label"].numpy()
+            pred_labels = model.predict(feature)
+
+        # Save precision, recall, and f-score to the log
+        self.log(classification_report(true_labels, pred_labels))
+
+        # Add video summary to tensorboard
+        cm = confusion_matrix_of_samples(true_labels, pred_labels)
+        write_video_summary(writer, cm, file_name, p_frame)
 
         # This is a hack to give the summary writer some time to write the data
         # Without this hack, the last added video will be missing
