@@ -85,7 +85,7 @@ def write_video_summary(writer, cm, file_name, p_frame, global_step=None, fps=12
             for idx in items:
                 frames = np.load(p_frame + file_name[idx] + ".npy")
                 shape = frames.shape
-                if shape[3] == 2: # this means that the file is optical flows (x and y)
+                if shape[3] == 2: # this means that the file contains optical flow frames (x and y)
                     tmp = np.zeros((shape[0], shape[1], shape[2], 3), dtype=np.float64)
                     for i in range(shape[0]):
                         # To visualize the flow, we need to first convert flow x and y to hsv
@@ -96,10 +96,11 @@ def write_video_summary(writer, cm, file_name, p_frame, global_step=None, fps=12
                         tmp[i, :, :, 1] = 1 # channel 1 represents saturation
                         tmp[i, :, :, 2] = magnitude # channel 2 represents magnitude
                         # Convert the hsv to rgb
-                        tmp[i, :, :, :] = cv.cvtColor(tmp[i, :, :, :], cv.COLOR_HSV2RGB)
+                        tmp[i, :, :, :] = cv.cvtColor(tmp[i, :, :, :].astype(np.float32), cv.COLOR_HSV2RGB)
                     frames = tmp
-                frames = frames / 255 # tensorboard needs the range between 0 and 1
-                frames = frames.transpose([0,3,1,2])
+                else: # this means that the file contains rgb frames
+                    frames = frames / 255 # tensorboard needs the range between 0 and 1
+                frames = frames.transpose([0, 3, 1, 2])
                 grid.append(frames)
             grid = torch.from_numpy(np.array(grid))
             writer.add_video(tag, grid, fps=fps)
