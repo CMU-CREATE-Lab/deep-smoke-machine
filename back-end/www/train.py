@@ -2,6 +2,7 @@ import sys
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
+from lstm_learner import LSTMLearner
 
 # Train the model
 def main(argv):
@@ -41,6 +42,9 @@ def train(method=None, model_path=None):
         model.fit()
     elif method == "svm-flow":
         model = SvmLearner(mode="flow")
+        model.fit()
+    elif method == "lstm":
+        model = LSTMLearner()
         model.fit()
     else:
         print("Method not allowed")

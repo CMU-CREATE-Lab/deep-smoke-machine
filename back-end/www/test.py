@@ -2,6 +2,7 @@ import sys
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
+from lstm_learner import LSTMLearner
 
 # Test model performance
 def main(argv):
@@ -24,6 +25,9 @@ def test(method=None, model_path=None):
         model.predict(p_model=model_path)
     elif method == "ts":
         model = TsLearner()
+        model.predict(p_model=model_path)
+    elif method == "lstm":
+        model = LSTMLearner()
         model.predict(p_model=model_path)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
