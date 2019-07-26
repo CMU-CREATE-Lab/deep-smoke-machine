@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 class TsLearner(BaseLearner):
     def __init__(self,
                  batch_size=32,
-                 lr=0.001,
+                 lr=0.01,
                  max_steps=64e3,
                  momentum=0.9,
                  #milestones = [40, 500, 1000],
@@ -32,7 +32,8 @@ class TsLearner(BaseLearner):
                  num_of_action_classes=2,
                  num_steps_per_update=1,
                  num_steps_per_check=10,
-                 use_cuda=torch.cuda.is_available(),
+                 #use_cuda=torch.cuda.is_available(),
+                 use_cuda=True,
                  parallel=True,
                  augment=True,
                  save_model_path="../data/saved_ts/",  # path for saving the models
@@ -74,15 +75,15 @@ class TsLearner(BaseLearner):
         ret = torch.zeros(b, c*t, h, w)
         frame = 0
         for channel in range(c*t):
-            ret[:,channel,:,:] = n[:,channel%3, frame,:,:]
-            if channel > 0 and channel % 3 == 0: frame += 1
+            ret[:,channel,:,:] = n[:,channel%c, frame,:,:]
+            if channel > 0 and channel % c == 0: frame += 1
         return ret
 
     def set_dataloader(self, metadata_path, p_vid, mode, tf):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
-            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, mode=mode, transform=tf[phase])
+            dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, transform = tf[phase]) #mode=mode, transform=tf[phase])
             dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
                     shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
@@ -124,10 +125,9 @@ class TsLearner(BaseLearner):
             if self.parallel and torch.cuda.device_count() > 1:
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
                 ts = nn.DataParallel(ts)
-        
+
         writer_train = SummaryWriter(self.train_writer_p)
         writer_val = SummaryWriter(self.val_writer_p)
-
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
@@ -253,7 +253,7 @@ class TsLearner(BaseLearner):
             ts.cuda()
             if self.parallel and torch.cuda.device_count() > 1:
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
-                ts = nn.DataParallel(ts)
+                #ts = nn.DataParallel(ts)
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
