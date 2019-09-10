@@ -8,6 +8,9 @@ def main(argv):
     video_root_path = "../data/videos/"
     check_and_create_dir(video_root_path)
     for v in vm:
+        # Do not download videos with bad data
+        if v["label_state"] == -2 or v["label_state_admin"] == -2:
+            continue
         file_path = video_root_path + v["file_name"] + ".mp4"
         if is_file_here(file_path): continue # skip if file exists
         print("Download video", v["id"])
