@@ -45,7 +45,7 @@ def ddict_to_dict(d):
 #   y_true (list): true labels
 #   y_pred (list): predicted labels
 #   n_min (int): minimum number of samples to return for each cell in the matrix
-def confusion_matrix_of_samples(y_true, y_pred, n=32):
+def confusion_matrix_of_samples(y_true, y_pred, n=8):
     if len(y_true) != len(y_pred):
         print("Error! y_true and y_pred have different lengths.")
         return

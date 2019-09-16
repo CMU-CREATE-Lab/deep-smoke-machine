@@ -4,13 +4,19 @@
 # For example:
 # sh bg.sh python download_videos.py
 # sh bg.sh python process_videos.py
+# sh bg.sh python extract_features.py i3d-rgb
+# sh bg.sh python extract_features.py i3d-flow
+# sh bg.sh python train.py i3d-flow
+# sh bg.sh python train.py i3d-rgb
+# sh bg.sh python train.py svm-flow
+# sh bg.sh python train.py svm-rgb
 
 # Get file path
 if [ "$1" != "" ] && [ "$2" != "" ]
 then
   echo "Run: $1 $2 $3"
 else
-  echo "Usage: sh bg_python.sh python [script_path] [script_variable]"
+  echo "Usage examples:\n  sh bg.sh python download_videos.py\n  sh bg.sh python process_videos.py\n  sh bg.sh python extract_features.py i3d-rgb\n  sh bg.sh python extract_features.py i3d-flow\n  sh bg.sh python train.py i3d-flow\n  sh bg.sh python train.py i3d-rgb\n  sh bg.sh python train.py svm-flow\n  sh bg.sh python train.py svm-rgb"
   exit 1
 fi
 

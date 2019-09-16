@@ -15,7 +15,7 @@ def main(argv):
         if is_file_here(file_path): continue # skip if file exists
         print("Download video", v["id"])
         urllib.request.urlretrieve(v["url_root"] + v["url_part"], file_path)
-    print("Done")
+    print("Done download_videos.py")
 
 if __name__ == "__main__":
     main(sys.argv)

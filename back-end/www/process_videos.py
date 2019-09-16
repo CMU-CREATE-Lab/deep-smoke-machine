@@ -20,7 +20,7 @@ def main(argv):
     metadata = load_json(metadata_path)
     p = Pool(num_workers)
     p.map(compute_and_save_flow, metadata)
-    print("Done")
+    print("Done process_videos.py")
 
 def compute_and_save_flow(video_data):
     video_dir = "../data/videos/"
