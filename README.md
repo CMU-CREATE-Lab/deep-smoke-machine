@@ -138,14 +138,14 @@ Download all videos in the metadata file.
 python download_videos.py
 
 # Background script (on the background using the "screen" command)
-sh bg_download_videos.sh
+sh bg.sh python download_videos.py
 ```
 Process all videos into rgb frames and optical flows, then save all data to the disk.
 ```sh
 python process_videos.py
 
 # Background script (on the background using the "screen" command)
-sh bg_process_videos.sh
+sh bg.sh python process_videos.py
 ```
 Extract [I3D features](https://github.com/piergiaj/pytorch-i3d).
 ```sh
@@ -160,8 +160,8 @@ python extract_features.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875
 python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
 
 # Background script (on the background using the "screen" command)
-sh bg_extract_features_i3d_rgb.sh
-sh bg_extract_features_i3d_flow.sh
+sh bg.sh python extract_features.py i3d-rgb
+sh bg.sh python extract_features.py i3d-flow
 ```
 Train the model with the training and validation sets. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
@@ -178,8 +178,8 @@ python train.py i3d-rgb
 python train.py i3d-flow
 
 # Background script (on the background using the "screen" command)
-sh bg_train_i3d_rgb.sh
-sh bg_train_i3d_flow.sh
+sh bg.sh python train.py i3d-rgb
+sh bg.sh python train.py i3d-flow
 
 # Use Two-Stream Inflated 3D ConvNet and resume from a saved model (rgb or flow mode)
 python train.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
