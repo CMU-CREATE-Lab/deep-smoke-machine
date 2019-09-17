@@ -4,6 +4,7 @@ from ts_learner import TsLearner
 from svm_learner import SvmLearner
 from lstm_learner import LSTMLearner
 
+
 # Train the model
 def main(argv):
     if len(argv) < 2:
@@ -19,6 +20,7 @@ def main(argv):
     if len(argv) > 2:
         model_path = argv[2]
     train(method=method, model_path=model_path)
+
 
 def train(method=None, model_path=None):
     if method == "i3d-rgb":
@@ -49,6 +51,7 @@ def train(method=None, model_path=None):
     else:
         print("Method not allowed")
         return
+
 
 if __name__ == "__main__":
     main(sys.argv)

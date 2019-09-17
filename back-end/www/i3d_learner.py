@@ -23,6 +23,7 @@ from util import *
 import re
 import time
 
+
 # Two-Stream Inflated 3D ConvNet learner
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):

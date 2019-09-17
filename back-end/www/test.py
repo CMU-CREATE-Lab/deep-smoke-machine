@@ -4,6 +4,7 @@ from ts_learner import TsLearner
 from svm_learner import SvmLearner
 from lstm_learner import LSTMLearner
 
+
 # Test model performance
 def main(argv):
     if len(argv) < 3:
@@ -15,6 +16,7 @@ def main(argv):
         print("Usage: python test.py [method] [model_path]")
         return
     test(method=method, model_path=model_path)
+
 
 def test(method=None, model_path=None):
     if method == "i3d-rgb":
@@ -38,6 +40,7 @@ def test(method=None, model_path=None):
     else:
         print("Method not allowed")
         return
+
 
 if __name__ == "__main__":
     main(sys.argv)

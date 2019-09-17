@@ -7,9 +7,11 @@ import logging.handlers
 from util import check_and_create_dir
 from collections import OrderedDict
 
+
 class RequestFormatter(logging.Formatter):
     def format(self, record):
         return super().format(record)
+
 
 """
 Base PyTorch learners

@@ -1,6 +1,7 @@
 import sys
 from i3d_learner import I3dLearner
 
+
 # Extract features
 def main(argv):
     if len(argv) < 2:
@@ -17,6 +18,7 @@ def main(argv):
         model_path = argv[2]
     extract_features(method=method, model_path=model_path)
 
+
 def extract_features(method=None, model_path=None):
     if method == "i3d-rgb":
         model = I3dLearner(mode="rgb")
@@ -31,6 +33,7 @@ def extract_features(method=None, model_path=None):
     else:
         print("Method not allowed")
         return
+
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -4,6 +4,7 @@ import json
 import numpy as np
 from util import *
 
+
 # Split metadata into training, validation, and test sets
 def main(argv):
     # Check
@@ -81,6 +82,7 @@ def main(argv):
     save_json(vm_valid, "../data/metadata_validation.json")
     save_json(vm_test, "../data/metadata_test.json")
     save_json(vm_train, "../data/metadata_train.json")
+
 
 if __name__ == "__main__":
     main(sys.argv)

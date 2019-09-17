@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np
 from util import *
 
+
 # The smoke video dataset
 class SmokeVideoDataset(Dataset):
     def __init__(self, metadata_path=None, root_dir=None, transform=None):
@@ -50,6 +51,7 @@ class SmokeVideoDataset(Dataset):
         # Return item
         return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
 
+
 # Load preprocessed videos from file_path
 def load_frames(file_path, resize_to=224.0):
     # Saved numpy files should be read in with format (time, height, width, channel)
@@ -73,6 +75,7 @@ def load_frames(file_path, resize_to=224.0):
         frames_out.append(img)
     return np.asarray(frames_out, dtype=np.float32)
 
+
 def labels_to_tensor(labels):
     """
     Converts a numpy.ndarray with shape (time x num_of_action_classes)
@@ -80,12 +83,14 @@ def labels_to_tensor(labels):
     """
     return torch.from_numpy(labels.transpose([1,0]))
 
+
 def frames_to_tensor(frames):
     """
     Converts a numpy.ndarray with shape (time x height x width x channel)
     to a torch.FloatTensor of shape (channel x time x height x width)
     """
     return torch.from_numpy(frames.transpose([3,0,1,2]))
+
 
 # The smoke video feature dataset
 class SmokeVideoFeatureDataset(Dataset):

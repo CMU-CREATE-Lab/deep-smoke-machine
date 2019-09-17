@@ -2,6 +2,7 @@ import sys
 import requests
 from util import *
 
+
 # Get video metadata and save to a file
 def main(argv):
     # Check
@@ -24,6 +25,7 @@ def main(argv):
 
     print("Done.")
 
+
 # Get video metadata from the video-labeling-tool
 def get_video_metadata():
     # Read the user token, obtained from https://smoke.createlab.org/gallery.html in dashboard mode
@@ -38,6 +40,7 @@ def get_video_metadata():
 
     return videos
 
+
 # Query a paginated api call iteratively until getting all the data
 def iterative_query(url, user_token, page_size=1000, page_number=1):
     r = requests.post(url=url, data={"user_token": user_token, "pageSize": page_size, "pageNumber": page_number})
@@ -48,6 +51,7 @@ def iterative_query(url, user_token, page_size=1000, page_number=1):
         return r
     else:
         return r + iterative_query(url, user_token, page_size=page_size, page_number=page_number+1)
+
 
 if __name__ == "__main__":
     main(sys.argv)

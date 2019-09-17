@@ -5,6 +5,7 @@ import numpy as np
 from optical_flow.optical_flow import OpticalFlow
 from multiprocessing import Pool
 
+
 # Process videos into rgb frame files and optical flow files
 # The file format is numpy.array
 def main(argv):
@@ -21,6 +22,7 @@ def main(argv):
     p = Pool(num_workers)
     p.map(compute_and_save_flow, metadata)
     print("Done process_videos.py")
+
 
 def compute_and_save_flow(video_data):
     video_dir = "../data/videos/"
@@ -40,6 +42,7 @@ def compute_and_save_flow(video_data):
     op = OpticalFlow(rgb_vid_in_p=rgb_vid_in_p, rgb_4d_out_p=rgb_4d_out_p,
             flow_4d_out_p=flow_4d_out_p, clip_flow_bound=20, flow_type=2) # TVL1 optical flow
     op.process()
+
 
 if __name__ == "__main__":
     main(sys.argv)

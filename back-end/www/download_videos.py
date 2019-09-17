@@ -2,6 +2,7 @@ import sys
 import urllib.request
 from util import *
 
+
 # Download all videos in the metadata json file
 def main(argv):
     vm = load_json("../data/metadata.json")
@@ -16,6 +17,7 @@ def main(argv):
         print("Download video", v["id"])
         urllib.request.urlretrieve(v["url_root"] + v["url_part"], file_path)
     print("Done download_videos.py")
+
 
 if __name__ == "__main__":
     main(sys.argv)

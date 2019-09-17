@@ -13,6 +13,7 @@ import torch
 import time
 import re
 
+
 # SVM learner using I3D features
 class SvmLearner(BaseLearner):
     def __init__(self,

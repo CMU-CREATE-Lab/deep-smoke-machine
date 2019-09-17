@@ -1,7 +1,6 @@
 """
 Helper functions
 """
-
 import json
 import os
 from collections import defaultdict
@@ -10,9 +9,11 @@ import torch
 import numpy as np
 import cv2 as cv
 
+
 # Check if a file exists
 def is_file_here(file_path):
     return os.path.isfile(file_path)
+
 
 # Check if a directory exists, if not, create it
 def check_and_create_dir(path):
@@ -21,15 +22,18 @@ def check_and_create_dir(path):
     if dir_name != "" and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
+
 # Load json file
 def load_json(fpath):
     with open(fpath, "r") as f:
         return json.load(f)
 
+
 # Save json file
 def save_json(content, fpath):
     with open(fpath, "w") as f:
         json.dump(content, f)
+
 
 # Convert a defaultdict to dict
 def ddict_to_dict(d):
@@ -37,6 +41,7 @@ def ddict_to_dict(d):
         if isinstance(v, dict):
             d[k] = ddict_to_dict(v)
     return dict(d)
+
 
 # Compute a confusion matrix of samples
 # The first key is the true label
@@ -67,6 +72,7 @@ def confusion_matrix_of_samples(y_true, y_pred, n=8):
                     cm[u][v] = sample(s, n)
 
     return ddict_to_dict(cm)
+
 
 # Write video data summary to the tensorboard
 #   writer (torch.utils.tensorboard.SummaryWriter): tensorboard summary writer
