@@ -16,8 +16,8 @@ import uuid
 from sklearn.metrics import classification_report
 from sklearn.metrics import precision_recall_fscore_support
 import numpy as np
-from torchvision import transforms
-from video_transforms import *
+from torchvision.transforms import Compose
+from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Resize, Normalize
 from torch.utils.tensorboard import SummaryWriter
 from util import *
 import re
@@ -36,7 +36,7 @@ class I3dLearner(BaseLearner):
             init_lr=0.01, # initial learning rate
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1000, 2000], # MultiStepLR parameters (for i3d-rgb)
+            milestones_rgb=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-rgb)
             milestones_flow=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
@@ -75,6 +75,7 @@ class I3dLearner(BaseLearner):
         self.p_metadata_train = p_metadata_train
         self.p_metadata_validation = p_metadata_validation
         self.p_metadata_test = p_metadata_test
+        self.image_size = 224 # 224 is the input for the i3d network structure
 
     def log_parameters(self):
         text = ""
@@ -163,6 +164,22 @@ class I3dLearner(BaseLearner):
         t = t.squeeze()
         return t
 
+    def get_transform(self, phase="train"):
+        nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
+        if phase == "train":
+            # Color jitter deals with different lighting and weather conditions
+            cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
+            # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
+            rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
+            rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
+            # Improve generalization
+            rhf = RandomHorizontalFlip(p=0.5)
+            # Deal with dirts, ants, or spiders on the camera lense
+            re = RandomErasing(p=0.5, scale=(0.001, 0.007), ratio=(0.3, 3.3), value="random")
+            return Compose([cj, rrc, rp, rhf, re, re, nm])
+        else:
+            return Compose([Resize(self.image_size), nm])
+
     def fit(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
             save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
@@ -193,9 +210,10 @@ class I3dLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
-        transform = {"train": None, "validation": None}
+        ts = self.get_transform()
+        transform = {"train": ts, "validation": ts}
         if self.augment:
-            transform = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
+            transform["train"] = self.get_transform("train")
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
 
         # Create tensorboard writter
@@ -358,7 +376,7 @@ class I3dLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
-        transform = {"test": None}
+        transform = {"test": self.get_transform()}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
 
         # Create tensorboard writter
@@ -419,8 +437,9 @@ class I3dLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train,
-                "validation": self.p_metadata_validation, "test": self.p_metadata_test}
-        transform = {"train": None, "validation": None, "test": None}
+            "validation": self.p_metadata_validation, "test": self.p_metadata_test}
+        ts = self.get_transform()
+        transform = {"train": ts, "validation": ts, "test": ts}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features)
 
         # Extract features

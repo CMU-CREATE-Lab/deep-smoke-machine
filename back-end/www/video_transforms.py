@@ -220,7 +220,7 @@ class ColorJitter(object):
         # Apply to all images
         output_imgs = []
         for I in imgs:
-            output_imgs.append(transform(I))
+            output_imgs.append(transform(I.astype(np.uint8)).astype(np.float32))
 
         return np.array(output_imgs)
 
@@ -701,3 +701,73 @@ class RandomErasing(object):
                 output_imgs.append(FF.erase(I, x, y, h, w, v, self.inplace).numpy().transpose((1, 2, 0)))
             return np.array(output_imgs)
         return imgs
+
+
+class Resize(object):
+    """Resize the input numpy ndarray to the given size.
+    Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (h, w), output size will be matched to this. If size is an int,
+            smaller edge of the image will be matched to this number.
+            i.e, if height > width, then image will be rescaled to
+            (size * height / width, size)
+        interpolation (int, optional): Desired interpolation. Default is
+            ``cv2.INTER_CUBIC``, bicubic interpolation
+    """
+    def __init__(self, size, interpolation=cv2.INTER_CUBIC):
+        assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (numpy ndarray): Image sequence (time*height*width*channel) to be scaled.
+        Returns:
+            numpy ndarray: Rescaled image sequence.
+        """
+        # Apply to all images
+        output_imgs = []
+        for I in imgs:
+            output_imgs.append(F.resize(img, self.size, self.interpolation))
+
+        return np.array(output_imgs)
+
+    def __repr__(self):
+        interpolate_str = _cv2_interpolation_from_str[self.interpolation]
+        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
+
+
+class Normalize(object):
+    """Normalize image sequence with mean and standard deviation.
+    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
+    will normalize each channel of the input ``torch.*Tensor`` i.e.
+    ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
+    .. note::
+        This transform acts in-place, i.e., it mutates the input tensor.
+    Args:
+        mean (sequence): Sequence of means for each channel.
+        std (sequence): Sequence of standard deviations for each channel.
+    """
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (numpy ndarray): Image squence of size (time*height*width*channel) to be normalized.
+        Returns:
+            numpy ndarray: Normalized image sequence.
+        """
+        imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
+
+        # Apply to all images
+        output_imgs = []
+        for I in imgs:
+            output_imgs.append(F.normalize(I, self.mean, self.std).numpy().transpose((1, 2, 0)))
+
+        return np.array(output_imgs)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)

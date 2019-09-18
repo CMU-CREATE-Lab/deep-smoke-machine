@@ -24,10 +24,11 @@ class SmokeVideoDataset(Dataset):
         v = self.metadata[idx]
 
         # Load rgb or optical flow frames as one data point
+        # Saved numpy files should be read in with format (time, height, width, channel)
         file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
         if not is_file_here(file_path):
             raise ValueError("Cannot find file: %s" % (file_path))
-        frames = load_frames(file_path)
+        frames = np.load(file_path).astype(np.float32)
 
         # Transform the data point (e.g., data augmentation)
         if self.transform:
@@ -50,30 +51,6 @@ class SmokeVideoDataset(Dataset):
 
         # Return item
         return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
-
-
-# Load preprocessed videos from file_path
-def load_frames(file_path, resize_to=224.0):
-    # Saved numpy files should be read in with format (time, height, width, channel)
-    frames = np.load(file_path)
-    t, h, w, c = frames.shape
-
-    # Resize and scale images for the network structure
-    #TODO: maybe use opencv to normalize the image
-    #frames = cv.normalize(frames, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-    frames_out = []
-    need_resize = False
-    if w < resize_to or h < resize_to:
-        d = resize_to - min(w, h)
-        sc = 1 + d / min(w, h)
-        need_resize = True
-    for i in range(t):
-        img = frames[i, :, :, :]
-        if need_resize:
-            img = cv.resize(img, dsize=(0, 0), fx=sc, fy=sc)
-        img = (img / 255.) * 2 - 1
-        frames_out.append(img)
-    return np.asarray(frames_out, dtype=np.float32)
 
 
 def labels_to_tensor(labels):
