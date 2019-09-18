@@ -3,6 +3,7 @@ This file is obtained and modified from:
 - https://github.com/piergiaj/pytorch-i3d
 - https://github.com/jbohnslav/opencv_transforms
 - https://github.com/YU-Zhiyang/opencv_transforms_torchvision
+- https://pytorch.org/docs/stable/_modules/torchvision/transforms/transforms.html
 """
 import numpy as np
 import numbers
@@ -10,10 +11,11 @@ import random
 import warnings
 import types
 import opencv_functional as F
+import torchvision.transforms.functional as FF
 from torchvision.transforms import Compose
 import cv2
 import math
-
+import torch
 
 class RandomCrop(object):
     """Crop the given video sequences (t x h x w) at a random location.
@@ -575,7 +577,7 @@ class RandomPerspective(object):
 
     def __call__(self, imgs):
         """
-            imgs (np.ndarray): Image sequence to be transformed.
+            imgs (np.ndarray): Image sequence (time*height*width*channel) to be transformed.
         Returns:
             np.ndarray: Perspective transformed image sequence.
         """
@@ -605,3 +607,97 @@ class RandomPerspective(object):
         d = dict(self.__dict__)
         d['resample'] = d['resample']
         return s.format(name=self.__class__.__name__, **d)
+
+
+class RandomErasing(object):
+    """ Randomly selects a rectangle region in an image and erases its pixels.
+        'Random Erasing Data Augmentation' by Zhong et al.
+        See https://arxiv.org/pdf/1708.04896.pdf
+    Args:
+         p: probability that the random erasing operation will be performed.
+         scale: range of proportion of erased area against input image.
+         ratio: range of aspect ratio of erased area.
+         value: erasing value. Default is 0. If a single int, it is used to
+            erase all pixels. If a tuple of length 3, it is used to erase
+            R, G, B channels respectively.
+            If a str of 'random', erasing each pixel with random values.
+         inplace: boolean to make this transform inplace. Default set to False.
+
+    Returns:
+        Erased Image.
+    # Examples:
+        >>> transform = transforms.Compose([
+        >>> transforms.RandomHorizontalFlip(),
+        >>> transforms.ToTensor(),
+        >>> transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        >>> transforms.RandomErasing(),
+        >>> ])
+    """
+    def __init__(self, p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False):
+        assert isinstance(value, (numbers.Number, str, tuple, list))
+        if (scale[0] > scale[1]) or (ratio[0] > ratio[1]):
+            warnings.warn("range should be of kind (min, max)")
+        if scale[0] < 0 or scale[1] > 1:
+            raise ValueError("range of scale should be between 0 and 1")
+        if p < 0 or p > 1:
+            raise ValueError("range of random erasing probability should be between 0 and 1")
+
+        self.p = p
+        self.scale = scale
+        self.ratio = ratio
+        self.value = value
+        self.inplace = inplace
+
+    @staticmethod
+    def get_params(img, scale, ratio, value=0):
+        """Get parameters for ``erase`` for a random erasing.
+
+        Args:
+            img (Tensor): Tensor image of size (C, H, W) to be erased.
+            scale: range of proportion of erased area against input image.
+            ratio: range of aspect ratio of erased area.
+
+        Returns:
+            tuple: params (i, j, h, w, v) to be passed to ``erase`` for random erasing.
+        """
+        img_c, img_h, img_w = img.shape
+        area = img_h * img_w
+
+        for attempt in range(10):
+            erase_area = random.uniform(scale[0], scale[1]) * area
+            aspect_ratio = random.uniform(ratio[0], ratio[1])
+
+            h = int(round(math.sqrt(erase_area * aspect_ratio)))
+            w = int(round(math.sqrt(erase_area / aspect_ratio)))
+
+            if h < img_h and w < img_w:
+                i = random.randint(0, img_h - h)
+                j = random.randint(0, img_w - w)
+                if isinstance(value, numbers.Number):
+                    v = value
+                elif isinstance(value, torch._six.string_classes):
+                    v = torch.empty([img_c, h, w], dtype=torch.float32).normal_()
+                elif isinstance(value, (list, tuple)):
+                    v = torch.tensor(value, dtype=torch.float32).view(-1, 1, 1).expand(-1, h, w)
+                return i, j, h, w, v
+
+        # Return original image
+        return 0, 0, img_h, img_w, img
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (np.ndarray): Image sequence of size (time*height*width*channel) to be erased.
+
+        Returns:
+            np.ndarray: Erased image sequence.
+        """
+        if random.uniform(0, 1) < self.p:
+            imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
+            x, y, h, w, v = self.get_params(imgs[0, ...], scale=self.scale, ratio=self.ratio, value=self.value)
+            # Apply to all images
+            output_imgs = []
+            for I in imgs:
+                output_imgs.append(FF.erase(I, x, y, h, w, v, self.inplace).numpy().transpose((1, 2, 0)))
+            return np.array(output_imgs)
+        return imgs

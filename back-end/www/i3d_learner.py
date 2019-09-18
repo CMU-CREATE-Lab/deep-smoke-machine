@@ -43,7 +43,7 @@ class I3dLearner(BaseLearner):
             num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=8, # number of workers for the dataloader
+            num_workers=10, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
