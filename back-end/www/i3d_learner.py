@@ -164,7 +164,7 @@ class I3dLearner(BaseLearner):
         t = t.squeeze()
         return t
 
-    def get_transform(self, phase="train"):
+    def get_transform(self, phase=None):
         nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
         if phase == "train":
             # Color jitter deals with different lighting and weather conditions
@@ -175,7 +175,7 @@ class I3dLearner(BaseLearner):
             # Improve generalization
             rhf = RandomHorizontalFlip(p=0.5)
             # Deal with dirts, ants, or spiders on the camera lense
-            re = RandomErasing(p=0.5, scale=(0.001, 0.007), ratio=(0.3, 3.3), value="random")
+            re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
             return Compose([cj, rrc, rp, rhf, re, re, nm])
         else:
             return Compose([Resize(self.image_size), nm])
@@ -213,7 +213,7 @@ class I3dLearner(BaseLearner):
         ts = self.get_transform()
         transform = {"train": ts, "validation": ts}
         if self.augment:
-            transform["train"] = self.get_transform("train")
+            transform["train"] = self.get_transform(phase="train")
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
 
         # Create tensorboard writter
