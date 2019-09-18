@@ -28,7 +28,7 @@ class SmokeVideoDataset(Dataset):
         file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
         if not is_file_here(file_path):
             raise ValueError("Cannot find file: %s" % (file_path))
-        frames = np.load(file_path).astype(np.float32)
+        frames = np.load(file_path).astype(np.uint8)
 
         # Transform the data point (e.g., data augmentation)
         if self.transform:
@@ -50,7 +50,7 @@ class SmokeVideoDataset(Dataset):
         labels = np.repeat([labels], frames.shape[0], axis=0)
 
         # Return item
-        return {"frames": frames_to_tensor(frames), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
+        return {"frames": frames_to_tensor(frames.astype(np.float32)), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
 
 
 def labels_to_tensor(labels):

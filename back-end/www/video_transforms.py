@@ -220,7 +220,7 @@ class ColorJitter(object):
         # Apply to all images
         output_imgs = []
         for I in imgs:
-            output_imgs.append(transform(I.astype(np.uint8)).astype(np.float32))
+            output_imgs.append(transform(I))
 
         return np.array(output_imgs)
 
@@ -729,7 +729,7 @@ class Resize(object):
         # Apply to all images
         output_imgs = []
         for I in imgs:
-            output_imgs.append(F.resize(img, self.size, self.interpolation))
+            output_imgs.append(F.resize(I, self.size, self.interpolation))
 
         return np.array(output_imgs)
 
@@ -760,7 +760,7 @@ class Normalize(object):
         Returns:
             numpy ndarray: Normalized image sequence.
         """
-        imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
+        imgs = torch.from_numpy(imgs.astype(np.float32).transpose((0, 3, 1, 2)))
 
         # Apply to all images
         output_imgs = []

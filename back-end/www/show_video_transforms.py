@@ -3,8 +3,9 @@ import matplotlib
 matplotlib.use("TkAgg") # a fix for Mac OS X error
 from optical_flow.optical_flow import OpticalFlow
 from torchvision.transforms import Compose
-from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing
+from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Normalize, Resize
 import numpy as np
+import cv2
 
 
 def main(argv):
@@ -27,11 +28,17 @@ def main(argv):
     rhf = RandomHorizontalFlip(p=0.5)
 
     # Deal with dirts, ants, or spiders on the camera lense
-    re = RandomErasing(p=0.5, scale=(0.001, 0.007), ratio=(0.3, 3.3), value="random")
+    re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
+
+    # Normalization
+    nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
 
     # Transform and save
-    T = Compose([cj, rrc, rp, rhf, re, re, re])
+    T = Compose([cj, rrc, rp, rhf, re, re, nm])
+    #T = Compose([Resize(224)])
     rgb_4d = T(rgb_4d)
+    print(rgb_4d.shape)
+    rgb_4d = cv2.normalize(rgb_4d, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     op.frames_to_vid(rgb_4d, "../data/transformed.mp4")
 
 
