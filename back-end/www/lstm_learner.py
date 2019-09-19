@@ -101,22 +101,6 @@ class LSTMLearner(BaseLearner):
         # Upsample prediction to frame length (because we want prediction for each frame)
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
-    def get_transform(self, phase=None):
-        nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
-        if phase == "train":
-            # Color jitter deals with different lighting and weather conditions
-            cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
-            # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
-            rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
-            rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
-            # Improve generalization
-            rhf = RandomHorizontalFlip(p=0.5)
-            # Deal with dirts, ants, or spiders on the camera lense
-            re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
-            return Compose([cj, rrc, rp, rhf, re, re, nm])
-        else:
-            return Compose([Resize(self.image_size), nm])
-
     def fit(self,
             mode="rgb",
             p_metadata_train="../data/metadata_train.json",

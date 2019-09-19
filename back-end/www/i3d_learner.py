@@ -16,8 +16,6 @@ import uuid
 from sklearn.metrics import classification_report
 from sklearn.metrics import precision_recall_fscore_support
 import numpy as np
-from torchvision.transforms import Compose
-from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Resize, Normalize
 from torch.utils.tensorboard import SummaryWriter
 from util import *
 import re
@@ -33,11 +31,12 @@ class I3dLearner(BaseLearner):
             batch_size_extract_features=32, # size for each batch for extracting features
             max_steps=20000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr=0.01, # initial learning rate
+            init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
+            init_lr_flow=0.5, # initial learning rate (for i3d-flow)
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-rgb)
-            milestones_flow=[1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
+            milestones_rgb=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-rgb)
+            milestones_flow=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=10, # the number of steps to save a model and log information
@@ -58,7 +57,8 @@ class I3dLearner(BaseLearner):
         self.batch_size_extract_features = batch_size_extract_features
         self.max_steps = max_steps
         self.num_steps_per_update = num_steps_per_update
-        self.init_lr = init_lr
+        self.init_lr_rgb = init_lr_rgb
+        self.init_lr_flow = init_lr_flow
         self.weight_decay = weight_decay
         self.momentum = momentum
         self.milestones_rgb = milestones_rgb
@@ -84,7 +84,8 @@ class I3dLearner(BaseLearner):
         text += "batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
         text += "max_steps: " + str(self.max_steps) + "\n"
         text += "num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
-        text += "init_lr: " + str(self.init_lr) + "\n"
+        text += "init_lr_rgb: " + str(self.init_lr_rgb) + "\n"
+        text += "init_lr_flow: " + str(self.init_lr_flow) + "\n"
         text += "weight_decay: " + str(self.weight_decay) + "\n"
         text += "momentum: " + str(self.momentum) + "\n"
         text += "milestones_rgb: " + str(self.milestones_rgb) + "\n"
@@ -164,22 +165,6 @@ class I3dLearner(BaseLearner):
         t = t.squeeze()
         return t
 
-    def get_transform(self, phase=None):
-        nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
-        if phase == "train":
-            # Color jitter deals with different lighting and weather conditions
-            cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
-            # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
-            rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
-            rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
-            # Improve generalization
-            rhf = RandomHorizontalFlip(p=0.5)
-            # Deal with dirts, ants, or spiders on the camera lense
-            re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
-            return Compose([cj, rrc, rp, rhf, re, re, nm])
-        else:
-            return Compose([Resize(self.image_size), nm])
-
     def fit(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
             save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
@@ -210,10 +195,10 @@ class I3dLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
-        ts = self.get_transform()
+        ts = self.get_transform(self.mode)
         transform = {"train": ts, "validation": ts}
         if self.augment:
-            transform["train"] = self.get_transform(phase="train")
+            transform["train"] = self.get_transform(self.mode, phase="train")
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
 
         # Create tensorboard writter
@@ -221,7 +206,8 @@ class I3dLearner(BaseLearner):
         writer_v = SummaryWriter(save_tensorboard_path + "/validation/")
 
         # Set optimizer
-        optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
+        init_lr = self.init_lr_rgb if self.mode == "rgb" else self.init_lr_flow
+        optimizer = optim.SGD(model.parameters(), lr=init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
         milestones = self.milestones_rgb if self.mode == "rgb" else self.milestones_flow
         lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
 
@@ -376,7 +362,7 @@ class I3dLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
-        transform = {"test": self.get_transform()}
+        transform = {"test": self.get_transform(self.mode)}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
 
         # Create tensorboard writter
@@ -438,7 +424,7 @@ class I3dLearner(BaseLearner):
         # Load datasets
         metadata_path = {"train": self.p_metadata_train,
             "validation": self.p_metadata_validation, "test": self.p_metadata_test}
-        ts = self.get_transform()
+        ts = self.get_transform(self.mode)
         transform = {"train": ts, "validation": ts, "test": ts}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features)
 
