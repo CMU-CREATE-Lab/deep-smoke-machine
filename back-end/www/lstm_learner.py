@@ -13,11 +13,11 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 import numpy as np
 import random
-from torchvision import transforms
-from video_transforms import *
+from torchvision.transforms import Compose
+from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Resize, Normalize
 from torch.utils.tensorboard import SummaryWriter
-
 import json
+
 
 # Conv LSTM learner
 class LSTMLearner(BaseLearner):
@@ -101,6 +101,22 @@ class LSTMLearner(BaseLearner):
         # Upsample prediction to frame length (because we want prediction for each frame)
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
+    def get_transform(self, phase=None):
+        nm = Normalize(mean=(127.5, 127.5, 127.5), std=(127.5, 127.5, 127.5)) # same as (img/255)*2-1
+        if phase == "train":
+            # Color jitter deals with different lighting and weather conditions
+            cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
+            # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
+            rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
+            rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
+            # Improve generalization
+            rhf = RandomHorizontalFlip(p=0.5)
+            # Deal with dirts, ants, or spiders on the camera lense
+            re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
+            return Compose([cj, rrc, rp, rhf, re, re, nm])
+        else:
+            return Compose([Resize(self.image_size), nm])
+
     def fit(self,
             mode="rgb",
             p_metadata_train="../data/metadata_train.json",
@@ -129,11 +145,13 @@ class LSTMLearner(BaseLearner):
 
         writer_train = SummaryWriter(self.train_writer_p)
         writer_val = SummaryWriter(self.val_writer_p)
+
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        transform = None
+        ts = self.get_transform()
+        transform = {"train": ts, "validation": ts}
         if self.augment:
-            transform  = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
+            transform["train"] = self.get_transform(phase="train")
         dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
 
         # Set optimizer
@@ -263,7 +281,7 @@ class LSTMLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
-        transform = {"test": None}
+        transform = {"test": self.get_transform()}
         dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
 
         #self.load(model, p_model)
@@ -319,4 +337,3 @@ class LSTMLearner(BaseLearner):
             json.dump(all_pred, f)
 
         self.log("Done test")
-        pass
