@@ -1,8 +1,10 @@
 import sys
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
+from pt_ts_learner import PtTsLearner
 from svm_learner import SvmLearner
 from lstm_learner import LSTMLearner
+from fusion_learner import FuseLearner
 
 # Train the model
 def main(argv):
@@ -32,11 +34,14 @@ def train(method=None, model_path=None):
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         model.fit(p_model=model_path)
     elif method == "ts-rgb":
-        model = TsLearner()
-        model.fit(mode="rgb")
+        model = TsLearner(mode="rgb")
+        model.fit()
     elif method == "ts-flow":
-        model = TsLearner()
-        model.fit(mode="flow")
+        model = TsLearner(mode="flow")
+        model.fit()
+    elif method == "pt-flow":
+        model = PtTsLearner()
+        model.fit(mode="pt-flow")
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.fit()
@@ -45,6 +50,9 @@ def train(method=None, model_path=None):
         model.fit()
     elif method == "lstm":
         model = LSTMLearner()
+        model.fit()
+    elif method == "fuse":
+        model = FuseLearner()
         model.fit()
     else:
         print("Method not allowed")
