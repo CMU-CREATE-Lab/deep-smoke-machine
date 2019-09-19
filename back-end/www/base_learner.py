@@ -110,9 +110,9 @@ class BaseLearner(ABC):
         if phase == "train":
             # Color jitter deals with different lighting and weather conditions
             if mode == "rgb":
-                cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
+                cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)
             elif mode == "flow":
-                cj = ColorJitter(brightness=0.3, contrast=0.3)
+                cj = ColorJitter(brightness=0.3, contrast=0.3, gamma=0.3)
             # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
             rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
             rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)

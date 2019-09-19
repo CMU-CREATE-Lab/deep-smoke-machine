@@ -18,7 +18,7 @@ def main(argv):
     rgb_4d = op.vid_to_frames().astype(np.uint8) # ColorJitter need uint8
 
     # Color jitter deals with different lighting and weather conditions
-    cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1))
+    cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)
 
     # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
     rrc = RandomResizedCrop(224, scale=(0.9, 1), ratio=(3./4., 4./3.))

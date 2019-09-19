@@ -146,13 +146,17 @@ class ColorJitter(object):
         hue (float or tuple of float (min, max)): How much to jitter hue.
             hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
             Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
+        gamma (float or tuple of float (min, max)): How much to jitter gamma.
+            gamma_factor is chosen uniformly from [max(0, 1 - gamma), 1 + gamma]
     """
-    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0, gamma=0):
         self.brightness = self._check_input(brightness, 'brightness')
         self.contrast = self._check_input(contrast, 'contrast')
         self.saturation = self._check_input(saturation, 'saturation')
         self.hue = self._check_input(hue, 'hue', center=0, bound=(-0.5, 0.5),
                                      clip_first_on_zero=False)
+        self.gamma = self._check_input(gamma, 'gamma')
+
         if self.saturation is not None:
             warnings.warn('Saturation jitter enabled. Will slow down loading immensely.')
         if self.hue is not None:
@@ -171,14 +175,14 @@ class ColorJitter(object):
         else:
             raise TypeError("{} should be a single number or a list/tuple with length 2.".format(name))
 
-        # if value is 0 or (1., 1.) for brightness/contrast/saturation
+        # if value is 0 or (1., 1.) for brightness/contrast/saturation/gamma
         # or (0., 0.) for hue, do nothing
         if value[0] == value[1] == center:
             value = None
         return value
 
     @staticmethod
-    def get_params(brightness, contrast, saturation, hue):
+    def get_params(brightness, contrast, saturation, hue, gamma):
         """Get a randomized transform to be applied on image.
         Arguments are same as that of __init__.
         Returns:
@@ -203,6 +207,10 @@ class ColorJitter(object):
             hue_factor = random.uniform(hue[0], hue[1])
             transforms.append(Lambda(lambda img: F.adjust_hue(img, hue_factor)))
 
+        if gamma is not None:
+            gamma_factor = random.uniform(gamma[0], gamma[1])
+            transforms.append(Lambda(lambda img: F.adjust_gamma(img, gamma_factor)))
+
         random.shuffle(transforms)
         transform = Compose(transforms)
 
@@ -216,7 +224,7 @@ class ColorJitter(object):
             numpy ndarray: Color jittered image sequence.
         """
         transform = self.get_params(self.brightness, self.contrast,
-                                    self.saturation, self.hue)
+                                    self.saturation, self.hue, self.gamma)
         # Apply to all images
         output_imgs = []
         for I in imgs:
@@ -230,6 +238,7 @@ class ColorJitter(object):
         format_string += ', contrast={0}'.format(self.contrast)
         format_string += ', saturation={0}'.format(self.saturation)
         format_string += ', hue={0})'.format(self.hue)
+        format_string += ', gamma={0})'.format(self.gamma)
         return format_string
 
 

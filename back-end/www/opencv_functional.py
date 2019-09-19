@@ -443,7 +443,7 @@ def adjust_hue(img, hue_factor):
 
 
 def adjust_gamma(img, gamma, gain=1):
-    r"""Perform gamma correction on an image.
+    """Perform gamma correction on an image.
     Also known as Power Law Transform. Intensities in RGB mode are adjusted
     based on the following equation:
     .. math::
