@@ -3,8 +3,18 @@ from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
 from lstm_learner import LSTMLearner
-from late_fusion import LateFusion
-from fusion_learner import FuseLearner
+try:
+    from pt_ts_learner import PtTsLearner
+except ImportError:
+    PtTsLearner = None
+try:
+    from fusion_learner import FuseLearner
+except ImportError:
+    FuseLearner = None
+try:
+    from late_fusion import LateFusion
+except ImportError:
+    LateFusion = None
 
 
 # Test model performance
