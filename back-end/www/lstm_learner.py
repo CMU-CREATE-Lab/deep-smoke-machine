@@ -17,6 +17,8 @@ from torchvision import transforms
 from video_transforms import *
 from torch.utils.tensorboard import SummaryWriter
 
+import json
+
 # Conv LSTM learner
 class LSTMLearner(BaseLearner):
     def __init__(self,
@@ -40,7 +42,7 @@ class LSTMLearner(BaseLearner):
                  val_writer_p="../data/ts_runs/lstm_val"
                  ):
         super().__init__()
-        self.create_logger(log_path="LSTMLearner.log")
+        self.create_logger(log_path="LSTMLearner_test.log")
         self.log("Use LSTM learner")
 
         self.batch_size = batch_size
@@ -266,6 +268,7 @@ class LSTMLearner(BaseLearner):
 
         #self.load(model, p_model)
 
+        all_pred = {}
         # Test
         model.train(False)
         true_labels = []
@@ -278,15 +281,28 @@ class LSTMLearner(BaseLearner):
                 counter += 1
                 # Get inputs
                 frames, labels = d["frames"], d["labels"]
+                names = d["file_name"]
                 #frames = self.compress_videos_to_frames(frames)
                 frames = self.to_variable(frames)
-                true_labels += self.labels_to_list(labels)
+                l = self.labels_to_list(labels)
+                true_labels += l
                 labels = self.to_variable(d["labels"])
                 pred = model(frames)
                 pred = pred.permute(0,2,1)
+                all_pred[counter] = {}
+                p = pred.cpu().detach()
                 _, predicted = torch.max(pred, dim=1)
                 cpu_pred = predicted.cpu().detach().tolist()
-                for lst in cpu_pred:
+                for i, lst in enumerate(cpu_pred):
+                    all_pred[counter][i] = []
+                    all_pred[counter][i].append("neg")
+                    all_pred[counter][i].append(p[i,0,-1].item())
+                    all_pred[counter][i].append("pos")
+                    all_pred[counter][i].append(p[i,1,-1].item())
+                    all_pred[counter][i].append("actual")
+                    all_pred[counter][i].append(l[i])
+                    all_pred[counter][i].append("name")
+                    all_pred[counter][i].append(names[i])
                     pred_labels.append(lst[-1])
                 #frames = self.to_variable(frames)
                 #true_labels += self.labels_to_list(labels)
@@ -298,6 +314,9 @@ class LSTMLearner(BaseLearner):
                 #for lst in cpu_pred:
                 #    pred_labels.append(lst[-1])
         self.log(classification_report(true_labels, pred_labels))
+
+        with open ('lstm_pred.json', 'w') as f:
+            json.dump(all_pred, f)
 
         self.log("Done test")
         pass

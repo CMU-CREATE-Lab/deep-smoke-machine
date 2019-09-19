@@ -16,17 +16,19 @@ import random
 from torchvision import transforms
 from video_transforms import *
 from torch.utils.tensorboard import SummaryWriter
+from util import *
 
 # Two-Stream ConvNet learner
 # http://papers.nips.cc/paper/5353-two-stream-convolutional
 class TsLearner(BaseLearner):
     def __init__(self,
                  batch_size=32,
-                 lr=0.01,
+                 mode="rgb",
+                 lr=0.1,
                  max_steps=64e3,
                  momentum=0.9,
-                 #milestones = [40, 500, 1000],
-                 gamma = 0.1,
+                 milestones = [200, 400, 1000, 1800],
+                 gamma=0.1,
                  weight_decay = 0.000001,
                  num_workers=1,
                  num_of_action_classes=2,
@@ -45,10 +47,11 @@ class TsLearner(BaseLearner):
         self.log("Use Two-Stream ConvNet learner")
 
         self.batch_size = batch_size
+        self.mode = mode
         self.lr = lr
         self.max_steps = max_steps
         self.momentum = momentum
-        #self.milestones = milestones
+        self.milestones = milestones
         self.gamma = gamma
         self.weight_decay = weight_decay
         self.num_workers = num_workers
@@ -84,8 +87,7 @@ class TsLearner(BaseLearner):
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
             dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=p_vid, transform = tf[phase]) #mode=mode, transform=tf[phase])
-            dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size,
-                    shuffle=True, num_workers=self.num_workers, pin_memory=True)
+            dataloader[phase] = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers, pin_memory=True)
 
         return dataloader
 
@@ -103,7 +105,6 @@ class TsLearner(BaseLearner):
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
     def fit(self,
-            mode="rgb",
             p_metadata_train="../data/metadata_train.json",
             p_metadata_validation="../data/metadata_validation.json",
             p_vid="../data/"):
@@ -112,11 +113,11 @@ class TsLearner(BaseLearner):
         self.log("="*60)
         self.log("Start training...")
 
-        if mode == "rgb":
+        if self.mode == "rgb":
             ts = SpatialCNN()
             p_vid = p_vid + "rgb/"
 
-        elif mode == "flow":
+        elif self.mode == "flow":
             ts = MotionCNN()
             p_vid = p_vid + "flow/"
 
@@ -134,11 +135,11 @@ class TsLearner(BaseLearner):
         transform = None
         if self.augment:
             transform  = {"train": transforms.Compose([RandomCrop(224), RandomHorizontalFlip()]), "validation": None}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
+        dataloader = self.set_dataloader(metadata_path, p_vid, self.mode, transform)
 
         # Set optimizer
         optimizer = optim.SGD(params=ts.parameters(), lr=self.lr, momentum=self.momentum, weight_decay = self.weight_decay)
-        # lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
+        lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set Loss Function
         criterion = nn.BCEWithLogitsLoss()
@@ -152,13 +153,14 @@ class TsLearner(BaseLearner):
         nspu = self.num_steps_per_update
         nspc = self.num_steps_per_check
         nspu_nspc = nspu * nspc
-        model_id = str(uuid.uuid4())[0:7] + "-ts-" + mode
+        model_id = str(uuid.uuid4())[0:7] + "-ts-" + self.mode
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
         tot_loc_loss = {} # total localization loss
         tot_cls_loss = {} # total classification loss
         pred_labels = {} # predicted labels
         true_labels = {} # true labels
+        file_name = {}
         for phase in ["train", "validation"]:
             accum[phase] = 0
             tot_loss[phase] = 0.0
@@ -166,6 +168,7 @@ class TsLearner(BaseLearner):
             tot_cls_loss[phase] = 0.0
             pred_labels[phase] = []
             true_labels[phase] = []
+            file_name[phase] = []
         while steps < self.max_steps:
             self.log("-"*40)
             # Each epoch has a training and validation phase
@@ -179,8 +182,10 @@ class TsLearner(BaseLearner):
                     ts.train(False) # set model to evaluate mode
                 optimizer.zero_grad()
                 # Iterate over data
-                for d in dataloader[phase]:
+                #for d in dataloader[phase]:
+                for count, d in enumerate(dataloader[phase]):
                     accum[phase] += 1
+                    file_name[phase] += d["file_name"]
                     # Get inputs
                     frames, labels = d["frames"], d["labels"]
                     frames = self.compress_videos_to_frames(frames)
@@ -189,31 +194,31 @@ class TsLearner(BaseLearner):
                     labels = self.to_variable(d["labels"])
                     pred = ts(frames)
                     _, predicted = torch.max(pred, dim=1)
-                    pred_labels[phase] += list(predicted.cpu().detach())
+                    pred_labels[phase] += predicted.cpu().detach().tolist()
+                    #pred_labels[phase] += list(predicted.cpu().detach())
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
                     cls_loss = criterion(pred, torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
                     loss = cls_loss / nspu
                     tot_loss[phase] += loss.data
-                    loss.backward()
+                    if phase != "validation":
+                        loss.backward()
                     # Accumulate gradients during training
                     if (accum[phase] == nspu) and phase == "train":
                         steps += 1
                         accum[phase] = 0
                         optimizer.step()
                         optimizer.zero_grad()
-                        # lr_sche.step()
+                        lr_sche.step()
                         if steps % nspc == 0:
-                            #lr = lr_sche.get_lr()[0]
-                            lr = self.lr
+                            lr = lr_sche.get_lr()[0]
                             tl = tot_loss[phase]/nspc
                             writer_train.add_scalar("Training Loss", tl, global_step=steps)
                             self.log(log_fm % (phase, steps, lr, tl))
                             tot_loss[phase] = 0.0
                 if phase == "validation":
-                    # lr = lr_sche.get_lr()[0]
-                    lr = self.lr
+                    lr = lr_sche.get_lr()[0]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
                     writer_val.add_scalar("Validation Loss", tl, global_step=steps)
                     self.log(log_fm % (phase, steps, lr, tl))
@@ -227,13 +232,24 @@ class TsLearner(BaseLearner):
                         if phase == "train": writer_train.add_scalar("Train Accuracy", accuracy, global_step=steps)
                         elif phase == "validation": writer_val.add_scalar("Val Accuracy", accuracy, global_step=steps)
                         self.log(classification_report(true_labels[phase], pred_labels[phase]))
+
+                        # Add video summary to tensorboard
+                        cm = confusion_matrix_of_samples(true_labels[phase], pred_labels[phase], n=4)
+                        print(cm)
+                        writer = writer_train if phase == "train" else writer_val
+                        write_video_summary(writer, cm, file_name[phase], p_vid, global_step=steps)
+                        # Reset
                         pred_labels[phase] = []
                         true_labels[phase] = []
+                        file_name[phase] = []
+
+        # This is a hack to give the summary writer some time to write the data
+        # Without this hack, the last added video will be missing
+        time.sleep(10)
 
         self.log("Done fit")
 
     def predict(self,
-                mode="rgb",
                 p_metadata_test="../data/metadata_test.json",
                 p_vid="../data/",
                 p_model=None):
@@ -241,29 +257,31 @@ class TsLearner(BaseLearner):
         self.log("="*60)
         self.log("Start testing...")
 
-        if mode == "rgb":
+        if self.mode == "rgb":
             ts = SpatialCNN()
             p_vid = p_vid + "rgb/"
 
-        elif mode == "flow":
+        elif self.mode == "flow":
             ts = MotionCNN()
             p_vid = p_vid + "flow/"
+
+        self.load(ts, p_model)
 
         if self.use_cuda:
             ts.cuda()
             if self.parallel and torch.cuda.device_count() > 1:
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
-                #ts = nn.DataParallel(ts)
+                ##Uncomented below
+                ts = nn.DataParallel(ts)
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
         transform = {"test": None}
-        dataloader = self.set_dataloader(metadata_path, p_vid, mode, transform)
-
-        self.load(ts, p_model)
+        dataloader = self.set_dataloader(metadata_path, p_vid, self.mode, transform)
 
         # Test
         ts.train(False)
+        file_name = []
         true_labels = []
         pred_labels = []
         counter = 0
@@ -273,15 +291,23 @@ class TsLearner(BaseLearner):
                     self.log("Process batch " + str(counter))
                 counter += 1
                 # Get inputs
+                file_name += d["file_name"]
                 frames, labels = d["frames"], d["labels"]
                 frames = self.compress_videos_to_frames(frames)
                 frames = self.to_variable(frames)
                 true_labels += self.labels_to_list(labels)
                 labels = self.to_variable(d["labels"])
-                pred = ts(frames)
+                ##Added softmax below
+                pred = F.softmax(ts(frames), dim=1)
                 _, predicted = torch.max(pred, dim=1)
                 pred_labels += list(predicted.cpu().detach())
         self.log(classification_report(true_labels, pred_labels))
+
+        #TODO: setup tensorboard for test
+
+        #cm = confusion_matrix_of_samples(true_labels, pred_labels)
+        #write_video_summary(writer, cm, file_name, p_frame)
+
 
         self.log("Done test")
         pass

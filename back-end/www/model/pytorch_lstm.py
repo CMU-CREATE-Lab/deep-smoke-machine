@@ -54,7 +54,7 @@ class CNN_LSTM(nn.Module):
         features = torch.cat(features).view(len(features), b, -1)
 
         # LSTM for whole-video learning
-        self.lstm.flatten_parameters()
+        #self.lstm.flatten_parameters()
         output, _  = self.lstm(features)#, (self.h0, self.c0))
 
         # Fully connected network for classification
