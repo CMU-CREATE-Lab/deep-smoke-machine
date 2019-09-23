@@ -110,7 +110,7 @@ class BaseLearner(ABC):
         tt = ToTensor()
         if phase == "train":
             # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
-            rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
+            rrc = RandomResizedCrop(image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
             rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
             # Improve generalization
             rhf = RandomHorizontalFlip(p=0.5)
