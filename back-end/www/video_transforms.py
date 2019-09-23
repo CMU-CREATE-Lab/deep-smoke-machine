@@ -757,13 +757,11 @@ class Normalize(object):
     Args:
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
-        inplace(bool,optional): Bool to make this operation in-place.
 
     """
-    def __init__(self, mean, std, inplace=False):
+    def __init__(self, mean, std):
         self.mean = mean
         self.std = std
-        self.inplace = inplace
 
     def __call__(self, imgs):
         """
@@ -776,7 +774,7 @@ class Normalize(object):
         # Apply to all images
         output_imgs = []
         for I in imgs.transpose(0, 1):
-            output_imgs.append(F.normalize(I, self.mean, self.std, self.inplace).unsqueeze(1))
+            output_imgs.append(F.normalize(I, self.mean, self.std).unsqueeze(1))
         return torch.cat(output_imgs, dim=1)
 
     def __repr__(self):
@@ -786,8 +784,8 @@ class Normalize(object):
 class ToTensor(object):
     """Convert a ``numpy.ndarray`` sequence to tensor.
 
-    Converts a numpy.ndarray (time*height*width*channel) in the range
-    [0, 255] to a torch.FloatTensor of shape (channel*time*height*width) in the range [0.0, 1.0]
+    Converts a numpy.ndarray (time*height*width*channel) to
+    a torch.FloatTensor of shape (channel*time*height*width)
     if the PIL Image belongs to one of the modes (L, LA, P, I, F, RGB, YCbCr, RGBA, CMYK, 1)
     or if the numpy.ndarray has dtype = np.uint8
 
@@ -804,7 +802,7 @@ class ToTensor(object):
         # Apply to all images
         output_imgs = []
         for I in imgs:
-            output_imgs.append(F.to_tensor(pic).unsqueeze(1))
+            output_imgs.append(F.to_tensor(I).unsqueeze(1))
         return torch.cat(output_imgs, dim=1)
 
     def __repr__(self):

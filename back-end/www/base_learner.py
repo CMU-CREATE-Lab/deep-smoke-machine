@@ -115,7 +115,7 @@ class BaseLearner(ABC):
             # Improve generalization
             rhf = RandomHorizontalFlip(p=0.5)
             # Deal with dirts, ants, or spiders on the camera lense
-            re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
+            re = RandomErasing(p=0.5, scale=(0.003, 0.01), ratio=(0.3, 3.3), value=0)
             if mode == "rgb":
                 # Color jitter deals with different lighting and weather conditions
                 cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)

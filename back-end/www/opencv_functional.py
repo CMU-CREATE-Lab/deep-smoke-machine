@@ -72,7 +72,7 @@ def to_tensor(pic):
     img = torch.from_numpy(pic.transpose((2, 0, 1)))
     # backward compatibility
     if isinstance(img, torch.ByteTensor) or img.dtype==torch.uint8:
-        return img.float().div(255)
+        return img.float()
     else:
         return img
 
