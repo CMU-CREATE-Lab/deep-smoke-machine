@@ -97,7 +97,7 @@ class BaseLearner(ABC):
                 self.logger.error(msg)
 
     # Data augmentation pipeline
-    def get_transform(self, mode, phase=None):
+    def get_transform(self, mode, phase=None, image_size=224):
         if mode == "rgb": # two channels (r, g, and b)
             mean = (127.5, 127.5, 127.5)
             std = (127.5, 127.5, 127.5)
@@ -123,7 +123,7 @@ class BaseLearner(ABC):
             elif mode == "flow":
                 return Compose([rrc, rp, rhf, tt, nm, re, re])
         else:
-            return Compose([Resize(self.image_size), tt, nm])
+            return Compose([Resize(image_size), tt, nm])
 
     # Create a logger
     def create_logger(self, log_path=None):

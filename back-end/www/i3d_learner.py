@@ -199,10 +199,10 @@ class I3dLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
-        ts = self.get_transform(self.mode)
+        ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts}
         if self.augment:
-            transform["train"] = self.get_transform(self.mode, phase="train")
+            transform["train"] = self.get_transform(self.mode, phase="train", image_size=self.image_size)
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
 
         # Create tensorboard writter
@@ -367,7 +367,7 @@ class I3dLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
-        transform = {"test": self.get_transform(self.mode)}
+        transform = {"test": self.get_transform(self.mode, image_size=self.image_size)}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
 
         # Create tensorboard writter
@@ -429,7 +429,7 @@ class I3dLearner(BaseLearner):
         # Load datasets
         metadata_path = {"train": self.p_metadata_train,
             "validation": self.p_metadata_validation, "test": self.p_metadata_test}
-        ts = self.get_transform(self.mode)
+        ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts, "test": ts}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features)
 
