@@ -1,6 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -21,14 +22,17 @@ from util import *
 import re
 import time
 import tqdm
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
 
 # Two-Stream Inflated 3D ConvNet learner
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
-            batch_size_train=32, # size for each batch for training (8 max for each GTX 1080Ti)
-            batch_size_test=128, # size for each batch for testing (32 max for each GTX 1080Ti)
+            batch_size_train=8, # size for each batch for training (8 max for each GTX 1080Ti)
+            batch_size_test=32, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=32, # size for each batch for extracting features
             max_steps=16000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
@@ -106,7 +110,7 @@ class I3dLearner(BaseLearner):
         text += "p_metadata_test: " + self.p_metadata_test
         self.log(text)
 
-    def set_model(self, mode, p_model, parallel):
+    def set_model(self, rank, world_size, mode, p_model, parallel):
         # Setup the model based on mode
         if mode == "rgb":
             model = InceptionI3d(400, in_channels=3)
@@ -134,10 +138,14 @@ class I3dLearner(BaseLearner):
         # Use GPU or not
         if self.use_cuda:
             model.cuda()
-            if parallel and torch.cuda.device_count() > 1:
-                self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
-                # TODO: change this to DistributedDataParallel, which is significantly faster
-                model = nn.DataParallel(model)
+            if parallel:
+                os.environ['MASTER_ADDR'] = 'localhost'
+                os.environ['MASTER_PORT'] = '12355'
+                # Rank 1 means one machine, world_size means the number of GPUs on that machine
+                dist.init_process_group("gloo", rank=rank, world_size=world_size)
+                n = torch.cuda.device_count() // world_size
+                device_ids = list(range(rank * n, (rank + 1) * n))
+                model = DDP(model.to(device_ids[0]), device_ids=device_ids)
 
         return model
 
@@ -168,6 +176,9 @@ class I3dLearner(BaseLearner):
         t = t.squeeze()
         return t
 
+    def clean_mp(self):
+        dist.destroy_process_group()
+
     def fit(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
             save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
@@ -192,8 +203,18 @@ class I3dLearner(BaseLearner):
         self.log("save_log_path: " + save_log_path)
         self.log_parameters()
 
+        # Spawn processes
+        n_gpu = torch.cuda.device_count()
+        if self.parallel and n_gpu > 1:
+            self.log("Let's use " + str(n_gpu) + " GPUs!")
+            mp.spawn(self.fit_worker, nprocs=n_gpu,
+                args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
+        else:
+            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame);
+
+    def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame):
         # Set model
-        model = self.set_model(self.mode, p_model, self.parallel)
+        model = self.set_model(rank, world_size, self.mode, p_model, self.parallel)
         if model is None: return None
 
         # Load datasets
@@ -330,6 +351,9 @@ class I3dLearner(BaseLearner):
         # Without this hack, the last added video will be missing
         time.sleep(10)
 
+        # Clean processors
+        self.clean_mp()
+
         self.log("Done training")
 
     def predict(self,
@@ -402,6 +426,9 @@ class I3dLearner(BaseLearner):
         # Without this hack, the last added video will be missing
         time.sleep(10)
 
+        # Clean processors
+        self.clean_mp()
+
         self.log("Done testing")
 
     def extract_features(self,
@@ -458,5 +485,8 @@ class I3dLearner(BaseLearner):
                     fn = file_name[i]
                     self.log("Save " + self.mode + " feature " + fn + ".npy")
                     np.save(os.path.join(p_feat, fn), f.data.cpu().numpy())
+
+        # Clean processors
+        self.clean_mp()
 
         self.log("Done extracting features")
