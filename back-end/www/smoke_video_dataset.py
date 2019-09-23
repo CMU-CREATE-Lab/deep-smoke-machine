@@ -1,6 +1,6 @@
+import os
 import torch
 from torch.utils.data import Dataset
-import cv2 as cv
 import numpy as np
 from util import *
 
@@ -17,59 +17,52 @@ class SmokeVideoDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
 
+        # TODO: transform data to lmdb format (https://lmdb.readthedocs.io/en/release/)
+        # TODO: in the __init__ function, open the lmdb, and in here, load the data by index
+        # Load all data to memory
+        print("Loading all data to memory...")
+        self.video_data = []
+        self.label_data = []
+        pos = [47, 23, 19, 15]
+        neg = [32, 20, 16, 12]
+        for i in range(len(self.metadata)):
+            v = self.metadata[i]
+            # Add video data
+            file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
+            if not is_file_here(file_path):
+                raise ValueError("Cannot find file: %s" % (file_path))
+            frames = np.load(file_path).astype(np.uint8)
+            self.video_data.append(frames)
+            # Process label state to labels
+            label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
+            labels = np.array([0.0, 0.0], dtype=np.float32)
+            if label_state in pos:
+                labels[1] = 1.0 # The 2st column show the probability of yes
+            elif label_state in neg:
+                labels[0] = 1.0 # The 1st column show the probability of no
+            labels = np.repeat([labels], frames.shape[0], axis=0) # Repeat for each frame (frame by frame detection)
+            self.label_data.append(self.labels_to_tensor(labels))
+
     def __len__(self):
         return len(self.metadata)
 
     def __getitem__(self, idx):
         v = self.metadata[idx]
-
-        # Load rgb or optical flow frames as one data point
-        # Saved numpy files should be read in with format (time, height, width, channel)
-        file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
-        if not is_file_here(file_path):
-            raise ValueError("Cannot find file: %s" % (file_path))
-        frames = np.load(file_path).astype(np.uint8)
-
-        # Transform the data point (e.g., data augmentation)
+        frames = self.video_data[idx]
         if self.transform:
             frames = self.transform(frames)
+        return {"frames": frames, "labels": self.label_data[idx], "file_name": v["file_name"]}
 
-        # Process label state to labels
-        label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
-        pos = [47, 23, 19, 15]
-        neg = [32, 20, 16, 12]
-        labels = np.array([0.0, 0.0], dtype=np.float32)
-
-        # The 1st and 2nd column in the labels array show the probability of no and yes respectively
-        if label_state in pos:
-            labels[1] = 1.0
-        elif label_state in neg:
-            labels[0] = 1.0
-
-        # Duplicate the label for each frame (frame by frame detection)
-        labels = np.repeat([labels], frames.shape[0], axis=0)
-
-        # Return item
-        return {"frames": frames_to_tensor(frames.astype(np.float32)), "labels": labels_to_tensor(labels), "file_name": v["file_name"]}
-
-
-def labels_to_tensor(labels):
-    """
-    Converts a numpy.ndarray with shape (time x num_of_action_classes)
-    to a torch.FloatTensor of shape (num_of_action_classes x time)
-    """
-    return torch.from_numpy(labels.transpose([1,0]))
-
-
-def frames_to_tensor(frames):
-    """
-    Converts a numpy.ndarray with shape (time x height x width x channel)
-    to a torch.FloatTensor of shape (channel x time x height x width)
-    """
-    return torch.from_numpy(frames.transpose([3,0,1,2]))
+    def labels_to_tensor(labels):
+        """
+        Converts a numpy.ndarray with shape (time x num_of_action_classes)
+        to a torch.FloatTensor of shape (num_of_action_classes x time)
+        """
+        return torch.from_numpy(labels.transpose([1,0]))
 
 
 # The smoke video feature dataset
+# TODO: improve performance of this class according to SmokeVideoDataset
 class SmokeVideoFeatureDataset(Dataset):
     def __init__(self, metadata_path=None, root_dir=None):
         """

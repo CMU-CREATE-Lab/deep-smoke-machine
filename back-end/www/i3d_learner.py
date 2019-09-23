@@ -20,6 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 from util import *
 import re
 import time
+import tqdm
 
 
 # Two-Stream Inflated 3D ConvNet learner
@@ -29,20 +30,21 @@ class I3dLearner(BaseLearner):
             batch_size_train=32, # size for each batch for training (8 max for each GTX 1080Ti)
             batch_size_test=128, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=32, # size for each batch for extracting features
-            max_steps=20000, # total number of steps for training
+            max_steps=16000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
-            init_lr_flow=0.5, # initial learning rate (for i3d-flow)
-            weight_decay=0.0000001, # L2 regularization
+            init_lr_flow=0.1, # initial learning rate (for i3d-flow)
+            #weight_decay=0.0000001, # L2 regularization (for i3d-rgb)
+            weight_decay=0.0000001, # L2 regularization (for i3d-flow)
             momentum=0.9, # SGD parameters
             milestones_rgb=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-rgb)
             milestones_flow=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=10, # the number of steps to save a model and log information
+            num_steps_per_check=100, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
-            num_workers=10, # number of workers for the dataloader
+            num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
@@ -134,6 +136,7 @@ class I3dLearner(BaseLearner):
             model.cuda()
             if parallel and torch.cuda.device_count() > 1:
                 self.log("Let's use " + str(torch.cuda.device_count()) + " GPUs!")
+                # TODO: change this to DistributedDataParallel, which is significantly faster
                 model = nn.DataParallel(model)
 
         return model
@@ -154,6 +157,7 @@ class I3dLearner(BaseLearner):
     def to_variable(self, v):
         if self.use_cuda:
             v = v.cuda() # move to gpu
+        # TODO: in newer pytorch, Variable is no longer needed
         return Variable(v)
 
     def make_pred(self, model, frames):
@@ -248,7 +252,8 @@ class I3dLearner(BaseLearner):
                     model.train(False) # set model to evaluate mode
                 optimizer.zero_grad()
                 # Iterate over batch data
-                for d in dataloader[phase]:
+                for d in tqdm.tqdm(dataloader[phase]):
+                    continue
                     accum[phase] += 1
                     file_name[phase] += d["file_name"]
                     # Get prediction

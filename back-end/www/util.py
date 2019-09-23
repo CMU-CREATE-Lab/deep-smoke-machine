@@ -1,13 +1,21 @@
 """
 Helper functions
 """
-import json
 import os
+thread = "1"
+os.environ["MKL_NUM_THREADS"] = thread
+os.environ["NUMEXPR_NUM_THREADS"] = thread
+os.environ["OMP_NUM_THREADS"] = thread
+os.environ["VECLIB_MAXIMUM_THREADS"] = thread
+os.environ["OPENBLAS_NUM_THREADS"] = thread
+import cv2 as cv
+cv.setNumThreads(0)
+
+import json
 from collections import defaultdict
 from random import sample
 import torch
 import numpy as np
-import cv2 as cv
 
 
 # Check if a file exists

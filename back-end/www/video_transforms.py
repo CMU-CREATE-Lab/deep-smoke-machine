@@ -5,6 +5,16 @@ This file is obtained and modified from:
 - https://github.com/YU-Zhiyang/opencv_transforms_torchvision
 - https://pytorch.org/docs/stable/_modules/torchvision/transforms/transforms.html
 """
+import os
+thread = "1"
+os.environ["MKL_NUM_THREADS"] = thread
+os.environ["NUMEXPR_NUM_THREADS"] = thread
+os.environ["OMP_NUM_THREADS"] = thread
+os.environ["VECLIB_MAXIMUM_THREADS"] = thread
+os.environ["OPENBLAS_NUM_THREADS"] = thread
+import cv2
+cv2.setNumThreads(0)
+
 import numpy as np
 import numbers
 import random
@@ -13,9 +23,9 @@ import types
 import opencv_functional as F
 import torchvision.transforms.functional as FF
 from torchvision.transforms import Compose
-import cv2
 import math
 import torch
+
 
 class RandomCrop(object):
     """Crop the given video sequences (t x h x w) at a random location.
@@ -85,7 +95,6 @@ class CenterCrop(object):
         j = int(np.round((w - tw) / 2.))
 
         return imgs[:, i:i+th, j:j+tw, :]
-
 
     def __repr__(self):
         return self.__class__.__name__ + '(size={0})'.format(self.size)
@@ -229,7 +238,6 @@ class ColorJitter(object):
         output_imgs = []
         for I in imgs:
             output_imgs.append(transform(I))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -301,12 +309,10 @@ class RandomResizedCrop(object):
             numpy ndarray: Randomly cropped and resized image sequence.
         """
         i, j, h, w = self.get_params(imgs[0, ...], self.scale, self.ratio)
-
         # Apply to all images
         output_imgs = []
         for I in imgs:
             output_imgs.append(F.resized_crop(I, i, j, h, w, self.size, self.interpolation))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -366,12 +372,10 @@ class RandomRotation(object):
             numpy ndarray: Rotated image sequence.
         """
         angle = self.get_params(self.degrees)
-
         # Apply to all images
         output_imgs = []
         for I in imgs:
             output_imgs.append(F.rotate(I, angle, self.resample, self.expand, self.center))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -480,12 +484,10 @@ class RandomAffine(object):
             numpy ndarray: Affine transformed image sequence.
         """
         ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, (imgs.shape[2], imgs.shape[1]))
-
         # Apply to all images
         output_imgs = []
         for I in imgs:
             output_imgs.append(F.affine(I, *ret, interpolation=self.interpolation, fillcolor=self.fillcolor))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -592,12 +594,10 @@ class RandomPerspective(object):
         """
         ret = self.get_params(self.fov, self.anglex, self.angley, self.anglez, self.shear,
                               self.translate, self.scale, imgs[0, ...].shape)
-
         # Apply to all images
         output_imgs = []
         for I in imgs:
             output_imgs.append(F.perspective(I, *ret, resample=self.resample, fillcolor=self.fillcolor))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -696,19 +696,18 @@ class RandomErasing(object):
     def __call__(self, imgs):
         """
         Args:
-            imgs (np.ndarray): Image sequence of size (time*height*width*channel) to be erased.
+            imgs (Tensor): Tensor image sequence of size (channel*time*height*width) to be erased.
 
         Returns:
-            np.ndarray: Erased image sequence.
+            Tensor: Erased Tensor image sequence.
         """
         if random.uniform(0, 1) < self.p:
-            imgs = torch.from_numpy(imgs.transpose((0, 3, 1, 2)))
-            x, y, h, w, v = self.get_params(imgs[0, ...], scale=self.scale, ratio=self.ratio, value=self.value)
+            x, y, h, w, v = self.get_params(imgs[:, 0, :, :], scale=self.scale, ratio=self.ratio, value=self.value)
             # Apply to all images
             output_imgs = []
-            for I in imgs:
-                output_imgs.append(FF.erase(I, x, y, h, w, v, self.inplace).numpy().transpose((1, 2, 0)))
-            return np.array(output_imgs)
+            for I in imgs.transpose(0, 1):
+                output_imgs.append(FF.erase(I, x, y, h, w, v, self.inplace).unsqueeze(1))
+            return torch.cat(output_imgs, dim=1)
         return imgs
 
 
@@ -739,7 +738,6 @@ class Resize(object):
         output_imgs = []
         for I in imgs:
             output_imgs.append(F.resize(I, self.size, self.interpolation))
-
         return np.array(output_imgs)
 
     def __repr__(self):
@@ -748,35 +746,66 @@ class Resize(object):
 
 
 class Normalize(object):
-    """Normalize image sequence with mean and standard deviation.
+    """Normalize a tensor image sequence with mean and standard deviation.
     Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
     will normalize each channel of the input ``torch.*Tensor`` i.e.
     ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
+
     .. note::
-        This transform acts in-place, i.e., it mutates the input tensor.
+        This transform acts out of place, i.e., it does not mutates the input tensor.
+
     Args:
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
+        inplace(bool,optional): Bool to make this operation in-place.
+
     """
-    def __init__(self, mean, std):
+    def __init__(self, mean, std, inplace=False):
         self.mean = mean
         self.std = std
+        self.inplace = inplace
 
     def __call__(self, imgs):
         """
         Args:
-            imgs (numpy ndarray): Image squence of size (time*height*width*channel) to be normalized.
-        Returns:
-            numpy ndarray: Normalized image sequence.
-        """
-        imgs = torch.from_numpy(imgs.astype(np.float32).transpose((0, 3, 1, 2)))
+            imgs (Tensor): Tensor image sequence of size (channel*time*height*width) to be normalized.
 
+        Returns:
+            Tensor: Normalized Tensor image sequence.
+        """
         # Apply to all images
         output_imgs = []
-        for I in imgs:
-            output_imgs.append(F.normalize(I, self.mean, self.std).numpy().transpose((1, 2, 0)))
-
-        return np.array(output_imgs)
+        for I in imgs.transpose(0, 1):
+            output_imgs.append(F.normalize(I, self.mean, self.std, self.inplace).unsqueeze(1))
+        return torch.cat(output_imgs, dim=1)
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
+
+class ToTensor(object):
+    """Convert a ``numpy.ndarray`` sequence to tensor.
+
+    Converts a numpy.ndarray (time*height*width*channel) in the range
+    [0, 255] to a torch.FloatTensor of shape (channel*time*height*width) in the range [0.0, 1.0]
+    if the PIL Image belongs to one of the modes (L, LA, P, I, F, RGB, YCbCr, RGBA, CMYK, 1)
+    or if the numpy.ndarray has dtype = np.uint8
+
+    In the other cases, tensors are returned without scaling.
+    """
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (numpy.ndarray): Image sequence to be converted to tensor.
+
+        Returns:
+            Tensor: Converted image sequence.
+        """
+        # Apply to all images
+        output_imgs = []
+        for I in imgs:
+            output_imgs.append(F.to_tensor(pic).unsqueeze(1))
+        return torch.cat(output_imgs, dim=1)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'

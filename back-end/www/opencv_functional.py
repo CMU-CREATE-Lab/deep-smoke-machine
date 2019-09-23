@@ -3,6 +3,16 @@ This file is obtained and modified from:
 - https://github.com/jbohnslav/opencv_transforms
 - https://github.com/YU-Zhiyang/opencv_transforms_torchvision
 """
+import os
+thread = "1"
+os.environ["MKL_NUM_THREADS"] = thread
+os.environ["NUMEXPR_NUM_THREADS"] = thread
+os.environ["OMP_NUM_THREADS"] = thread
+os.environ["VECLIB_MAXIMUM_THREADS"] = thread
+os.environ["OPENBLAS_NUM_THREADS"] = thread
+import cv2
+cv2.setNumThreads(0)
+
 import torch
 import math
 import random
@@ -16,7 +26,6 @@ import numbers
 import types
 import collections
 import warnings
-import cv2
 
 _cv2_pad_to_str = {'constant':cv2.BORDER_CONSTANT,
                    'edge':cv2.BORDER_REPLICATE,

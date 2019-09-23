@@ -7,7 +7,7 @@ import logging.handlers
 from util import check_and_create_dir
 from collections import OrderedDict
 from torchvision.transforms import Compose
-from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Resize, Normalize
+from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Resize, Normalize, ToTensor
 
 
 class RequestFormatter(logging.Formatter):
@@ -107,12 +107,8 @@ class BaseLearner(ABC):
         else:
             return None
         nm = Normalize(mean=mean, std=std) # same as (img/255)*2-1
+        tt = ToTensor()
         if phase == "train":
-            # Color jitter deals with different lighting and weather conditions
-            if mode == "rgb":
-                cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)
-            elif mode == "flow":
-                cj = ColorJitter(brightness=0.3, contrast=0.3, gamma=0.3)
             # Deals with small camera shifts, zoom changes, and rotations due to wind or maintenance
             rrc = RandomResizedCrop(self.image_size, scale=(0.9, 1), ratio=(3./4., 4./3.))
             rp = RandomPerspective(anglex=3, angley=3, anglez=3, shear=3)
@@ -120,9 +116,14 @@ class BaseLearner(ABC):
             rhf = RandomHorizontalFlip(p=0.5)
             # Deal with dirts, ants, or spiders on the camera lense
             re = RandomErasing(p=0.5, scale=(0.002, 0.008), ratio=(0.3, 3.3), value="random")
-            return Compose([cj, rrc, rp, rhf, re, re, nm])
+            if mode == "rgb":
+                # Color jitter deals with different lighting and weather conditions
+                cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)
+                return Compose([cj, rrc, rp, rhf, tt, nm, re, re])
+            elif mode == "flow":
+                return Compose([rrc, rp, rhf, tt, nm, re, re])
         else:
-            return Compose([Resize(self.image_size), nm])
+            return Compose([Resize(self.image_size), tt, nm])
 
     # Create a logger
     def create_logger(self, log_path=None):

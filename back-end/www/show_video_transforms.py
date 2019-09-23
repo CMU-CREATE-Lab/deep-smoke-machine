@@ -1,3 +1,13 @@
+import os
+thread = "1"
+os.environ["MKL_NUM_THREADS"] = thread
+os.environ["NUMEXPR_NUM_THREADS"] = thread
+os.environ["OMP_NUM_THREADS"] = thread
+os.environ["VECLIB_MAXIMUM_THREADS"] = thread
+os.environ["OPENBLAS_NUM_THREADS"] = thread
+import cv2
+cv2.setNumThreads(0)
+
 import sys
 import matplotlib
 matplotlib.use("TkAgg") # a fix for Mac OS X error
@@ -5,7 +15,6 @@ from optical_flow.optical_flow import OpticalFlow
 from torchvision.transforms import Compose
 from video_transforms import RandomResizedCrop, RandomHorizontalFlip, ColorJitter, RandomPerspective, RandomErasing, Normalize, Resize
 import numpy as np
-import cv2
 
 
 def main(argv):
