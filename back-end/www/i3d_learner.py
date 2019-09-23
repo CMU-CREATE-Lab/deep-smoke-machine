@@ -41,7 +41,7 @@ class I3dLearner(BaseLearner):
             milestones_flow=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=100, # the number of steps to save a model and log information
+            num_steps_per_check=50, # the number of steps to save a model and log information
             parallel=True, # use nn.DataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
@@ -253,7 +253,6 @@ class I3dLearner(BaseLearner):
                 optimizer.zero_grad()
                 # Iterate over batch data
                 for d in tqdm.tqdm(dataloader[phase]):
-                    continue
                     accum[phase] += 1
                     file_name[phase] += d["file_name"]
                     # Get prediction

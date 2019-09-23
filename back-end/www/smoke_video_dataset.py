@@ -53,7 +53,7 @@ class SmokeVideoDataset(Dataset):
             frames = self.transform(frames)
         return {"frames": frames, "labels": self.label_data[idx], "file_name": v["file_name"]}
 
-    def labels_to_tensor(labels):
+    def labels_to_tensor(self, labels):
         """
         Converts a numpy.ndarray with shape (time x num_of_action_classes)
         to a torch.FloatTensor of shape (num_of_action_classes x time)
