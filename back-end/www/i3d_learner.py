@@ -157,8 +157,7 @@ class I3dLearner(BaseLearner):
     def to_variable(self, v):
         if self.use_cuda:
             v = v.cuda() # move to gpu
-        # TODO: in newer pytorch, Variable is no longer needed
-        return Variable(v)
+        return v
 
     def make_pred(self, model, frames):
         # Upsample prediction to frame length (because we want prediction for each frame)
