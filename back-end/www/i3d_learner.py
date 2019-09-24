@@ -1,7 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
-#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
@@ -25,6 +24,7 @@ import tqdm
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
 
 
 # Two-Stream Inflated 3D ConvNet learner
@@ -46,7 +46,7 @@ class I3dLearner(BaseLearner):
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
-            parallel=True, # use nn.DataParallel or not
+            parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
@@ -81,7 +81,10 @@ class I3dLearner(BaseLearner):
         self.p_metadata_train = p_metadata_train
         self.p_metadata_validation = p_metadata_validation
         self.p_metadata_test = p_metadata_test
+
+        # Internal parameters
         self.image_size = 224 # 224 is the input for the i3d network structure
+        self.can_parallel = False
 
     def log_parameters(self):
         text = ""
@@ -137,25 +140,36 @@ class I3dLearner(BaseLearner):
 
         # Use GPU or not
         if self.use_cuda:
-            model.cuda()
             if parallel:
                 os.environ['MASTER_ADDR'] = 'localhost'
                 os.environ['MASTER_PORT'] = '12355'
                 # Rank 1 means one machine, world_size means the number of GPUs on that machine
-                dist.init_process_group("gloo", rank=rank, world_size=world_size)
+                dist.init_process_group("nccl", rank=rank, world_size=world_size)
+                if p_model is None:
+                    # Make sure that models on different GPUs start from the same initialized weights
+                    torch.manual_seed(42)
                 n = torch.cuda.device_count() // world_size
                 device_ids = list(range(rank * n, (rank + 1) * n))
+                torch.cuda.set_device(rank)
+                model.cuda(rank)
                 model = DDP(model.to(device_ids[0]), device_ids=device_ids)
+            else:
+                model.cuda()
 
         return model
 
-    def set_dataloader(self, metadata_path, root_dir, transform, batch_size):
+    def set_dataloader(self, rank, world_size, metadata_path, root_dir, transform, batch_size, parallel):
         dataloader = {}
         for phase in metadata_path:
             self.log("Create dataloader for " + phase)
             dataset = SmokeVideoDataset(metadata_path=metadata_path[phase], root_dir=root_dir, transform=transform[phase])
-            dataloader[phase] = DataLoader(dataset, batch_size=batch_size,
-                    shuffle=True, num_workers=self.num_workers, pin_memory=True)
+            if parallel:
+                sampler = DistributedSampler(dataset, shuffle=True, num_replicas=world_size, rank=rank)
+                dataloader[phase] = DataLoader(dataset, batch_size=batch_size,
+                    num_workers=self.num_workers, pin_memory=True, sampler=sampler)
+            else:
+                dataloader[phase] = DataLoader(dataset, batch_size=batch_size, shuffle=True,
+                    num_workers=self.num_workers, pin_memory=True)
         return dataloader
 
     def labels_to_list(self, labels):
@@ -206,6 +220,7 @@ class I3dLearner(BaseLearner):
         # Spawn processes
         n_gpu = torch.cuda.device_count()
         if self.parallel and n_gpu > 1:
+            self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.fit_worker, nprocs=n_gpu,
                 args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
@@ -214,7 +229,7 @@ class I3dLearner(BaseLearner):
 
     def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame):
         # Set model
-        model = self.set_model(rank, world_size, self.mode, p_model, self.parallel)
+        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
         if model is None: return None
 
         # Load datasets
@@ -223,7 +238,8 @@ class I3dLearner(BaseLearner):
         transform = {"train": ts, "validation": ts}
         if self.augment:
             transform["train"] = self.get_transform(self.mode, phase="train", image_size=self.image_size)
-        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_train)
+        dataloader = self.set_dataloader(rank, world_size, metadata_path, p_frame,
+            transform, self.batch_size_train, self.can_parallel)
 
         # Create tensorboard writter
         writer_t = SummaryWriter(save_tensorboard_path + "/train/")
@@ -384,13 +400,13 @@ class I3dLearner(BaseLearner):
         self.log("save_log_path: " + save_log_path)
 
         # Set model
-        model = self.set_model(self.mode, p_model, self.parallel)
+        model = self.set_model(self.mode, p_model, self.can_parallel)
         if model is None: return None
 
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
         transform = {"test": self.get_transform(self.mode, image_size=self.image_size)}
-        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test)
+        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test, self.can_parallel)
 
         # Create tensorboard writter
         writer = SummaryWriter(save_tensorboard_path + "/test/")
@@ -456,7 +472,7 @@ class I3dLearner(BaseLearner):
             "validation": self.p_metadata_validation, "test": self.p_metadata_test}
         ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts, "test": ts}
-        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features)
+        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features, False)
 
         # Extract features
         model.train(False) # set the model to evaluation mode

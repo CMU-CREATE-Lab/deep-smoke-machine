@@ -17,41 +17,38 @@ class SmokeVideoDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
 
-        # TODO: transform data to lmdb format (https://lmdb.readthedocs.io/en/release/)
-        # TODO: in the __init__ function, open the lmdb, and in here, load the data by index
-        # Load all data to memory
-        print("Loading all data to memory...")
-        self.video_data = []
-        self.label_data = []
-        pos = [47, 23, 19, 15]
-        neg = [32, 20, 16, 12]
-        for i in range(len(self.metadata)):
-            v = self.metadata[i]
-            # Add video data
-            file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
-            if not is_file_here(file_path):
-                raise ValueError("Cannot find file: %s" % (file_path))
-            frames = np.load(file_path).astype(np.uint8)
-            self.video_data.append(frames)
-            # Process label state to labels
-            label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
-            labels = np.array([0.0, 0.0], dtype=np.float32)
-            if label_state in pos:
-                labels[1] = 1.0 # The 2st column show the probability of yes
-            elif label_state in neg:
-                labels[0] = 1.0 # The 1st column show the probability of no
-            labels = np.repeat([labels], frames.shape[0], axis=0) # Repeat for each frame (frame by frame detection)
-            self.label_data.append(self.labels_to_tensor(labels))
+        self.pos = [47, 23, 19, 15]
+        self.neg = [32, 20, 16, 12]
 
     def __len__(self):
         return len(self.metadata)
 
     def __getitem__(self, idx):
         v = self.metadata[idx]
-        frames = self.video_data[idx]
+
+        # Load video data
+        # TODO: convert video data to lmdb format (https://lmdb.readthedocs.io/en/release/)
+        # TODO: in the __init__ function, open the lmdb, and in here, load the data by index
+        file_path = os.path.join(self.root_dir, v["file_name"] + ".npy")
+        if not is_file_here(file_path):
+            raise ValueError("Cannot find file: %s" % (file_path))
+        frames = np.load(file_path).astype(np.uint8)
+        t = frames.shape[0]
+
+        # Transform video
         if self.transform:
             frames = self.transform(frames)
-        return {"frames": frames, "labels": self.label_data[idx], "file_name": v["file_name"]}
+
+        # Process label state to labels
+        label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
+        labels = np.array([0.0, 0.0], dtype=np.float32)
+        if label_state in self.pos:
+            labels[1] = 1.0 # The 2st column show the probability of yes
+        elif label_state in self.neg:
+            labels[0] = 1.0 # The 1st column show the probability of no
+        labels = np.repeat([labels], t, axis=0) # Repeat for each frame (frame by frame detection)
+
+        return {"frames": frames, "labels": self.labels_to_tensor(labels), "file_name": v["file_name"]}
 
     def labels_to_tensor(self, labels):
         """
