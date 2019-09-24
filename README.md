@@ -18,11 +18,17 @@ Regenerate the kernel initramfs.
 sudo update-initramfs -u
 sudo reboot now
 ```
+Remove old nvidia drivers.
+```
+sudo apt-get remove --purge '^nvidia-.*'
+sudo apt-get autoremove
+```
+If using a desktop version of Ubuntu (not the server version), run the following:
+```
+sudo apt-get install ubuntu-desktop # only for desktop version, not server version
+```
 Install cuda and the nvidia driver. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/cuda/).
 ```sh
-sudo apt-get remove --purge '^nvidia-.*'
-sudo apt-get install ubuntu-desktop # only for desktop version, not server version
-sudo apt-get autoremove
 sudo apt install build-essential
 sudo apt-get install linux-headers-$(uname -r)
 wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run
