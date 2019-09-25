@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import os
 import logging
+import absl.logging
 import logging.handlers
 from util import check_and_create_dir
 from collections import OrderedDict
@@ -131,6 +132,8 @@ class BaseLearner(ABC):
             return None
         check_and_create_dir(log_path)
         handler = logging.handlers.RotatingFileHandler(log_path, mode="a", maxBytes=100000000, backupCount=200)
+        logging.root.removeHandler(absl.logging._absl_handler) # this removes duplicated logging
+        absl.logging._warn_preinit_stderr = False # this removes duplicated logging
         formatter = RequestFormatter("[%(asctime)s] %(levelname)s: %(message)s")
         handler.setFormatter(formatter)
         logger = logging.getLogger(log_path)
