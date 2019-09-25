@@ -36,16 +36,16 @@ class I3dLearner(BaseLearner):
             batch_size_extract_features=32, # size for each batch for extracting features
             max_steps=10000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
+            init_lr_rgb=0.5, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-rgb)
-            milestones_flow=[500, 1000, 2000, 4000], # MultiStepLR parameters (for i3d-flow)
+            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-rgb)
+            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=20, # the number of steps to save a model and log information
-            parallel=False, # use nn.DistributedDataParallel or not
+            num_steps_per_check=100, # the number of steps to save a model and log information
+            parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
@@ -333,8 +333,14 @@ class I3dLearner(BaseLearner):
                     tll = tot_loc_loss[phase]/accum[phase]
                     tcl = tot_cls_loss[phase]/accum[phase]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
+                    # Sync losses for validation set
+                    if self.can_parallel:
+                        tll_tcl_tl = torch.Tensor([tll, tcl, tl]).cuda()
+                        dist.all_reduce(tll_tcl_tl, op=dist.ReduceOp.SUM)
+                        tll = tll_tcl_tl[0].item() / world_size
+                        tcl = tll_tcl_tl[1].item() / world_size
+                        tl = tll_tcl_tl[2].item() / world_size
                     self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
-                    # TODO: perform all reduce for the validation loss and learning rate
                     # Add to tensorboard and save model
                     if rank == 0:
                         writer_v.add_scalar("localization_loss", tll, global_step=steps)
@@ -346,10 +352,17 @@ class I3dLearner(BaseLearner):
                     tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     # Reset gradient accumulation
                     accum[phase] = 0
-                    # TODO: perform all reduce on true_labels and pred_labels
                     # Save precision, recall, and f-score to the log and tensorboard
                     for ps in ["train", "validation"]:
-                        self.log("Evaluate performance of phase: %s\n%r" % (ps, cr(true_labels[ps], pred_labels[ps])))
+                        # Sync true_labels and pred_labels for validation set
+                        if self.can_parallel and ps == "validation":
+                            true_pred_labels = torch.Tensor([true_labels[ps], pred_labels[ps]]).cuda()
+                            true_pred_labels_list = [torch.ones_like(true_pred_labels) for _ in range(world_size)]
+                            dist.all_gather(true_pred_labels_list, true_pred_labels)
+                            true_pred_labels = torch.cat(true_pred_labels_list, dim=1)
+                            true_labels[ps] = true_pred_labels[0].cpu().numpy()
+                            pred_labels[ps] = true_pred_labels[1].cpu().numpy()
+                        self.log("Evaluate performance of phase: %s\n%s" % (ps, cr(true_labels[ps], pred_labels[ps])))
                         if rank == 0:
                             result = prfs(true_labels[ps], pred_labels[ps], average="weighted")
                             writer = writer_t if ps == "train" else writer_v
