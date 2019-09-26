@@ -132,10 +132,10 @@ class TsLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        ts = self.get_transform()
-        transform = {"train": ts, "validation": ts}
+        tf = self.get_transform(self.mode)
+        transform = {"train": tf, "validation": tf}
         if self.augment:
-            transform["train"] = self.get_transform(phase="train")
+            transform["train"] = self.get_transform(phase="train", mode=self.mode)
         dataloader = self.set_dataloader(metadata_path, p_vid, self.mode, transform)
 
         # Set optimizer
@@ -277,7 +277,7 @@ class TsLearner(BaseLearner):
 
         # Load dataset
         metadata_path = {"test": p_metadata_test}
-        transform = {"test": self.get_transform()}
+        transform = {"test": self.get_transform(self.mode)}
         dataloader = self.set_dataloader(metadata_path, p_vid, self.mode, transform)
 
         # Test
