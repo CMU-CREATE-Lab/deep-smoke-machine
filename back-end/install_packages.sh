@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# DO NOT put the installation of pytorch in this file
+# As indicated in the README file, users need to use:
+# $conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+# The reason is that users may have different cuda versions
+
 # http related
 pip install requests==2.21.0
 

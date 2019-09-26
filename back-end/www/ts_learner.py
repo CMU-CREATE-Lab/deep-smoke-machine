@@ -250,7 +250,7 @@ class TsLearner(BaseLearner):
 
         self.log("Done fit")
 
-    def predict(self,
+    def test(self,
                 p_metadata_test="../data/metadata_test.json",
                 p_vid="../data/",
                 p_model=None):

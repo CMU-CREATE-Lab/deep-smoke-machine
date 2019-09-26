@@ -41,23 +41,15 @@ class BaseLearner(ABC):
             self.use_cuda = False
 
     # Train the model
-    # Input:
-    #   Xt (pandas.DataFrame or numpy.array): predictors for training
-    #   Yt (pandas.DataFrame or numpy.array): response for training
-    #   Xv (pandas.DataFrame or numpy.array): predictors for validation
-    #   Yv (pandas.DataFrame or numpy.array): response for validation
     # Output: None
     @abstractmethod
-    def fit(self, Xt, Yt, Xv=None, Yv=None):
+    def fit(self):
         pass
 
-    # Make predictions
-    # Input:
-    #   X (pandas.DataFrame or numpy.array): predictors for testing
-    # Output:
-    #   Y (numpy.array): predicted response for testing
+    # Test the model
+    # Output: None
     @abstractmethod
-    def predict(self, X):
+    def test(self):
         pass
 
     # Save model

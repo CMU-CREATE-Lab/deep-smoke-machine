@@ -34,9 +34,9 @@ class I3dLearner(BaseLearner):
             batch_size_train=8, # size for each batch for training (8 max for each GTX 1080Ti)
             batch_size_test=32, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=32, # size for each batch for extracting features
-            max_steps=10000, # total number of steps for training
+            max_steps=8000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr_rgb=0.5, # initial learning rate (for i3d-rgb)
+            init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
             weight_decay=0.0000001, # L2 regularization
             momentum=0.9, # SGD parameters
@@ -44,7 +44,7 @@ class I3dLearner(BaseLearner):
             milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=100, # the number of steps to save a model and log information
+            num_steps_per_check=50, # the number of steps to save a model and log information
             parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
@@ -382,7 +382,7 @@ class I3dLearner(BaseLearner):
 
         self.log("Done training")
 
-    def predict(self,
+    def test(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
             save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
             save_log_path="../data/saved_i3d/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)

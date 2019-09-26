@@ -238,7 +238,7 @@ class LSTMLearner(BaseLearner):
 
         self.log("Done fit")
 
-    def predict(self,
+    def test(self,
                 mode="rgb",
                 p_metadata_test="../data/metadata_test.json",
                 p_vid="../data/",
