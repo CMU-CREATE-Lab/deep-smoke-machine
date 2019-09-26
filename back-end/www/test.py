@@ -33,31 +33,31 @@ def main(argv):
 def test(method=None, model_path=None):
     if method == "i3d-rgb":
         model = I3dLearner(mode="rgb")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "i3d-flow":
         model = I3dLearner(mode="flow")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "ts-flow":
         model = TsLearner(mode="flow")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "avg":
         model = LateFusion()
-        model.predict(rgb_model=model_path, flow_model="../data/saved_ts/flow/first_train/2295.pt")
+        model.test(rgb_model=model_path, flow_model="../data/saved_ts/flow/first_train/2295.pt")
     elif method == "fuse":
         model = FuseLearner()
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "lstm":
         model = LSTMLearner()
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     elif method == "svm-flow":
         model = SvmLearner(mode="flow")
-        model.predict(p_model=model_path)
+        model.test(p_model=model_path)
     else:
         print("Method not allowed")
         return
