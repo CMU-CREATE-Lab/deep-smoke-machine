@@ -70,7 +70,7 @@ class BaseLearner(ABC):
             try:
                 model.load_state_dict(torch.load(in_path))
             except:
-                self.log("Weights were from nn.DataParallel...")
+                self.log("Weights were from nn.DataParallel or DistributedDataParallel...")
                 self.log("Remove 'module.' prefix from state_dict keys...")
                 state_dict = torch.load(in_path)
                 new_state_dict = OrderedDict()
