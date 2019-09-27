@@ -165,10 +165,10 @@ class I3dLearner(BaseLearner):
             if parallel:
                 sampler = DistributedSampler(dataset, shuffle=True, num_replicas=world_size, rank=rank)
                 dataloader[phase] = DataLoader(dataset, batch_size=batch_size,
-                    num_workers=int(self.num_workers/world_size), pin_memory=True, sampler=sampler)
+                        num_workers=int(self.num_workers/world_size), pin_memory=True, sampler=sampler)
             else:
                 dataloader[phase] = DataLoader(dataset, batch_size=batch_size, shuffle=True,
-                    num_workers=self.num_workers, pin_memory=True)
+                        num_workers=self.num_workers, pin_memory=True)
         return dataloader
 
     def labels_to_list(self, labels):
@@ -211,7 +211,7 @@ class I3dLearner(BaseLearner):
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.fit_worker, nprocs=n_gpu,
-                args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
+                    args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
         else:
             self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame);
 
@@ -237,7 +237,7 @@ class I3dLearner(BaseLearner):
         if self.augment:
             transform["train"] = self.get_transform(self.mode, phase="train", image_size=self.image_size)
         dataloader = self.set_dataloader(rank, world_size, metadata_path, p_frame,
-            transform, self.batch_size_train, self.can_parallel)
+                transform, self.batch_size_train, self.can_parallel)
 
         # Create tensorboard writter
         writer_t = SummaryWriter(save_tensorboard_path + "/train/")
@@ -373,10 +373,6 @@ class I3dLearner(BaseLearner):
                         pred_labels[ps] = []
                         true_labels[ps] = []
 
-        # This is a hack to give the summary writer some time to write the data
-        # Without this hack, the last added video will be missing
-        time.sleep(10)
-
         # Clean processors
         self.clean_mp()
 
@@ -384,7 +380,6 @@ class I3dLearner(BaseLearner):
 
     def test(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
-            save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
             save_log_path="../data/saved_i3d/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)
             ):
         # Check
@@ -396,30 +391,36 @@ class I3dLearner(BaseLearner):
         model_id = re.search(r'\b/[0-9a-fA-F]{7}-i3d-(rgb|flow)/\b', p_model).group()[1:-1]
         if model_id is None:
             model_id = "unknown-model-id"
-        save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
+        # Spawn processes
+        n_gpu = torch.cuda.device_count()
+        if self.parallel and n_gpu > 1:
+            self.can_parallel = True
+            self.log("Let's use " + str(n_gpu) + " GPUs!")
+            mp.spawn(self.test_worker, nprocs=n_gpu, args=(n_gpu, p_model, save_log_path, p_frame), join=True)
+        else:
+            self.fit_worker(0, 1, p_model, save_log_path, p_frame);
+
+    def test_worker(self, rank, world_size, p_model, save_log_path, p_frame):
         # Set logger
-        self.create_logger(log_path=save_log_path)
+        self.create_logger(log_path=save_log_path+str(rank))
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start testing with mode: " + self.mode)
-        self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
 
         # Set model
-        model = self.set_model(self.mode, p_model, self.can_parallel)
+        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
         if model is None: return None
 
         # Load dataset
         metadata_path = {"test": self.p_metadata_test}
         transform = {"test": self.get_transform(self.mode, image_size=self.image_size)}
-        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_test, self.can_parallel)
-
-        # Create tensorboard writter
-        writer = SummaryWriter(save_tensorboard_path + "/test/")
+        dataloader = self.set_dataloader(rank, world_size, metadata_path, p_frame,
+                transform, self.batch_size_test, self.can_parallel)
 
         # Test
         model.train(False) # set the model to evaluation mode
@@ -430,7 +431,7 @@ class I3dLearner(BaseLearner):
         with torch.no_grad():
             # Iterate over batch data
             for d in dataloader["test"]:
-                if counter % 20 == 0:
+                if counter % 5 == 0:
                     self.log("Process batch " + str(counter))
                 counter += 1
                 file_name += d["file_name"]
@@ -441,16 +442,17 @@ class I3dLearner(BaseLearner):
                 pred = self.make_pred(model, frames)
                 pred_labels += self.labels_to_list(pred.cpu().detach())
 
+        # Sync true_labels and pred_labels for testing set
+        if self.can_parallel:
+            true_pred_labels = torch.Tensor([true_labels, pred_labels]).cuda()
+            true_pred_labels_list = [torch.ones_like(true_pred_labels) for _ in range(world_size)]
+            dist.all_gather(true_pred_labels_list, true_pred_labels)
+            true_pred_labels = torch.cat(true_pred_labels_list, dim=1)
+            true_labels = true_pred_labels[0].cpu().numpy()
+            pred_labels = true_pred_labels[1].cpu().numpy()
+
         # Save precision, recall, and f-score to the log
-        self.log(cr(true_labels, pred_labels))
-
-        # Add video summary to tensorboard
-        cm = confusion_matrix_of_samples(true_labels, pred_labels)
-        write_video_summary(writer, cm, file_name, p_frame)
-
-        # This is a hack to give the summary writer some time to write the data
-        # Without this hack, the last added video will be missing
-        time.sleep(10)
+        self.log("Evaluate performance of phase: test\n%s" % (cr(true_labels, pred_labels)))
 
         # Clean processors
         self.clean_mp()
@@ -473,13 +475,13 @@ class I3dLearner(BaseLearner):
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start extracting features...")
 
-        # Set model
-        model = self.set_model(self.mode, p_model, False)
+        # Set model (currently we use only one GPU for extracting features)
+        model = self.set_model(0, 1, self.mode, p_model, False)
         if model is None: return None
 
         # Load datasets
         metadata_path = {"train": self.p_metadata_train,
-            "validation": self.p_metadata_validation, "test": self.p_metadata_test}
+                "validation": self.p_metadata_validation, "test": self.p_metadata_test}
         ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts, "test": ts}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features, False)
@@ -511,8 +513,5 @@ class I3dLearner(BaseLearner):
                     fn = file_name[i]
                     self.log("Save " + self.mode + " feature " + fn + ".npy")
                     np.save(os.path.join(p_feat, fn), f.data.cpu().numpy())
-
-        # Clean processors
-        self.clean_mp()
 
         self.log("Done extracting features")
