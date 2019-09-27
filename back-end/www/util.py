@@ -16,6 +16,7 @@ from collections import defaultdict
 from random import sample
 import torch
 import numpy as np
+from moviepy.editor import ImageSequenceClip, clips_array
 
 
 # Check if a file exists
@@ -58,7 +59,7 @@ def ddict_to_dict(d):
 #   y_true (list): true labels
 #   y_pred (list): predicted labels
 #   n_min (int): minimum number of samples to return for each cell in the matrix
-def confusion_matrix_of_samples(y_true, y_pred, n=8):
+def confusion_matrix_of_samples(y_true, y_pred, n=64):
     if len(y_true) != len(y_pred):
         print("Error! y_true and y_pred have different lengths.")
         return
@@ -82,19 +83,22 @@ def confusion_matrix_of_samples(y_true, y_pred, n=8):
     return ddict_to_dict(cm)
 
 
-# Write video data summary to the tensorboard
-#   writer (torch.utils.tensorboard.SummaryWriter): tensorboard summary writer
+# Write video data summary to files
+# Input:
 #   cm (dict): the confusion matrix returned by the confusion_matrix_of_samples function
 #   file_name (list): a list of file names for the rgb or optical flow frames
 #   p_frame (str): path to the rgb or optical flow frames
-#   global_step (int): the current training step
-def write_video_summary(writer, cm, file_name, p_frame, global_step=None, fps=12):
+#   p_save (str): path to save the video
+#   global_step (int): the training step of the model
+def write_video_summary(cm, file_name, p_frame, p_save, global_step=None, fps=12):
+    check_and_create_dir(p_save)
     for u in cm:
         for v in cm[u]:
             tag = "true_%d_prediction_%d" % (u, v)
             if global_step is not None:
                 tag += "_step_%d" % global_step
-            grid = []
+            grid_x = []
+            grid_y = []
             items = cm[u][v]
             for idx in items:
                 frames = np.load(p_frame + file_name[idx] + ".npy")
@@ -114,7 +118,13 @@ def write_video_summary(writer, cm, file_name, p_frame, global_step=None, fps=12
                     frames = tmp
                 else: # this means that the file contains rgb frames
                     frames = frames / 255 # tensorboard needs the range between 0 and 1
-                frames = frames.transpose([0, 3, 1, 2])
-                grid.append(frames)
-            grid = torch.from_numpy(np.array(grid))
-            writer.add_video(tag, grid, fps=fps)
+                if frames.dtype != np.uint8:
+                    frames = (frames * 255).astype(np.uint8)
+                frames = ImageSequenceClip([I for I in frames], fps=12)
+                grid_x.append(frames)
+                if len(grid_x) == 8:
+                    grid_y.append(grid_x)
+                    grid_x = []
+            if len(grid_x) != 0:
+                grid_y.append(grid_x)
+            clips_array(grid_y).write_videofile(p_save + tag + ".mp4")

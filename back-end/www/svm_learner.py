@@ -8,7 +8,6 @@ import joblib
 import uuid
 from util import *
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
 import torch
 import time
 import re
@@ -139,9 +138,6 @@ class SvmLearner(BaseLearner):
         metadata_path = {"test": self.p_metadata_test}
         dataloader = self.set_dataloader(metadata_path, p_feat)
 
-        # Create tensorboard writter
-        #writer = SummaryWriter(save_tensorboard_path + "/test/")
-
         # Test
         for d in dataloader["test"]:
             file_name = d["file_name"]
@@ -151,14 +147,6 @@ class SvmLearner(BaseLearner):
 
         # Save precision, recall, and f-score to the log
         self.log(classification_report(true_labels, pred_labels))
-
-        # Add video summary to tensorboard
-        #cm = confusion_matrix_of_samples(true_labels, pred_labels)
-        #write_video_summary(writer, cm, file_name, p_frame)
-
-        # This is a hack to give the summary writer some time to write the data
-        # Without this hack, the last added video will be missing
-        time.sleep(10)
 
         self.log("Done testing")
 

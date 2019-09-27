@@ -45,7 +45,7 @@ class I3dLearner(BaseLearner):
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
-            parallel=True, # use nn.DistributedDataParallel or not
+            parallel=False, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
@@ -190,7 +190,8 @@ class I3dLearner(BaseLearner):
         return t
 
     def clean_mp(self):
-        dist.destroy_process_group()
+        if self.can_parallel:
+            dist.destroy_process_group()
 
     def fit(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
@@ -213,7 +214,7 @@ class I3dLearner(BaseLearner):
             mp.spawn(self.fit_worker, nprocs=n_gpu,
                     args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
         else:
-            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame);
+            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame)
 
     def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame):
         # Set logger
@@ -380,7 +381,8 @@ class I3dLearner(BaseLearner):
 
     def test(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
-            save_log_path="../data/saved_i3d/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)
+            save_log_path="../data/saved_i3d/[model_id]/log/test.log", # path to save log files ([model_id] will be replaced)
+            save_viz_path="../data/saved_i3d/[model_id]/viz/", # path to save visualizations ([model_id] will be replaced)
             ):
         # Check
         if p_model is None:
@@ -392,6 +394,7 @@ class I3dLearner(BaseLearner):
         if model_id is None:
             model_id = "unknown-model-id"
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        save_viz_path = save_viz_path.replace("[model_id]", model_id)
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Spawn processes
@@ -399,11 +402,11 @@ class I3dLearner(BaseLearner):
         if self.parallel and n_gpu > 1:
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
-            mp.spawn(self.test_worker, nprocs=n_gpu, args=(n_gpu, p_model, save_log_path, p_frame), join=True)
+            mp.spawn(self.test_worker, nprocs=n_gpu, args=(n_gpu, p_model, save_log_path, p_frame, save_viz_path), join=True)
         else:
-            self.fit_worker(0, 1, p_model, save_log_path, p_frame);
+            self.test_worker(0, 1, p_model, save_log_path, p_frame, save_viz_path)
 
-    def test_worker(self, rank, world_size, p_model, save_log_path, p_frame):
+    def test_worker(self, rank, world_size, p_model, save_log_path, p_frame, save_viz_path):
         # Set logger
         self.create_logger(log_path=save_log_path+str(rank))
         self.log("="*60)
@@ -411,6 +414,7 @@ class I3dLearner(BaseLearner):
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start testing with mode: " + self.mode)
         self.log("save_log_path: " + save_log_path)
+        self.log("save_viz_path: " + save_viz_path)
 
         # Set model
         model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
@@ -453,6 +457,11 @@ class I3dLearner(BaseLearner):
 
         # Save precision, recall, and f-score to the log
         self.log("Evaluate performance of phase: test\n%s" % (cr(true_labels, pred_labels)))
+
+        # Generate video summary and show class activation map
+        if rank == 0:
+            cm = confusion_matrix_of_samples(true_labels, pred_labels)
+            write_video_summary(cm, file_name, p_frame, save_viz_path)
 
         # Clean processors
         self.clean_mp()
