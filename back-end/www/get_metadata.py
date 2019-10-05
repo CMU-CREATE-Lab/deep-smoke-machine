@@ -23,7 +23,7 @@ def main(argv):
     check_and_create_dir(file_path)
     save_json(vm, file_path)
 
-    print("Done.")
+    print("Done saving metadat to: " + file_path)
 
 
 # Get video metadata from the video-labeling-tool
