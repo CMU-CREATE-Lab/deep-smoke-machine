@@ -13,6 +13,9 @@ def split_and_save_data(vm, target_key_type, method="assign"):
 
     p = "../data/split/"
     check_and_create_dir(p)
+    print("="*40)
+    print("="*40)
+    print("Split data by " + target_key_type)
     if method == "random":
         vm_train, vm_valid, vm_test = split(vm_dict, target_key_type)
         save_json(vm_valid, p+"metadata_validation_random_split_by_"+target_key_type+".json")
@@ -50,6 +53,7 @@ def split_and_save_data(vm, target_key_type, method="assign"):
             save_json(vm_valid, p+"metadata_validation_split_by_"+target_key_type+".json")
             save_json(vm_test, p+"metadata_test_split_by_"+target_key_type+".json")
             save_json(vm_train, p+"metadata_train_split_by_"+target_key_type+".json")
+    print("The data split is saved in: " + p)
 
 
 def divide_list(target_keys, frac_valid=0.1, frac_test=0.3):
