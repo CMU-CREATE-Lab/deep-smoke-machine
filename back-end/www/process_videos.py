@@ -21,7 +21,7 @@ def main(argv):
     rgb_dir = "../data/rgb/"
     flow_dir = "../data/flow/"
     metadata_path = "../data/metadata.json"
-    num_workers = 4
+    num_workers = 1
 
     # Check for saving directories and create if they don't exist
     check_and_create_dir(rgb_dir)
@@ -41,6 +41,8 @@ def compute_and_save_flow(video_data):
     rgb_vid_in_p = str(video_dir + file_name + ".mp4")
     rgb_4d_out_p = str(rgb_dir + file_name + ".npy")
     flow_4d_out_p = str(flow_dir + file_name + ".npy")
+    if not is_file_here(rgb_vid_in_p):
+        return
     if is_file_here(rgb_4d_out_p):
         rgb_4d_out_p = None
     if is_file_here(flow_4d_out_p):
