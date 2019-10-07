@@ -17,6 +17,8 @@ from random import sample
 import torch
 import numpy as np
 from moviepy.editor import ImageSequenceClip, clips_array
+from os import listdir
+from os.path import isfile, join
 
 
 # Check if a file exists
@@ -30,6 +32,11 @@ def check_and_create_dir(path):
     dir_name = os.path.dirname(path)
     if dir_name != "" and not os.path.exists(dir_name):
         os.makedirs(dir_name)
+
+
+# Return a list of all files in a folder
+def get_all_file_names_in_folder(path):
+    return  [f for f in listdir(path) if isfile(join(path, f))]
 
 
 # Load json file
