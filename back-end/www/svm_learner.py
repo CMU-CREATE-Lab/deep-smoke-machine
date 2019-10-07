@@ -22,9 +22,9 @@ class SvmLearner(BaseLearner):
             p_feat_flow="../data/i3d_features_flow/", # path to load optical flow feature
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/metadata_train.json", # path to load metadata for training
-            p_metadata_validation="../data/metadata_validation.json", # path to load metadata for validation
-            p_metadata_test="../data/metadata_test.json" # path to load metadata for testing
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
             ):
         super().__init__()
 

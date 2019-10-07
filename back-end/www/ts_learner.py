@@ -105,8 +105,8 @@ class TsLearner(BaseLearner):
         return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
     def fit(self,
-            p_metadata_train="../data/metadata_train.json",
-            p_metadata_validation="../data/metadata_validation.json",
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json",
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json",
             p_vid="../data/"):
 
         self.log("="*60)
@@ -251,7 +251,7 @@ class TsLearner(BaseLearner):
         self.log("Done fit")
 
     def test(self,
-                p_metadata_test="../data/metadata_test.json",
+                p_metadata_test="../data/split/metadata_test_split_0_by_camera.json",
                 p_vid="../data/",
                 p_model=None):
         self.log("="*60)

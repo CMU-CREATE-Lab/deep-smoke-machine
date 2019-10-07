@@ -45,15 +45,15 @@ class I3dLearner(BaseLearner):
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
-            parallel=False, # use nn.DistributedDataParallel or not
+            parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/metadata_train.json", # path to load metadata for training
-            p_metadata_validation="../data/metadata_validation.json", # path to load metadata for validation
-            p_metadata_test="../data/metadata_test.json" # path to load metadata for testing
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
             ):
         super().__init__()
 
