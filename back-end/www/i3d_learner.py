@@ -51,9 +51,9 @@ class I3dLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/split/metadata_train_split_1_by_camera.json", # metadata path (train)
-            p_metadata_validation="../data/split/metadata_validation_split_1_by_camera.json", # metadata path (validation)
-            p_metadata_test="../data/split/metadata_test_split_1_by_camera.json" # metadata path (test)
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
             ):
         super().__init__()
 
@@ -328,6 +328,7 @@ class I3dLearner(BaseLearner):
                         optimizer.step()
                         optimizer.zero_grad()
                         lr_sche.step()
+                    # END FOR LOOP
                 if phase == "validation":
                     # Log learning rate and loss
                     lr = lr_sche.get_lr()[0]

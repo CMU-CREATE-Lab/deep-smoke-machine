@@ -2,24 +2,14 @@
 
 # This script runs a python script using screen command
 # For example:
-# sh bg.sh python download_videos.py
-# sh bg.sh python process_videos.py
-# sh bg.sh python extract_features.py i3d-rgb
-# sh bg.sh python extract_features.py i3d-flow
-# sh bg.sh python train.py i3d-flow
 # sh bg.sh python train.py i3d-rgb
-# sh bg.sh python train.py svm-flow
-# sh bg.sh python train.py svm-rgb
-# sh bg.sh python train.py ts-rgb
-# sh bg.sh python train.py ts-flow
-# sh bg.sh python train.py lstm
 
 # Get file path
 if [ "$1" != "" ] && [ "$2" != "" ]
 then
   echo "Run: $1 $2 $3 $4"
 else
-  echo "Usage examples:\n  sh bg.sh python download_videos.py\n  sh bg.sh python process_videos.py\n  sh bg.sh python extract_features.py i3d-rgb\n  sh bg.sh python extract_features.py i3d-flow\n  sh bg.sh python train.py i3d-flow\n  sh bg.sh python train.py i3d-rgb\n  sh bg.sh python train.py svm-flow\n  sh bg.sh python train.py svm-rgb\n  sh bg.sh python train.py ts-rgb\n  sh bg.sh python train.py ts-flow\n  sh bg.sh python train.py lstm\n  sh bg.sh python test.py i3d-rgb [model_path]\n  sh bg.sh python test.py i3d-flow [model_path]"
+  echo "Usage examples:\n  sh bg.sh python download_videos.py\n  sh bg.sh python process_videos.py\n  sh bg.sh python extract_features.py i3d-rgb\n  sh bg.sh python extract_features.py i3d-flow\n  sh bg.sh python train.py i3d-rgb\n  sh bg.sh python train.py i3d-flow\n  sh bg.sh python train.py i3d-rgb-cv\n  sh bg.sh python train.py i3d-flow-cv\n  sh bg.sh python train.py svm-rgb\n  sh bg.sh python train.py svm-flow\n  sh bg.sh python train.py ts-rgb\n  sh bg.sh python train.py ts-flow\n  sh bg.sh python train.py lstm\n  sh bg.sh python test.py i3d-rgb [model_path]\n  sh bg.sh python test.py i3d-flow [model_path]"
   exit 1
 fi
 
