@@ -51,9 +51,9 @@ class I3dLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
-            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
-            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
+            p_metadata_train="../data/split/metadata_train_split_1_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_1_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_1_by_camera.json" # metadata path (test)
             ):
         super().__init__()
 
@@ -399,7 +399,8 @@ class I3dLearner(BaseLearner):
 
         # Spawn processes
         n_gpu = torch.cuda.device_count()
-        if self.parallel and n_gpu > 1:
+        if False:#self.parallel and n_gpu > 1:
+            # TODO: multiple GPUs will cause an error when generating summary videos
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.test_worker, nprocs=n_gpu, args=(n_gpu, p_model, save_log_path, p_frame, save_viz_path), join=True)
@@ -447,21 +448,26 @@ class I3dLearner(BaseLearner):
                 pred_labels += self.labels_to_list(pred.cpu().detach())
 
         # Sync true_labels and pred_labels for testing set
+        true_labels_all = true_labels
+        pred_labels_all = pred_labels
         if self.can_parallel:
             true_pred_labels = torch.Tensor([true_labels, pred_labels]).cuda()
             true_pred_labels_list = [torch.ones_like(true_pred_labels) for _ in range(world_size)]
             dist.all_gather(true_pred_labels_list, true_pred_labels)
             true_pred_labels = torch.cat(true_pred_labels_list, dim=1)
-            true_labels = true_pred_labels[0].cpu().numpy()
-            pred_labels = true_pred_labels[1].cpu().numpy()
+            true_labels_all = true_pred_labels[0].cpu().numpy()
+            pred_labels_all = true_pred_labels[1].cpu().numpy()
 
         # Save precision, recall, and f-score to the log
-        self.log("Evaluate performance of phase: test\n%s" % (cr(true_labels, pred_labels)))
+        self.log("Evaluate performance of phase: test\n%s" % (cr(true_labels_all, pred_labels_all)))
 
         # Generate video summary and show class activation map
-        if rank == 0:
+        # TODO: this part will cause an error when using multiple GPUs
+        try:
             cm = confusion_matrix_of_samples(true_labels, pred_labels)
-            write_video_summary(cm, file_name, p_frame, save_viz_path)
+            write_video_summary(cm, file_name, p_frame, save_viz_path + "/" + str(rank) + "/")
+        except Exception as ex:
+            self.log(ex)
 
         # Clean processors
         self.clean_mp()
