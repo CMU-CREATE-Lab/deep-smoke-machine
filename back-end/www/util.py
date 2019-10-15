@@ -18,7 +18,7 @@ import torch
 import numpy as np
 from moviepy.editor import ImageSequenceClip, clips_array
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, isdir
 
 
 # Check if a file exists
@@ -36,7 +36,12 @@ def check_and_create_dir(path):
 
 # Return a list of all files in a folder
 def get_all_file_names_in_folder(path):
-    return  [f for f in listdir(path) if isfile(join(path, f))]
+    return [f for f in listdir(path) if isfile(join(path, f))]
+
+
+# Return a list of all directories in a folder
+def get_all_dir_names_in_folder(path):
+    return [f for f in listdir(path) if isdir(join(path, f))]
 
 
 # Load json file
@@ -134,4 +139,11 @@ def write_video_summary(cm, file_name, p_frame, p_save, global_step=None, fps=12
                     grid_x = []
             if len(grid_x) != 0:
                 grid_y.append(grid_x)
-            clips_array(grid_y).write_videofile(p_save + tag + ".mp4")
+            if len(grid_y) > 1 and len(grid_y[-1]) != len(grid_y[-2]):
+                grid_y = grid_y[:-1]
+            try:
+                clips_array(grid_y).write_videofile(p_save + tag + ".mp4")
+            except Exception as ex:
+                for a in grid_y:
+                    print(len(a))
+                print(ex)

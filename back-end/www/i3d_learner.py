@@ -25,6 +25,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
+import shutil
 
 
 # Two-Stream Inflated 3D ConvNet learner
@@ -50,10 +51,7 @@ class I3dLearner(BaseLearner):
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
-            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
-            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
+            p_frame_flow="../data/flow/" # path to load optical flow frame
             ):
         super().__init__()
 
@@ -77,39 +75,33 @@ class I3dLearner(BaseLearner):
         self.mode = mode
         self.p_frame_rgb = p_frame_rgb
         self.p_frame_flow = p_frame_flow
-        self.p_metadata_train = p_metadata_train
-        self.p_metadata_validation = p_metadata_validation
-        self.p_metadata_test = p_metadata_test
 
         # Internal parameters
         self.image_size = 224 # 224 is the input for the i3d network structure
         self.can_parallel = False
 
     def log_parameters(self):
-        text = "Parameters:\n"
-        text += "batch_size_train: " + str(self.batch_size_train) + "\n"
-        text += "batch_size_test: " + str(self.batch_size_test) + "\n"
-        text += "batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
-        text += "max_steps: " + str(self.max_steps) + "\n"
-        text += "num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
-        text += "init_lr_rgb: " + str(self.init_lr_rgb) + "\n"
-        text += "init_lr_flow: " + str(self.init_lr_flow) + "\n"
-        text += "weight_decay: " + str(self.weight_decay) + "\n"
-        text += "momentum: " + str(self.momentum) + "\n"
-        text += "milestones_rgb: " + str(self.milestones_rgb) + "\n"
-        text += "milestones_flow: " + str(self.milestones_flow) + "\n"
-        text += "gamma: " + str(self.gamma) + "\n"
-        text += "num_of_action_classes: " + str(self.num_of_action_classes) + "\n"
-        text += "num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
-        text += "parallel: " + str(self.parallel) + "\n"
-        text += "augment: " + str(self.augment) + "\n"
-        text += "num_workers: " + str(self.num_workers) + "\n"
-        text += "mode: " + self.mode + "\n"
-        text += "p_frame_rgb: " + self.p_frame_rgb + "\n"
-        text += "p_frame_flow: " + self.p_frame_flow + "\n"
-        text += "p_metadata_train: " + self.p_metadata_train + "\n"
-        text += "p_metadata_validation: " + self.p_metadata_validation + "\n"
-        text += "p_metadata_test: " + self.p_metadata_test
+        text = "\nParameters:\n"
+        text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
+        text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
+        text += "  batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
+        text += "  max_steps: " + str(self.max_steps) + "\n"
+        text += "  num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
+        text += "  init_lr_rgb: " + str(self.init_lr_rgb) + "\n"
+        text += "  init_lr_flow: " + str(self.init_lr_flow) + "\n"
+        text += "  weight_decay: " + str(self.weight_decay) + "\n"
+        text += "  momentum: " + str(self.momentum) + "\n"
+        text += "  milestones_rgb: " + str(self.milestones_rgb) + "\n"
+        text += "  milestones_flow: " + str(self.milestones_flow) + "\n"
+        text += "  gamma: " + str(self.gamma) + "\n"
+        text += "  num_of_action_classes: " + str(self.num_of_action_classes) + "\n"
+        text += "  num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
+        text += "  parallel: " + str(self.parallel) + "\n"
+        text += "  augment: " + str(self.augment) + "\n"
+        text += "  num_workers: " + str(self.num_workers) + "\n"
+        text += "  mode: " + self.mode + "\n"
+        text += "  p_frame_rgb: " + self.p_frame_rgb + "\n"
+        text += "  p_frame_flow: " + self.p_frame_flow + "\n"
         self.log(text)
 
     def set_model(self, rank, world_size, mode, p_model, parallel):
@@ -195,16 +187,29 @@ class I3dLearner(BaseLearner):
 
     def fit(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
+            model_id_suffix="", # the suffix appended after the model id
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json", # metadata path (test)
             save_model_path="../data/saved_i3d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
             save_tensorboard_path="../data/saved_i3d/[model_id]/run/", # path to save data ([model_id] will be replaced)
-            save_log_path="../data/saved_i3d/[model_id]/log/train.log" # path to save log files ([model_id] will be replaced)
+            save_log_path="../data/saved_i3d/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
+            save_metadata_path="../data/saved_i3d/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
             ):
         # Set path
         model_id = str(uuid.uuid4())[0:7] + "-i3d-" + self.mode
+        model_id += model_id_suffix
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        save_metadata_path = save_metadata_path.replace("[model_id]", model_id)
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+
+        # Copy training, validation, and testing metadata
+        check_and_create_dir(save_metadata_path)
+        shutil.copy(p_metadata_train, save_metadata_path + "metadata_train.json")
+        shutil.copy(p_metadata_validation, save_metadata_path + "metadata_validation.json")
+        shutil.copy(p_metadata_test, save_metadata_path + "metadata_test.json")
 
         # Spawn processes
         n_gpu = torch.cuda.device_count()
@@ -212,11 +217,14 @@ class I3dLearner(BaseLearner):
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.fit_worker, nprocs=n_gpu,
-                    args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame), join=True)
+                    args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame,
+                        p_metadata_train, p_metadata_validation, p_metadata_test), join=True)
         else:
-            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame)
+            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame,
+                    p_metadata_train, p_metadata_validation, p_metadata_test)
 
-    def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame):
+    def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path,
+            p_frame, p_metadata_train, p_metadata_validation, p_metadata_test):
         # Set logger
         self.create_logger(log_path=save_log_path+str(rank))
         self.log("="*60)
@@ -225,6 +233,9 @@ class I3dLearner(BaseLearner):
         self.log("save_model_path: " + save_model_path)
         self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
+        self.log("p_metadata_train: " + p_metadata_train)
+        self.log("p_metadata_validation: " + p_metadata_validation)
+        self.log("p_metadata_test: " + p_metadata_test)
         self.log_parameters()
 
         # Set model
@@ -232,7 +243,7 @@ class I3dLearner(BaseLearner):
         if model is None: return None
 
         # Load datasets
-        metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
+        metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
         ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts}
         if self.augment:
@@ -329,6 +340,7 @@ class I3dLearner(BaseLearner):
                         optimizer.zero_grad()
                         lr_sche.step()
                     # END FOR LOOP
+                    break
                 if phase == "validation":
                     # Log learning rate and loss
                     lr = lr_sche.get_lr()[0]
@@ -381,21 +393,23 @@ class I3dLearner(BaseLearner):
         self.log("Done training")
 
     def test(self,
-            p_model=None, # the path to load the pretrained or previously self-trained model
-            save_log_path="../data/saved_i3d/[model_id]/log/test.log", # path to save log files ([model_id] will be replaced)
-            save_viz_path="../data/saved_i3d/[model_id]/viz/", # path to save visualizations ([model_id] will be replaced)
+            p_model=None # the path to load the pretrained or previously self-trained model
             ):
         # Check
-        if p_model is None:
-            self.log("Need to provide model path")
+        if p_model is None or not is_file_here(p_model):
+            self.log("Need to provide a valid model path")
             return
 
         # Set path
-        model_id = re.search(r'\b/[0-9a-fA-F]{7}-i3d-(rgb|flow)/\b', p_model).group()[1:-1]
+        match = re.search(r'\b/[0-9a-fA-F]{7}-i3d-(rgb|flow)[^/]*/\b', p_model)
+        model_id = match.group()[1:-1]
         if model_id is None:
-            model_id = "unknown-model-id"
-        save_log_path = save_log_path.replace("[model_id]", model_id)
-        save_viz_path = save_viz_path.replace("[model_id]", model_id)
+            self.log("Cannot find a valid model id from the model path.")
+            return
+        p_root = p_model[:match.start()] + "/" + model_id + "/"
+        p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
+        save_log_path = p_root + "log/test.log" # path to save log files
+        save_viz_path = p_root + "viz/" # path to save visualizations
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Spawn processes
@@ -404,11 +418,12 @@ class I3dLearner(BaseLearner):
             # TODO: multiple GPUs will cause an error when generating summary videos
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
-            mp.spawn(self.test_worker, nprocs=n_gpu, args=(n_gpu, p_model, save_log_path, p_frame, save_viz_path), join=True)
+            mp.spawn(self.test_worker, nprocs=n_gpu,
+                    args=(n_gpu, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test), join=True)
         else:
-            self.test_worker(0, 1, p_model, save_log_path, p_frame, save_viz_path)
+            self.test_worker(0, 1, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test)
 
-    def test_worker(self, rank, world_size, p_model, save_log_path, p_frame, save_viz_path):
+    def test_worker(self, rank, world_size, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test):
         # Set logger
         self.create_logger(log_path=save_log_path+str(rank))
         self.log("="*60)
@@ -417,13 +432,15 @@ class I3dLearner(BaseLearner):
         self.log("Start testing with mode: " + self.mode)
         self.log("save_log_path: " + save_log_path)
         self.log("save_viz_path: " + save_viz_path)
+        self.log("p_metadata_test: " + p_metadata_test)
+        self.log_parameters()
 
         # Set model
         model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
         if model is None: return None
 
         # Load dataset
-        metadata_path = {"test": self.p_metadata_test}
+        metadata_path = {"test": p_metadata_test}
         transform = {"test": self.get_transform(self.mode, image_size=self.image_size)}
         dataloader = self.set_dataloader(rank, world_size, metadata_path, p_frame,
                 transform, self.batch_size_test, self.can_parallel)
@@ -478,7 +495,10 @@ class I3dLearner(BaseLearner):
     def extract_features(self,
             p_model=None, # the path to load the pretrained or previously self-trained model
             p_feat_rgb="../data/i3d_features_rgb/", # path to save rgb features
-            p_feat_flow="../data/i3d_features_flow/" # path to save flow features
+            p_feat_flow="../data/i3d_features_flow/", # path to save flow features
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json", # metadata path (test)
             ):
         # Set path
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
@@ -496,8 +516,7 @@ class I3dLearner(BaseLearner):
         if model is None: return None
 
         # Load datasets
-        metadata_path = {"train": self.p_metadata_train,
-                "validation": self.p_metadata_validation, "test": self.p_metadata_test}
+        metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation, "test": p_metadata_test}
         ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts, "test": ts}
         dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features, False)

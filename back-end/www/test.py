@@ -1,4 +1,5 @@
 import sys
+from util import *
 from i3d_learner import I3dLearner
 from ts_learner import TsLearner
 from svm_learner import SvmLearner
@@ -37,6 +38,18 @@ def test(method=None, model_path=None):
     elif method == "i3d-flow":
         model = I3dLearner(mode="flow")
         model.test(p_model=model_path)
+    elif method == "i3d-rgb-cv-1":
+        # full data augmentation, from pretrained model
+        i3d_cv("rgb", model_path, True)
+    elif method == "i3d-flow-cv-1":
+        # full data augmentation, from pretrained model
+        i3d_cv("flow", model_path, True)
+    elif method == "i3d-rgb-cv-2":
+        # no data augmentation, from pretrained model
+        i3d_cv("rgb", model_path, False)
+    elif method == "i3d-flow-cv-2":
+        # no data augmentation, from pretrained model
+        i3d_cv("flow", model_path, False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.test(p_model=model_path)
@@ -61,6 +74,12 @@ def test(method=None, model_path=None):
     else:
         print("Method not allowed")
         return
+
+
+# Cross validation of i3d model
+def i3d_cv(mode, model_path, augment):
+    model = I3dLearner(mode=mode, augment=augment)
+    model.test(p_model=model_path)
 
 
 if __name__ == "__main__":
