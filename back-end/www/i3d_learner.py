@@ -340,7 +340,6 @@ class I3dLearner(BaseLearner):
                         optimizer.zero_grad()
                         lr_sche.step()
                     # END FOR LOOP
-                    break
                 if phase == "validation":
                     # Log learning rate and loss
                     lr = lr_sche.get_lr()[0]

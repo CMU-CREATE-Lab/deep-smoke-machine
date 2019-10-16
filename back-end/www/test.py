@@ -39,17 +39,17 @@ def test(method=None, model_path=None):
         model = I3dLearner(mode="flow")
         model.test(p_model=model_path)
     elif method == "i3d-rgb-cv-1":
-        # full data augmentation, from pretrained model
-        i3d_cv("rgb", model_path, True)
-    elif method == "i3d-flow-cv-1":
-        # full data augmentation, from pretrained model
-        i3d_cv("flow", model_path, True)
+        i3d_cv("rgb", model_path, augment=True, perturb=False)
     elif method == "i3d-rgb-cv-2":
-        # no data augmentation, from pretrained model
-        i3d_cv("rgb", model_path, False)
+        i3d_cv("rgb", model_path, augment=False, perturb=False)
+    elif method == "i3d-rgb-cv-3":
+        i3d_cv("rgb", model_path, augment=True, perturb=True)
+    elif method == "i3d-rgb-cv-4":
+        i3d_cv("rgb", model_path, augment=False, perturb=True)
+    elif method == "i3d-flow-cv-1":
+        i3d_cv("flow", model_path, augment=True, perturb=False)
     elif method == "i3d-flow-cv-2":
-        # no data augmentation, from pretrained model
-        i3d_cv("flow", model_path, False)
+        i3d_cv("flow", model_path, augment=False, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.test(p_model=model_path)
@@ -77,7 +77,11 @@ def test(method=None, model_path=None):
 
 
 # Cross validation of i3d model
-def i3d_cv(mode, model_path, augment):
+def i3d_cv(mode, model_path, augment=True, perturb=False):
+    if perturb:
+        p_frame_rgb = "../data/rgb_perturb/"
+    else:
+        p_frame_rgb = "../data/rgb/"
     model = I3dLearner(mode=mode, augment=augment)
     model.test(p_model=model_path)
 

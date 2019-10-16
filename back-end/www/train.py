@@ -40,31 +40,35 @@ def train(method=None, model_path=None):
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         model = I3dLearner(mode="rgb")
         model.fit(p_model=model_path)
+    elif method == "i3d-rgb-cv-1":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        i3d_cv("rgb", model_path, augment=True, perturb=False)
+    elif method == "i3d-rgb-cv-2":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        i3d_cv("rgb", model_path, augment=False, perturb=False)
+    elif method == "i3d-rgb-cv-3":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        i3d_cv("rgb", model_path, augment=True, perturb=True)
+    elif method == "i3d-rgb-cv-4":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        i3d_cv("rgb", model_path, augment=False, perturb=True)
     elif method == "i3d-flow":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         model = I3dLearner(mode="flow")
         model.fit(p_model=model_path)
-    elif method == "i3d-rgb-cv-1":
-        # full data augmentation, from pretrained model
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path, True)
     elif method == "i3d-flow-cv-1":
-        # full data augmentation, from pretrained model
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        i3d_cv("flow", model_path, True)
-    elif method == "i3d-rgb-cv-2":
-        # no data augmentation, from pretrained model
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path, False)
+        i3d_cv("flow", model_path, augment=True, perturb=False)
     elif method == "i3d-flow-cv-2":
-        # no data augmentation, from pretrained model
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        i3d_cv("flow", model_path, False)
+        i3d_cv("flow", model_path, augment=False, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.fit()
@@ -92,8 +96,12 @@ def train(method=None, model_path=None):
 
 
 # Cross validation of i3d model
-def i3d_cv(mode, model_path, augment):
-    model = I3dLearner(mode=mode, augment=augment)
+def i3d_cv(mode, model_path, augment=True, perturb=False):
+    if perturb:
+        p_frame_rgb = "../data/rgb_perturb/"
+    else:
+        p_frame_rgb = "../data/rgb/"
+    model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb)
     # Cross validation on the 1st split by camera)
     model.fit(p_model=model_path,
             model_id_suffix="-s0",
