@@ -112,13 +112,16 @@ git config --global core.fileMode false
 ```
 Create conda environment and install packages. It is important to install pip first inside the newly created conda environment.
 ```sh
-conda env remove -n deep-smoke-machine
 conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
 conda install python=3.7
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
 sh deep-smoke-machine/back-end/install_packages.sh
+```
+If the environment already exists and you want to remove it before installing packages, use the following:
+```sh
+conda env remove -n deep-smoke-machine
 ```
 Update the optical_flow submodule.
 ```sh
