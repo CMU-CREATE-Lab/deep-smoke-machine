@@ -226,7 +226,8 @@ class I3dLearner(BaseLearner):
     def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path,
             p_frame, p_metadata_train, p_metadata_validation, p_metadata_test):
         # Set logger
-        self.create_logger(log_path=save_log_path+str(rank))
+        save_log_path += str(rank)
+        self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
@@ -424,7 +425,8 @@ class I3dLearner(BaseLearner):
 
     def test_worker(self, rank, world_size, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test):
         # Set logger
-        self.create_logger(log_path=save_log_path+str(rank))
+        save_log_path += str(rank)
+        self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
