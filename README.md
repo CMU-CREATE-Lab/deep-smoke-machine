@@ -73,6 +73,25 @@ sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
 ```
  
 # Setup this tool
+Install conda. This assumes that Ubuntu is installed. A detailed documentation is [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). First visit [here](https://conda.io/miniconda.html) to obtain the downloading path. The following script install conda for all users:
+```sh
+wget https://repo.continuum.io/miniconda/Miniconda2-4.6.14-Linux-x86_64.sh
+sudo sh Miniconda2-4.6.14-Linux-x86_64.sh -b -p /opt/miniconda3
+
+sudo vim /etc/bash.bashrc
+# Add the following lines to this file
+export PATH="/opt/miniconda3/bin:$PATH"
+. /opt/miniconda3/etc/profile.d/conda.sh
+
+source /etc/bash.bashrc
+```
+For Mac OS, I recommend installing conda by using [Homebrew](https://brew.sh/).
+```sh
+brew cask install miniconda
+echo 'export PATH="/usr/local/miniconda3/bin:$PATH"' >> ~/.bash_profile
+echo '. /usr/local/miniconda3/etc/profile.d/conda.sh' >> ~/.bash_profile
+source ~/.bash_profile
+```
 Clone this repository and set the permission.
 ```sh
 git clone --recursive https://github.com/CMU-CREATE-Lab/deep-smoke-machine.git
