@@ -128,11 +128,7 @@ git checkout master
 ```
 Install PyTorch.
 ```sh
-# For cuda 9.0
-conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
-
-# For cuda 10.0
-conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+conda install pytorch torchvision -c pytorch
 ```
 Install system packages for OpenCV.
 ```sh
