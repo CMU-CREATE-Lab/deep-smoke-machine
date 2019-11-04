@@ -93,6 +93,7 @@ git config --global core.fileMode false
 ```
 Create conda environment and install packages. It is important to install pip first inside the newly created conda environment.
 ```sh
+conda env remove -n deep-smoke-machine
 conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
 conda install pip
