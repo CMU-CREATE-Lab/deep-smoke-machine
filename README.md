@@ -88,8 +88,8 @@ source /etc/bash.bashrc
 For Mac OS, I recommend installing conda by using [Homebrew](https://brew.sh/).
 ```sh
 brew cask install miniconda
-echo 'export PATH="/usr/local/miniconda3/bin:$PATH"' >> ~/.bash_profile
-echo '. /usr/local/miniconda3/etc/profile.d/conda.sh' >> ~/.bash_profile
+echo 'export PATH="/usr/local/Caskroom/miniconda/base/bin:$PATH"' >> ~/.bash_profile
+echo '. /usr/local/Caskroom/miniconda/base/etc/profile.d/conda.sh' >> ~/.bash_profile
 source ~/.bash_profile
 ```
 Clone this repository and set the permission.
