@@ -17,9 +17,6 @@ class SmokeVideoDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
 
-        self.pos = [47, 23, 19, 15]
-        self.neg = [32, 20, 16, 12]
-
     def __len__(self):
         return len(self.metadata)
 
@@ -39,13 +36,13 @@ class SmokeVideoDataset(Dataset):
         if self.transform:
             frames = self.transform(frames)
 
-        # Process label state to labels
-        label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
-        labels = np.array([0.0, 0.0], dtype=np.float32)
-        if label_state in self.pos:
-            labels[1] = 1.0 # The 2st column show the probability of yes
-        elif label_state in self.neg:
-            labels[0] = 1.0 # The 1st column show the probability of no
+        # Process labels
+        label = v["label"]
+        # TODO: change the [0.0, 1.0] to [0.0, weight]?
+        if label == 1:
+            labels = np.array([0.0, 1.0], dtype=np.float32) # The 2st column show the probability of yes
+        else:
+            labels = np.array([1.0, 0.0], dtype=np.float32) # The 1st column show the probability of no
         labels = np.repeat([labels], t, axis=0) # Repeat for each frame (frame by frame detection)
 
         return {"frames": frames, "labels": self.labels_to_tensor(labels), "file_name": v["file_name"]}
@@ -59,7 +56,6 @@ class SmokeVideoDataset(Dataset):
 
 
 # The smoke video feature dataset
-# TODO: improve performance of this class according to SmokeVideoDataset
 class SmokeVideoFeatureDataset(Dataset):
     def __init__(self, metadata_path=None, root_dir=None):
         """
@@ -81,15 +77,5 @@ class SmokeVideoFeatureDataset(Dataset):
             raise ValueError("Cannot find file: %s" % (feature_file_path))
         feature = np.load(feature_file_path)
 
-        # Process label state to labels
-        label_state = v["label_state_admin"] # TODO: need to change this to label_state in the future
-        pos = [47, 23, 19, 15]
-        neg = [32, 20, 16, 12]
-        label = None
-        if label_state in pos:
-            label = 1
-        elif label_state in neg:
-            label = 0
-
         # Return item
-        return {"feature": feature, "label": label, "file_name": v["file_name"]}
+        return {"feature": feature, "label": v["label"], "file_name": v["file_name"]}

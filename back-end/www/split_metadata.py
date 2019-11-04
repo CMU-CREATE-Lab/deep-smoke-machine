@@ -2,7 +2,9 @@ import sys
 from collections import defaultdict
 import json
 import numpy as np
+import copy
 from util import *
+
 
 def split_and_save_data(vm, target_key_type, method="assign"):
     # Index metadata by date or camera
@@ -47,7 +49,7 @@ def split_and_save_data(vm, target_key_type, method="assign"):
         elif target_key_type == "date":
             target_keys = list(vm_dict.keys())
             target_keys = sorted(target_keys)[::-1]
-            train_key, valid_key, test_key = divide_list(target_keys, frac_valid=0.1, frac_test=0.25)
+            train_key, valid_key, test_key = divide_list(target_keys, frac_valid=0.07, frac_test=0.35)
             vm_train, vm_valid, vm_test = split(vm_dict, target_key_type,
                     train_key=train_key, valid_key=valid_key, test_key=test_key)
             save_json(vm_valid, p+"metadata_validation_split_by_"+target_key_type+".json")
@@ -97,21 +99,13 @@ def split(vm_dict, target_key_type, train_key=None, valid_key=None, test_key=Non
 
 def print_distribution(vm, target_key_type):
     count_vm = defaultdict(lambda: defaultdict(int))
-    pos = [47, 23, 19, 15]
-    neg = [32, 20, 16, 12]
-    gold_pos = [47]
-    gold_neg = [32]
     for v in vm:
         k = to_key(v, target_key_type)
-        label = v["label_state_admin"] # TODO: need to change this to label_state in the future
-        if label in pos:
+        label = v["label"]
+        if label == 1:
             count_vm[k]["pos"] += 1
-        elif label in neg:
+        elif label == 0:
             count_vm[k]["neg"] += 1
-        if label in gold_pos:
-            count_vm[k]["gold_pos"] += 1
-        elif label in gold_neg:
-            count_vm[k]["gold_neg"] += 1
     print(json.dumps(count_vm, indent=4))
 
 
@@ -123,6 +117,71 @@ def to_key(v, target_key_type):
         return "-".join(key[0:2])
     elif target_key_type == "date":
         return "-".join(key[2:5])
+
+
+# Aggregate labels from citizens (label_state) and researchers (label_state_admin)
+# "label" means the final aggregated label
+# "weight" means the confidence of the aggregated label
+def aggregate_label(vm):
+    vm = copy.deepcopy(vm)
+    vm_new = []
+    for i in range(len(vm)):
+        has_error = False
+        v = vm[i]
+        label_state_admin = v.pop("label_state_admin", None)
+        label_state = v.pop("label_state", None)
+        if label_state_admin == 47: # pos (gold standard)
+            v["label"] = 1
+            v["weight"] = 1
+        elif label_state_admin == 32: # neg (gold standard)
+            v["label"] = 0
+            v["weight"] = 1
+        elif label_state_admin == 23: # strong pos
+            v["label"] = 1
+            if label_state == 23: # strong pos
+                v["weight"] = 1 # (1+1)/2
+            elif label_state == 16: # strong neg
+                v["weight"] = 0.5 # (1+0)/2
+            elif label_state == 20: # weak neg
+                v["weight"] = 0.66 # (1+0.33)/2
+            elif label_state == 19: # weak pos
+                v["weight"] = 0.83 # (1+0.66)/2
+            else: # not determined by citizens
+                v["weight"] = 0.75
+        elif label_state_admin == 16: # strong neg
+            v["label"] = 0
+            if label_state == 23: # strong pos
+                v["weight"] = 0.5 # (1+0)/2
+            elif label_state == 16: # strong neg
+                v["weight"] = 1 # (1+1)/2
+            elif label_state == 20: # weak neg
+                v["weight"] = 0.83 # (1+0.66)/2
+            elif label_state == 19: # weak pos
+                v["weight"] = 0.66 # (1+0.33)/2
+            else: # not determined by citizens
+                v["weight"] = 0.75
+        else: # not determined by researchers
+            if label_state == 23: # strong pos
+                v["label"] = 1
+                v["weight"] = 1
+            elif label_state == 16: # strong neg
+                v["label"] = 0
+                v["weight"] = 1
+            elif label_state == 20: # weak neg
+                v["label"] = 0
+                v["weight"] = 0.66
+            elif label_state == 19: # weak pos
+                v["label"] = 1
+                v["weight"] = 0.66
+            else:
+                has_error = True
+        if has_error or "label" not in v or "weight" not in v:
+            print("Error when aggregating label:")
+            print(v)
+        else:
+            vm_new.append(v)
+
+    return vm_new
 
 
 # Split metadata into training, validation, and test sets
@@ -137,7 +196,7 @@ def main(argv):
         return
 
     vm = load_json("../data/metadata.json")
-    #method = "random"
+    vm = aggregate_label(vm)
     method = "assign"
     split_and_save_data(vm, "date", method=method)
     split_and_save_data(vm, "camera", method=method)

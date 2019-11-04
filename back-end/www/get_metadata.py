@@ -33,12 +33,12 @@ def get_video_metadata():
 
     # Request metadata
     url_root = "https://api.smoke.createlab.org/api/v1/"
-    videos = iterative_query(url_root+"get_pos_gold_labels", user_token)
-    videos += iterative_query(url_root+"get_neg_gold_labels", user_token)
-    videos += iterative_query(url_root+"get_pos_labels_by_researcher", user_token)
-    videos += iterative_query(url_root+"get_neg_labels_by_researcher", user_token)
+    vm = iterative_query(url_root+"get_pos_gold_labels", user_token)
+    vm += iterative_query(url_root+"get_neg_gold_labels", user_token)
+    vm += iterative_query(url_root+"get_pos_labels", user_token)
+    vm += iterative_query(url_root+"get_neg_labels", user_token)
 
-    return videos
+    return vm
 
 
 # Query a paginated api call iteratively until getting all the data
