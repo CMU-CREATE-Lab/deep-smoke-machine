@@ -33,12 +33,18 @@ Usage:
         pass
 """
 class BaseLearner(ABC):
-    def __init__(self):
+    def __init__(self, use_cuda=None):
         self.logger = None
-        if torch.cuda.is_available:
-            self.use_cuda = True
+        if use_cuda is None:
+            if torch.cuda.is_available:
+                self.use_cuda = True
+            else:
+                self.use_cuda = False
         else:
-            self.use_cuda = False
+            if use_cuda is True and torch.cuda.is_available:
+                self.use_cuda = True
+            else:
+                self.use_cuda = False
 
     # Train the model
     # Output: None

@@ -32,6 +32,7 @@ import shutil
 # https://arxiv.org/abs/1705.07750
 class I3dLearner(BaseLearner):
     def __init__(self,
+            use_cuda=None, # use cuda or not
             batch_size_train=10, # size for each batch for training (8 max for each GTX 1080Ti)
             batch_size_test=40, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=40, # size for each batch for extracting features
@@ -53,7 +54,7 @@ class I3dLearner(BaseLearner):
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/" # path to load optical flow frame
             ):
-        super().__init__()
+        super().__init__(use_cuda=use_cuda)
 
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
