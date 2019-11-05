@@ -1,4 +1,10 @@
 import os
+import sys
+from util import *
+import numpy as np
+from optical_flow.optical_flow import OpticalFlow
+from multiprocessing import Pool
+
 thread = "1"
 os.environ["MKL_NUM_THREADS"] = thread
 os.environ["NUMEXPR_NUM_THREADS"] = thread
@@ -6,14 +12,7 @@ os.environ["OMP_NUM_THREADS"] = thread
 os.environ["VECLIB_MAXIMUM_THREADS"] = thread
 os.environ["OPENBLAS_NUM_THREADS"] = thread
 import cv2 as cv
-cv.setNumThreads(0)
-
-import sys
-from util import *
-import numpy as np
-from optical_flow.optical_flow import OpticalFlow
-from multiprocessing import Pool
-
+cv.setNumThreads(12)
 
 # Process videos into rgb frame files and optical flow files
 # The file format is numpy.array
