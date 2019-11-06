@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import sys
 import os
+import copy
 
 from viz_functional import preprocess_image, save_class_activation_images
 from torchvision import models
@@ -125,24 +126,54 @@ def save_class_activation_videos(org_vid, activation_map, file_name, root_dir=".
     """
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
-    # Get colormap
-    color_map = mpl_color_map.get_cmap("hsv")
+
+    span = 4 # downample the time dimension
+    org_vid = org_vid[:, :, ::span, :, :]
+    activation_map = activation_map[::span, :, :]
+
+    color_map = mpl_color_map.get_cmap("jet") # get color map
     no_trans_heatmap = color_map(activation_map)
-    # Get heatmap over images
-    # Flatten to 2D
-    no_trans_heatmap = np.transpose(no_trans_heatmap, (1, 0, 2, 3))
+
+    activation_map = np.expand_dims(activation_map, axis=3)
+    activation_map = convert_3d_to_2d(activation_map, constant_values=0)
+    activation_map = activation_map[:, :, 0]
+
+    heatmap = copy.deepcopy(no_trans_heatmap)
+    heatmap = convert_3d_to_2d(heatmap, constant_values=1)
+    heatmap[:, :, 3] = np.minimum(np.maximum(activation_map*2 - 1, 0), 1) # change alpha to show the original image
+    heatmap = Image.fromarray((heatmap*255).astype(np.uint8))
+
+    no_trans_heatmap = convert_3d_to_2d(no_trans_heatmap, constant_values=0)
+    no_trans_heatmap = Image.fromarray((no_trans_heatmap*255).astype(np.uint8))
+
+    org_vid = np.transpose(org_vid[0, ...], (1, 2, 3, 0)) # do not use the batch dimension
+    org_vid = convert_3d_to_2d(org_vid, constant_values=1)
+    org_vid = Image.fromarray(((org_vid+1)*127.5).astype(np.uint8))
+
+    heatmap_on_image = Image.new("RGBA", org_vid.size)
+    heatmap_on_image = Image.alpha_composite(heatmap_on_image, org_vid.convert("RGBA"))
+    heatmap_on_image = Image.alpha_composite(heatmap_on_image, heatmap)
+
+    stacked = Image.new("RGB", (org_vid.size[0], org_vid.size[1]*2 + 20), (255, 255, 255))
+    stacked.paste(org_vid, (0, 0))
+    stacked.paste(heatmap_on_image, (0, org_vid.size[1] + 20))
+
+    #no_trans_heatmap.save(os.path.join(root_dir, file_name+"-cam-heatmap.png"))
+    #org_vid.save(os.path.join(root_dir, file_name+"-video.png"))
+    #heatmap_on_image.save(os.path.join(root_dir, file_name+"-cam-on-video.png"))
+    stacked.save(os.path.join(root_dir, file_name+"-cam-stacked.png"))
+
+
+# Flatten a numpy.ndarray with dimension (time*height*width*channel)
+def convert_3d_to_2d(frames, constant_values=0):
+    frames = np.transpose(frames, (1, 0, 2, 3))
     pad_w = 20
     npad = ((0, 0), (0, 0), (0, pad_w), (0, 0))
-    no_trans_heatmap = np.pad(no_trans_heatmap, pad_width=npad, mode="constant", constant_values=0) # add padding
-    sp = no_trans_heatmap.shape
-    no_trans_heatmap = np.reshape(no_trans_heatmap, (sp[0], sp[1]*sp[2], sp[3]))
-    no_trans_heatmap = no_trans_heatmap[:, :-20, :] # remove padding for the last frame
-    no_trans_heatmap = Image.fromarray((no_trans_heatmap*255).astype(np.uint8))
-    no_trans_heatmap.save(os.path.join(root_dir, file_name+"-cam-heatmap.png"))
-    #print(no_trans_heatmap.size)
-    #print(org_vid.shape)
-    #print(activation_map.shape)
-    #print(file_name)
+    frames = np.pad(frames, pad_width=npad, mode="constant", constant_values=constant_values) # add padding
+    sp = frames.shape
+    frames = np.reshape(frames, (sp[0], sp[1]*sp[2], sp[3])) # 3d to 2d
+    frames = frames[:, :-20, :] # remove padding for the last frame
+    return frames
 
 
 def main(argv):
