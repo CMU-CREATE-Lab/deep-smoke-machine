@@ -33,8 +33,8 @@ def check_and_create_dir(path):
     if dir_name != "" and not os.path.exists(dir_name):
         try: # this is used to prevent race conditions during parallel computing
             os.makedirs(dir_name)
-        except:
-            pass
+        except Exception as ex:
+            print(ex)
 
 
 # Return a list of all files in a folder
@@ -73,8 +73,14 @@ def ddict_to_dict(d):
 # Input:
 #   y_true (list): true labels
 #   y_pred (list): predicted labels
-#   n_min (int): minimum number of samples to return for each cell in the matrix
-def confusion_matrix_of_samples(y_true, y_pred, n=64):
+#   n (int):
+#       minimum number of samples to return for each cell in the matrix
+#       if n=None, will return all samples
+# Output:
+#   (dictionary):
+#       the first key is the true label
+#       the second key is the predicted label
+def confusion_matrix_of_samples(y_true, y_pred, n=None):
     if len(y_true) != len(y_pred):
         print("Error! y_true and y_pred have different lengths.")
         return

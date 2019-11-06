@@ -484,8 +484,17 @@ class I3dLearner(BaseLearner):
         # Generate video summary and show class activation map
         # TODO: this part will cause an error when using multiple GPUs
         try:
-            cm = confusion_matrix_of_samples(true_labels, pred_labels)
-            write_video_summary(cm, file_name, p_frame, save_viz_path + "/" + str(rank) + "/")
+            # Video summary
+            cm = confusion_matrix_of_samples(true_labels, pred_labels, n=64)
+            write_video_summary(cm, file_name, p_frame, save_viz_path + str(rank) + "/")
+            # Save confusion matrix
+            cm_all = confusion_matrix_of_samples(true_labels, pred_labels)
+            for u in cm_all:
+                for v in cm_all[u]:
+                    for i in range(len(cm_all[u][v])):
+                        idx = cm_all[u][v][i]
+                        cm_all[u][v][i] = file_name[idx]
+            save_json(cm_all, save_viz_path + str(rank) + "/confusion_matrix_of_samples.json")
         except Exception as ex:
             self.log(ex)
 

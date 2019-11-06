@@ -9,20 +9,19 @@ import sys
 import os
 import copy
 
-from viz_functional import preprocess_image, save_class_activation_images
 from torchvision import models
 from i3d_learner import I3dLearner
-from smoke_video_dataset import SmokeVideoDataset
 from scipy.ndimage import zoom
+from util import *
+import re
 
 
 class CamExtractor():
     """
         Extracts cam features from the model
     """
-    def __init__(self, model, target_layer=None):
+    def __init__(self, model):
         self.model = model
-        self.target_layer = target_layer
         self.gradients = None
 
     def save_gradient(self, grad):
@@ -30,19 +29,11 @@ class CamExtractor():
 
     def forward_pass_on_convolutions(self, x):
         """
-            Does a forward pass on convolutions, hooks the function at given layer
+            Does a forward pass on convolutions, hooks the function at the last conv layer
         """
-        conv_output = None
-        if self.target_layer is None: # i3d model
-            x = self.model.extract_conv_output(x)
-            x.register_hook(self.save_gradient)
-            conv_output = x  # Save the convolution output on that layer
-        else: # alexnet model
-            for module_pos, module in self.model.features._modules.items():
-                x = module(x)  # Forward
-                if int(module_pos) == self.target_layer:
-                    x.register_hook(self.save_gradient)
-                    conv_output = x  # Save the convolution output on that layer
+        x = self.model.extract_conv_output(x)
+        x.register_hook(self.save_gradient)
+        conv_output = x  # Save the convolution output on the last conv layer
         return conv_output, x
 
     def forward_pass(self, x):
@@ -51,11 +42,7 @@ class CamExtractor():
         """
         # Forward pass on the convolutions
         conv_output, x = self.forward_pass_on_convolutions(x)
-        if self.target_layer is None: # i3d model
-            x = self.model.conv_output_to_model_output(x)
-        else: # alexnet model
-            x = x.view(x.size(0), -1)  # Flatten
-            x = self.model.classifier(x) # Forward pass on the classifier
+        x = self.model.conv_output_to_model_output(x)
         return conv_output, x
 
 
@@ -63,11 +50,10 @@ class GradCam():
     """
         Produces class activation map
     """
-    def __init__(self, model, target_layer=None):
+    def __init__(self, model):
         self.model = model
         self.model.eval()
-        self.target_layer = target_layer
-        self.extractor = CamExtractor(self.model, target_layer) # Define extractor
+        self.extractor = CamExtractor(self.model) # Define extractor
 
     def generate_cam(self, input_tensor, target_class=None):
         # Full forward pass
@@ -76,17 +62,11 @@ class GradCam():
         conv_output, model_output = self.extractor.forward_pass(input_tensor)
         if target_class is None:
             target_class = 0
-        if self.target_layer is None: # i3d model
-            one_hot_output = torch.zeros_like(model_output)
-            one_hot_output[0][target_class] = 1
-            self.model.zero_grad()
-        else: # alexnet model
-            # Target for backprop
-            one_hot_output = torch.FloatTensor(1, model_output.size()[-1]).zero_()
-            one_hot_output[0][target_class] = 1
-            # Zero grads
-            self.model.features.zero_grad()
-            self.model.classifier.zero_grad()
+        # Target for backprop
+        one_hot_output = torch.zeros_like(model_output)
+        one_hot_output[0][target_class] = 1
+        # Zero grads
+        self.model.zero_grad()
         # Backward pass with specified target
         model_output.backward(gradient=one_hot_output, retain_graph=True)
         # Get hooked gradients
@@ -94,10 +74,7 @@ class GradCam():
         # Get convolution outputs
         target = conv_output.data.numpy()[0]
         # Get weights from gradients
-        if self.target_layer is None: # i3d model
-            weights = np.mean(guided_gradients, axis=(1, 2, 3))
-        else: # alexnet model
-            weights = np.mean(guided_gradients, axis=(1, 2)) # Take averages for each gradient
+        weights = np.mean(guided_gradients, axis=(1, 2, 3)) # Take averages for each gradient
         # Create empty numpy array for cam
         cam = np.ones(target.shape[1:], dtype=np.float32)
         # Multiply each weight with its conv output and then, sum
@@ -108,10 +85,8 @@ class GradCam():
         cam = np.uint8(cam * 255)  # Scale between 0-255 to visualize
         i_sp = input_tensor.shape
         c_sp = cam.shape
-        if self.target_layer is None: # i3d model
-            cam = zoom(cam, (i_sp[2]/c_sp[0], i_sp[3]/c_sp[1], i_sp[4]/c_sp[2]), order=1) / 255
-        else: # alexnet model
-            cam = np.uint8(Image.fromarray(cam).resize((i_sp[2], i_sp[3]), Image.ANTIALIAS)) / 255
+        # Scale the map up to the input tensor size
+        cam = zoom(cam, (i_sp[2]/c_sp[0], i_sp[3]/c_sp[1], i_sp[4]/c_sp[2]), order=1) / 255
         return cam
 
 
@@ -127,7 +102,7 @@ def save_class_activation_videos(org_vid, activation_map, file_name, root_dir=".
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    span = 4 # downample the time dimension
+    span = 3 # downample the time dimension
     org_vid = org_vid[:, :, ::span, :, :]
     activation_map = activation_map[::span, :, :]
 
@@ -177,32 +152,50 @@ def convert_3d_to_2d(frames, constant_values=0):
 
 
 def main(argv):
-    use_i3d = True
-    if use_i3d: # i3d model
-        mode = "rgb"
-        learner = I3dLearner(mode=mode, use_cuda=False)
-        metadata_path = "../data/split/metadata_train_split_0_by_camera.json"
-        root_dir = "../data/rgb/"
-        p_model = "../data/saved_i3d/146f769-i3d-rgb-s0/model/3042.pt"
-        pretrained_model = learner.set_model(0, 1, mode, p_model, False)
-        transform = learner.get_transform("rgb", image_size=224)
-        dataset = SmokeVideoDataset(metadata_path=metadata_path, root_dir=root_dir, transform=transform)
-        data = dataset[0]
-        prep_input = torch.unsqueeze(data["frames"], 0)
-        target_class = 1
-        grad_cam = GradCam(pretrained_model)
-        cam = grad_cam.generate_cam(prep_input, target_class)
-        file_name_to_export = data["file_name"]
-        save_class_activation_videos(prep_input, cam, file_name_to_export)
-    else: # alexnet
-        original_image = Image.open("../data/snake.jpg").convert('RGB')
-        prep_input = preprocess_image(original_image)
-        target_class = 56
-        file_name_to_export = "snake"
-        pretrained_model = models.alexnet(pretrained=True)
-        grad_cam = GradCam(pretrained_model, target_layer=11)
-        cam = grad_cam.generate_cam(prep_input, target_class)
-        save_class_activation_images(original_image, cam, file_name_to_export)
+    mode = "rgb"
+    p_frame = "../data/rgb/"
+    p_model = "../data/saved_i3d/747dd73-i3d-rgb-s0/model/3034.pt"
+    n = 64 # number of videos per set (TP, TN, FP, FN)
+
+    # Check
+    if p_model is None or not is_file_here(p_model):
+        self.log("Need to provide a valid model path")
+        return
+
+    # Set path
+    match = re.search(r'\b/[0-9a-fA-F]{7}-i3d-(rgb|flow)[^/]*/\b', p_model)
+    model_id = match.group()[1:-1]
+    if model_id is None:
+        self.log("Cannot find a valid model id from the model path.")
+        return
+    p_root = p_model[:match.start()] + "/" + model_id + "/"
+    p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
+    save_viz_path = p_root + "viz/" # path to save visualizations
+
+    # Set model
+    learner = I3dLearner(mode=mode, use_cuda=False)
+    pretrained_model = learner.set_model(0, 1, mode, p_model, False)
+
+    # Select samples and generate class activation maps
+    transform = learner.get_transform(mode, image_size=224)
+    cm = load_json(save_viz_path + "0/confusion_matrix_of_samples.json")
+    for u in cm:
+        for v in cm[u]:
+            n_uv = np.minimum(len(cm[u][v]), n)
+            samples = np.random.choice(cm[u][v], n_uv)
+            p_cam = p_root + ("cam/true_%s_prediction_%s/" % (u, v))
+            check_and_create_dir(p_cam)
+            print("Prepare folder %s" % (p_cam))
+            # Generate cam
+            for file_name in samples:
+                print("Process file %s" % (file_name))
+                prep_input = np.load(p_frame + file_name + ".npy")
+                prep_input = transform(prep_input)
+                prep_input = torch.unsqueeze(prep_input, 0)
+                target_class = 1 # has smoke
+                grad_cam = GradCam(pretrained_model)
+                cam = grad_cam.generate_cam(prep_input, target_class)
+                save_class_activation_videos(prep_input, cam, file_name, root_dir=p_cam)
     print('Grad cam completed')
 
 
