@@ -31,7 +31,10 @@ def check_and_create_dir(path):
     if path is None: return
     dir_name = os.path.dirname(path)
     if dir_name != "" and not os.path.exists(dir_name):
-        os.makedirs(dir_name)
+        try: # this is used to prevent race conditions during parallel computing
+            os.makedirs(dir_name)
+        except:
+            pass
 
 
 # Return a list of all files in a folder
