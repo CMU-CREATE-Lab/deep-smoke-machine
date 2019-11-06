@@ -2,10 +2,13 @@
 Modified from https://github.com/utkuozbulak/pytorch-cnn-visualizations
 """
 from PIL import Image
+import matplotlib.cm as mpl_color_map
 import numpy as np
 import torch
+import sys
+import os
 
-from viz_functional import preprocess_image, save_class_activation_images, save_class_activation_videos
+from viz_functional import preprocess_image, save_class_activation_images
 from torchvision import models
 from i3d_learner import I3dLearner
 from smoke_video_dataset import SmokeVideoDataset
@@ -111,7 +114,38 @@ class GradCam():
         return cam
 
 
-if __name__ == '__main__':
+def save_class_activation_videos(org_vid, activation_map, file_name, root_dir="../data/cam"):
+    """
+        Saves cam activation map and activation map on the original video
+
+    Args:
+        org_vid (numpy.ndarray): Original video with dimension batch*channel*time*height*width
+        activation_map (umpy.ndarray): Activation map (grayscale) 0-255
+        file_name (str): File name of the exported image
+    """
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+    # Get colormap
+    color_map = mpl_color_map.get_cmap("hsv")
+    no_trans_heatmap = color_map(activation_map)
+    # Get heatmap over images
+    # Flatten to 2D
+    no_trans_heatmap = np.transpose(no_trans_heatmap, (1, 0, 2, 3))
+    pad_w = 20
+    npad = ((0, 0), (0, 0), (0, pad_w), (0, 0))
+    no_trans_heatmap = np.pad(no_trans_heatmap, pad_width=npad, mode="constant", constant_values=0) # add padding
+    sp = no_trans_heatmap.shape
+    no_trans_heatmap = np.reshape(no_trans_heatmap, (sp[0], sp[1]*sp[2], sp[3]))
+    no_trans_heatmap = no_trans_heatmap[:, :-20, :] # remove padding for the last frame
+    no_trans_heatmap = Image.fromarray((no_trans_heatmap*255).astype(np.uint8))
+    no_trans_heatmap.save(os.path.join(root_dir, file_name+"-cam-heatmap.png"))
+    #print(no_trans_heatmap.size)
+    #print(org_vid.shape)
+    #print(activation_map.shape)
+    #print(file_name)
+
+
+def main(argv):
     use_i3d = True
     if use_i3d: # i3d model
         mode = "rgb"
@@ -139,3 +173,7 @@ if __name__ == '__main__':
         cam = grad_cam.generate_cam(prep_input, target_class)
         save_class_activation_images(original_image, cam, file_name_to_export)
     print('Grad cam completed')
+
+
+if __name__ == "__main__":
+    main(sys.argv)
