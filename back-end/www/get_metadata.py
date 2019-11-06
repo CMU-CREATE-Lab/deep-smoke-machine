@@ -33,9 +33,7 @@ def get_video_metadata():
 
     # Request metadata
     url_root = "https://api.smoke.createlab.org/api/v1/"
-    vm = iterative_query(url_root+"get_pos_gold_labels", user_token)
-    vm += iterative_query(url_root+"get_neg_gold_labels", user_token)
-    vm += iterative_query(url_root+"get_pos_labels", user_token)
+    vm = iterative_query(url_root+"get_pos_labels", user_token)
     vm += iterative_query(url_root+"get_neg_labels", user_token)
 
     return vm
