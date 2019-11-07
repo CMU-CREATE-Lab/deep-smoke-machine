@@ -151,11 +151,10 @@ def convert_3d_to_2d(frames, constant_values=0):
     return frames
 
 
-def main(argv):
+def grad_cam(p_model):
     mode = "rgb"
     p_frame = "../data/rgb/"
-    p_model = "../data/saved_i3d/747dd73-i3d-rgb-s0/model/3034.pt"
-    n = 64 # number of videos per set (TP, TN, FP, FN)
+    n = 128 # number of videos per set (TP, TN, FP, FN)
 
     # Check
     if p_model is None or not is_file_here(p_model):
@@ -197,6 +196,21 @@ def main(argv):
                 cam = grad_cam.generate_cam(prep_input, target_class)
                 save_class_activation_videos(prep_input, cam, file_name, root_dir=p_cam)
     print('Grad cam completed')
+
+
+def main(argv):
+    if len(argv) < 3:
+        print("Usage: python grad_cam_viz.py [method] [model_path]")
+        return
+    method = argv[1]
+    model_path = argv[2]
+    if method is None or model_path is None:
+        print("Usage: python grad_cam_viz.py [method] [model_path]")
+        return
+    if method == "i3d-rgb":
+        grad_cam(model_path)
+    else:
+        print("Method not allowed")
 
 
 if __name__ == "__main__":
