@@ -20,9 +20,12 @@ def main(argv):
 
 def perturb(f):
     print("Process: " + f)
-    frames = np.load(rgb_dir + f)
-    frames_perturb = np.random.permutation(frames)
-    np.save(rgb_perturb_dir + f, frames_perturb)
+    p = rgb_perturb_dir + f
+    if not is_file_here(p):
+        print("Process file %s" % f)
+        frames = np.load(rgb_dir + f)
+        frames_perturb = np.random.permutation(frames)
+        np.save(p, frames_perturb)
 
 
 if __name__ == "__main__":
