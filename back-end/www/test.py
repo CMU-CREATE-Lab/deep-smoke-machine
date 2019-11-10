@@ -82,7 +82,7 @@ def i3d_cv(mode, model_path, augment=True, perturb=False):
         p_frame_rgb = "../data/rgb_perturb/"
     else:
         p_frame_rgb = "../data/rgb/"
-    model = I3dLearner(mode=mode, augment=augment)
+    model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb)
     model.test(p_model=model_path)
 
 
