@@ -106,6 +106,9 @@ def print_distribution(vm, target_key_type):
             count_vm[k]["pos"] += 1
         elif label == 0:
             count_vm[k]["neg"] += 1
+    for k in count_vm:
+        count_vm[k]["sum"] = count_vm[k]["pos"] + count_vm[k]["neg"]
+        count_vm[k]["pos_%"] = np.round(count_vm[k]["pos"] / count_vm[k]["sum"], 2)
     print(json.dumps(count_vm, indent=4))
 
 
