@@ -56,6 +56,8 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         i3d_cv("rgb", model_path=model_path, augment=False, perturb=True)
+    elif method == "i3d-rgb-cv-5":
+        i3d_cv("rgb", model_path=None, augment=True, perturb=False)
     elif method == "i3d-flow":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
@@ -65,10 +67,6 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         i3d_cv("flow", model_path=model_path, augment=True, perturb=False)
-    elif method == "i3d-flow-cv-2":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        i3d_cv("flow", model_path=model_path, augment=False, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.fit()
