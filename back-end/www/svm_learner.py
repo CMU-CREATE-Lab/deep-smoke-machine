@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import time
 import re
+import shutil
 
 
 # SVM learner using I3D features
@@ -21,10 +22,7 @@ class SvmLearner(BaseLearner):
             p_feat_rgb="../data/i3d_features_rgb/", # path to load rgb feature
             p_feat_flow="../data/i3d_features_flow/", # path to load optical flow feature
             p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/", # path to load optical flow frame
-            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
-            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
-            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json" # metadata path (test)
+            p_frame_flow="../data/flow/" # path to load optical flow frame
             ):
         super().__init__()
 
@@ -34,9 +32,6 @@ class SvmLearner(BaseLearner):
         self.p_feat_flow = p_feat_flow
         self.p_frame_rgb = p_frame_rgb
         self.p_frame_flow = p_frame_flow
-        self.p_metadata_train = p_metadata_train
-        self.p_metadata_validation = p_metadata_validation
-        self.p_metadata_test = p_metadata_test
 
     def log_parameters(self):
         text = ""
@@ -46,9 +41,6 @@ class SvmLearner(BaseLearner):
         text += "p_feat_flow: " + self.p_feat_flow + "\n"
         text += "p_frame_rgb: " + self.p_frame_rgb + "\n"
         text += "p_frame_flow: " + self.p_frame_flow + "\n"
-        text += "p_metadata_train: " + self.p_metadata_train + "\n"
-        text += "p_metadata_validation: " + self.p_metadata_validation + "\n"
-        text += "p_metadata_test: " + self.p_metadata_test
         self.log(text)
 
     def set_dataloader(self, metadata_path, root_dir):
@@ -60,24 +52,40 @@ class SvmLearner(BaseLearner):
         return dataloader
 
     def fit(self,
+            p_model=None, # not used, just for consistency with the i3d model's parameters
+            model_id_suffix="", # the suffix appended after the model id
+            p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
+            p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
+            p_metadata_test="../data/split/metadata_test_split_0_by_camera.json", # metadata path (test)
             save_model_path="../data/saved_svm/[model_id]/model/", # path to save the models ([model_id] will be replaced)
-            save_log_path="../data/saved_svm/[model_id]/log/train.log" # path to save log files ([model_id] will be replaced)
+            save_log_path="../data/saved_svm/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
+            save_metadata_path="../data/saved_svm/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
             ):
         # Set path
         model_id = str(uuid.uuid4())[0:7] + "-svm-" + self.mode
+        model_id += model_id_suffix
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
+        save_metadata_path = save_metadata_path.replace("[model_id]", model_id)
         p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+
+        # Copy training, validation, and testing metadata
+        check_and_create_dir(save_metadata_path)
+        shutil.copy(p_metadata_train, save_metadata_path + "metadata_train.json")
+        shutil.copy(p_metadata_validation, save_metadata_path + "metadata_validation.json")
+        shutil.copy(p_metadata_test, save_metadata_path + "metadata_test.json")
 
         # Set logger
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
         self.log("Use SVM learner with I3D features")
-        self.log("Start training model: " + model_id)
         self.log("save_model_path: " + save_model_path)
         self.log("save_log_path: " + save_log_path)
+        self.log("p_metadata_train: " + p_metadata_train)
+        self.log("p_metadata_validation: " + p_metadata_validation)
+        self.log("p_metadata_test: " + p_metadata_test)
         self.log_parameters()
 
         # Set model
@@ -85,7 +93,7 @@ class SvmLearner(BaseLearner):
         #model = LinearSVC(C=self.C, max_iter=10)
 
         # Load datasets
-        metadata_path = {"train": self.p_metadata_train, "validation": self.p_metadata_validation}
+        metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
         dataloader = self.set_dataloader(metadata_path, p_feat)
 
         # Train and validate
@@ -107,8 +115,7 @@ class SvmLearner(BaseLearner):
         self.log("Done training")
 
     def test(self,
-            p_model=None, # the path to load thepreviously self-trained model
-            save_log_path="../data/saved_svm/[model_id]/log/test.log" # path to save log files ([model_id] will be replaced)
+            p_model=None # the path to load thepreviously self-trained model
             ):
         # Check
         if p_model is None:
@@ -116,10 +123,14 @@ class SvmLearner(BaseLearner):
             return
 
         # Set path
-        model_id = re.search(r'\b/[0-9a-fA-F]{7}-svm-(rgb|flow)/\b', p_model).group()[1:-1]
+        match = re.search(r'\b/[0-9a-fA-F]{7}-svm-(rgb|flow)[^/]*/\b', p_model)
+        model_id = match.group()[1:-1]
         if model_id is None:
-            model_id = "unknown-model-id"
-        save_log_path = save_log_path.replace("[model_id]", model_id)
+            self.log("Cannot find a valid model id from the model path.")
+            return
+        p_root = p_model[:match.start()] + "/" + model_id + "/"
+        p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
+        save_log_path = p_root + "log/test.log" # path to save log files
         p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
         p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
@@ -130,12 +141,14 @@ class SvmLearner(BaseLearner):
         self.log("Use SVM learner with I3D features")
         self.log("Start testing with mode: " + self.mode)
         self.log("save_log_path: " + save_log_path)
+        self.log("p_metadata_test: " + p_metadata_test)
+        self.log_parameters()
 
         # Set model
         model = self.load(p_model)
 
         # Load datasets
-        metadata_path = {"test": self.p_metadata_test}
+        metadata_path = {"test": p_metadata_test}
         dataloader = self.set_dataloader(metadata_path, p_feat)
 
         # Test

@@ -530,7 +530,7 @@ class I3dLearner(BaseLearner):
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation, "test": p_metadata_test}
         ts = self.get_transform(self.mode, image_size=self.image_size)
         transform = {"train": ts, "validation": ts, "test": ts}
-        dataloader = self.set_dataloader(metadata_path, p_frame, transform, self.batch_size_extract_features, False)
+        dataloader = self.set_dataloader(0, 1, metadata_path, p_frame, transform, self.batch_size_extract_features, False)
 
         # Extract features
         model.train(False) # set the model to evaluation mode

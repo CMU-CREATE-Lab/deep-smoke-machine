@@ -43,21 +43,21 @@ def train(method=None, model_path=None):
     elif method == "i3d-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path=model_path, augment=True, perturb=False)
+        cv("rgb", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-rgb-cv-2":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path=model_path, augment=False, perturb=False)
+        cv("rgb", "i3d", model_path=model_path, augment=False, perturb=False)
     elif method == "i3d-rgb-cv-3":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path=model_path, augment=True, perturb=True)
+        cv("rgb", "i3d", model_path=model_path, augment=True, perturb=True)
     elif method == "i3d-rgb-cv-4":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        i3d_cv("rgb", model_path=model_path, augment=False, perturb=True)
+        cv("rgb", "i3d", model_path=model_path, augment=False, perturb=True)
     elif method == "i3d-rgb-cv-5":
-        i3d_cv("rgb", model_path=None, augment=True, perturb=False)
+        cv("rgb", "i3d", model_path=None, augment=True, perturb=False)
     elif method == "i3d-flow":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
@@ -66,7 +66,7 @@ def train(method=None, model_path=None):
     elif method == "i3d-flow-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        i3d_cv("flow", model_path=model_path, augment=True, perturb=False)
+        cv("flow", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.fit()
@@ -79,9 +79,13 @@ def train(method=None, model_path=None):
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.fit()
+    elif method == "svm-rgb-cv-1":
+        cv("rgb", "svm")
     elif method == "svm-flow":
         model = SvmLearner(mode="flow")
         model.fit()
+    elif method == "svm-flow-cv-1":
+        cv("flow", "svm")
     elif method == "lstm":
         model = LSTMLearner()
         model.fit()
@@ -93,15 +97,21 @@ def train(method=None, model_path=None):
         return
 
 
-# Cross validation of i3d model
-def i3d_cv(mode, model_path=None, augment=True, perturb=False):
+# Cross validation of i3d or svm model
+def cv(mode, method, model_path=None, augment=True, perturb=False):
     if perturb:
         p_frame_rgb = "../data/rgb_perturb/"
         p_frame_flow = "../data/flow_perturb/"
     else:
         p_frame_rgb = "../data/rgb/"
         p_frame_flow = "../data/flow/"
-    model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
+    if method == "i3d":
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
+    elif method == "svm":
+        model = SvmLearner(mode=mode)
+    else:
+        print("Method not allowed.")
+        return
     # Cross validation on the 1st split by camera)
     model.fit(p_model=model_path,
             model_id_suffix="-s0",
