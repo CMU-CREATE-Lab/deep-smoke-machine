@@ -23,3 +23,6 @@ pip install tb-nightly==2.1.0a20191103
 pip install tensorflow==2.0.0
 pip install future==0.18.2
 pip install moviepy==1.0.1
+
+# For data analysis
+pip install pandas==0.25.3
