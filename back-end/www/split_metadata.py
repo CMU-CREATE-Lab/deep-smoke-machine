@@ -38,8 +38,18 @@ def split_and_save_data(vm, target_key_type, method="assign"):
                     "train": ["0-2", "0-5", "0-9", "0-11", "0-14", "0-1", "0-4", "0-7", "0-10", "0-13"],
                     "valid": ["0-3", "0-8"],
                     "test": ["1-0", "2-0", "2-1", "2-2", "0-0", "0-6", "0-12"]
+                }, {
+                    "train": ["0-0", "0-1", "0-2", "0-3", "0-5", "0-6", "0-11", "0-12", "0-13", "0-14"],
+                    "valid": ["0-7", "0-9"],
+                    "test": ["1-0", "2-0", "2-1", "2-2", "0-4", "0-8", "0-10"]
+                }, {
+                    "train": ["0-0", "0-1", "0-2", "0-7", "0-8", "0-9", "0-10", "0-12", "0-13", "0-14"],
+                    "valid": ["0-4", "0-6"],
+                    "test": ["1-0", "2-0", "2-1", "2-2", "0-3", "0-5", "0-11"]
                 }]
             for i in range(len(three_splits)):
+                print("-"*20)
+                print("Split %d" % i)
                 s = three_splits[i]
                 vm_train, vm_valid, vm_test = split(vm_dict, target_key_type,
                         train_key=s["train"], valid_key=s["valid"], test_key=s["test"])

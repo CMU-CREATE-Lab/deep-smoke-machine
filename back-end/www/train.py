@@ -112,19 +112,19 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     else:
         print("Method not allowed.")
         return
-    # Cross validation on the 1st split by camera)
+    # Cross validation on the 1st split by camera
     model.fit(p_model=model_path,
             model_id_suffix="-s0",
             p_metadata_train="../data/split/metadata_train_split_0_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_0_by_camera.json")
-    # Cross validation on the 2nd split by camera)
+    # Cross validation on the 2nd split by camera
     model.fit(p_model=model_path,
             model_id_suffix="-s1",
             p_metadata_train="../data/split/metadata_train_split_1_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_1_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_1_by_camera.json")
-    # Cross validation on the 3rd split by camera)
+    # Cross validation on the 3rd split by camera
     model.fit(p_model=model_path,
             model_id_suffix="-s2",
             p_metadata_train="../data/split/metadata_train_split_2_by_camera.json",
@@ -136,6 +136,18 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
             p_metadata_train="../data/split/metadata_train_split_by_date.json",
             p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
             p_metadata_test="../data/split/metadata_test_split_by_date.json")
+    # Cross validation on the 4th split by camera
+    model.fit(p_model=model_path,
+            model_id_suffix="-s4",
+            p_metadata_train="../data/split/metadata_train_split_3_by_camera.json",
+            p_metadata_validation="../data/split/metadata_validation_split_3_by_camera.json",
+            p_metadata_test="../data/split/metadata_test_split_3_by_camera.json")
+    # Cross validation on the 5th split by camera
+    model.fit(p_model=model_path,
+            model_id_suffix="-s5",
+            p_metadata_train="../data/split/metadata_train_split_4_by_camera.json",
+            p_metadata_validation="../data/split/metadata_validation_split_4_by_camera.json",
+            p_metadata_test="../data/split/metadata_test_split_4_by_camera.json")
 
 
 if __name__ == "__main__":
