@@ -15,6 +15,9 @@ from torch.autograd import Variable
 import uuid
 from sklearn.metrics import classification_report as cr
 from sklearn.metrics import precision_recall_fscore_support as prfs
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import precision_recall_curve
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from util import *
@@ -34,7 +37,7 @@ class I3dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
             batch_size_train=10, # size for each batch for training (8 max for each GTX 1080Ti)
-            batch_size_test=40, # size for each batch for testing (32 max for each GTX 1080Ti)
+            batch_size_test=50, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=3000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
@@ -167,6 +170,10 @@ class I3dLearner(BaseLearner):
     def labels_to_list(self, labels):
         # Convert labels obtained from the dataloader to a list of action classes
         return np.argmax(labels.numpy().max(axis=2), axis=1).tolist()
+
+    def labels_to_score_list(self, labels):
+        # Convert labels obtained from the dataloader to a list of action class scores
+        return labels.numpy().max(axis=2).tolist()
 
     def to_variable(self, v):
         if self.use_cuda:
@@ -452,6 +459,8 @@ class I3dLearner(BaseLearner):
         file_name = []
         true_labels = []
         pred_labels = []
+        true_scores = []
+        pred_scores = []
         counter = 0
         with torch.no_grad():
             # Iterate over batch data
@@ -463,23 +472,34 @@ class I3dLearner(BaseLearner):
                 frames = self.to_variable(d["frames"])
                 labels = d["labels"]
                 true_labels += self.labels_to_list(labels)
+                true_scores += self.labels_to_score_list(labels)
                 labels = self.to_variable(labels)
                 pred = self.make_pred(model, frames)
-                pred_labels += self.labels_to_list(pred.cpu().detach())
+                pred = pred.cpu().detach()
+                pred_labels += self.labels_to_list(pred)
+                pred_scores += self.labels_to_score_list(pred)
 
         # Sync true_labels and pred_labels for testing set
-        true_labels_all = true_labels
-        pred_labels_all = pred_labels
+        true_labels_all = np.array(true_labels)
+        pred_labels_all = np.array(pred_labels)
+        true_scores_all = np.array(true_scores)
+        pred_scores_all = np.array(pred_scores)
+
         if self.can_parallel:
-            true_pred_labels = torch.Tensor([true_labels, pred_labels]).cuda()
+            true_pred_labels = torch.Tensor([true_labels, pred_labels, true_scores, pred_scores]).cuda()
             true_pred_labels_list = [torch.ones_like(true_pred_labels) for _ in range(world_size)]
             dist.all_gather(true_pred_labels_list, true_pred_labels)
             true_pred_labels = torch.cat(true_pred_labels_list, dim=1)
             true_labels_all = true_pred_labels[0].cpu().numpy()
             pred_labels_all = true_pred_labels[1].cpu().numpy()
+            true_scores_all = true_pred_labels[2].cpu().numpy()
+            pred_scores_all = true_pred_labels[3].cpu().numpy()
 
         # Save precision, recall, and f-score to the log
         self.log("Evaluate performance of phase: test\n%s" % (cr(true_labels_all, pred_labels_all)))
+
+        # Save roc curve and score
+        self.log("roc_auc_score: %s" % str(roc_auc_score(true_scores_all, pred_scores_all, average=None)))
 
         # Generate video summary and show class activation map
         # TODO: this part will cause an error when using multiple GPUs

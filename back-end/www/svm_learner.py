@@ -17,7 +17,7 @@ import shutil
 # SVM learner using I3D features
 class SvmLearner(BaseLearner):
     def __init__(self,
-            C=4, # SVM parameters
+            C=1, # SVM parameters
             mode="rgb", # can be "rgb" or "flow"
             p_feat_rgb="../data/i3d_features_rgb/", # path to load rgb feature
             p_feat_flow="../data/i3d_features_flow/", # path to load optical flow feature
