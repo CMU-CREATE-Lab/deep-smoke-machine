@@ -13,6 +13,12 @@ def main(argv):
     df = pd.DataFrame.from_dict(vm)
     print("Number of videos: %d" % len(df))
 
+    # Print label types
+    df["label_type"] = df.apply(get_label_type, axis=1)
+    for name, df in df.groupby(["label_type"]):
+        print(name)
+        print(df[["label_type", "label_state_admin", "label_state"]])
+
     # Aggregate labels
     df["label"] = df.apply(aggregate_label, axis=1)
 
@@ -198,6 +204,29 @@ def aggregate_label(row):
         print("Error when aggregating label:")
         print(row)
     return label
+
+
+def get_label_type(row):
+    label_state_admin = row["label_state_admin"]
+    label_state = row["label_state"]
+    label_type = None
+    has_error = False
+    if label_state_admin in [47, 32]: # gold standards
+        label_type = -1
+    elif label_state_admin in [23, 16]: # researcher labels
+        if label_state == -1: # citizen did not label
+            label_type = 0 # only reseacher
+        else:
+            label_type = 1 # citizen-researcher collaboration
+    else: # not determined by researchers
+        if label_state in [23, 16, 20, 19]:
+            label_type = 2 # only citizen
+        else:
+            has_error = True
+    if has_error:
+        print("Error when aggregating label:")
+        print(row)
+    return label_type
 
 
 if __name__ == "__main__":
