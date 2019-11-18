@@ -6,11 +6,14 @@ import copy
 from util import *
 
 
-def split_and_save_data(vm, target_key_type, method="assign"):
+def split_and_save_data(vm, target_key_type, method="assign", no_link=False):
     # Index metadata by date or camera
     vm_dict = defaultdict(list)
     for v in vm:
         k = to_key(v, target_key_type)
+        if no_link:
+            if "url_part" in v: del v["url_part"]
+            if "url_root" in v: del v["url_root"]
         vm_dict[k].append(v)
 
     p = "../data/split/"
@@ -141,8 +144,8 @@ def aggregate_label(vm):
     for i in range(len(vm)):
         has_error = False
         v = vm[i]
-        label_state_admin = v.pop("label_state_admin", None)
-        label_state = v.pop("label_state", None)
+        label_state_admin = v["label_state_admin"]
+        label_state = v["label_state"]
         if label_state_admin == 47: # pos (gold standard)
             v["label"] = 1
             v["weight"] = 1
@@ -211,8 +214,9 @@ def main(argv):
     vm = load_json("../data/metadata.json")
     vm = aggregate_label(vm)
     method = "assign"
-    split_and_save_data(vm, "date", method=method)
-    split_and_save_data(vm, "camera", method=method)
+    no_link = True
+    split_and_save_data(vm, "date", method=method, no_link=no_link)
+    split_and_save_data(vm, "camera", method=method, no_link=no_link)
 
 
 if __name__ == "__main__":
