@@ -30,9 +30,11 @@ def main(argv):
 def get_video_metadata():
     # Read the user token, obtained from https://smoke.createlab.org/gallery.html in dashboard mode
     user_token = load_json("../data/user_token.json")["user_token"]
+    #user_token = load_json("../data/user_token_staging.json")["user_token"]
 
     # Request metadata
     url_root = "https://api.smoke.createlab.org/api/v1/"
+    #url_root = "https://staging.api.smoke.createlab.org/api/v1/"
     vm = iterative_query(url_root+"get_pos_labels", user_token)
     vm += iterative_query(url_root+"get_neg_labels", user_token)
 

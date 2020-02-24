@@ -39,7 +39,7 @@ class I3dLearner(BaseLearner):
             batch_size_train=10, # size for each batch for training (8 max for each GTX 1080Ti)
             batch_size_test=50, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=40, # size for each batch for extracting features
-            max_steps=3000, # total number of steps for training
+            max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
