@@ -28,7 +28,10 @@ def main(argv):
     if method is None or model_path is None:
         print("Usage: python test.py [method] [model_path]")
         return
-    test(method=method, model_path=model_path)
+    for i in range(len(argv)-2):
+        # Can chain at most three model paths
+        # BUG: when putting too many model paths at once, creating dataloader becomes very slow
+        test(method=method, model_path=argv[2+i])
 
 
 def test(method=None, model_path=None):
@@ -44,10 +47,6 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d", model_path, augment=False, perturb=False)
     elif method == "i3d-rgb-cv-3":
         cv("rgb", "i3d", model_path, augment=True, perturb=True)
-    elif method == "i3d-rgb-cv-4":
-        cv("rgb", "i3d", model_path, augment=False, perturb=True)
-    elif method == "i3d-rgb-cv-5":
-        cv("rgb", "i3d", model_path, augment=False, perturb=True)
     elif method == "i3d-flow-cv-1":
         cv("flow", "i3d", model_path, augment=True, perturb=False)
     elif method == "ts-rgb":

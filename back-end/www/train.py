@@ -52,12 +52,6 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=True)
-    elif method == "i3d-rgb-cv-4":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        cv("rgb", "i3d", model_path=model_path, augment=False, perturb=True)
-    elif method == "i3d-rgb-cv-5":
-        cv("rgb", "i3d", model_path=None, augment=True, perturb=False)
     elif method == "i3d-flow":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"

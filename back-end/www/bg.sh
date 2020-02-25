@@ -7,7 +7,7 @@
 # Get file path
 if [ "$1" != "" ] && [ "$2" != "" ]
 then
-  echo "Run: $1 $2 $3 $4"
+  echo "Run: $1 $2 $3 $4 $5 $6"
 else
   echo "Usage examples:\n  sh bg.sh python download_videos.py\n  sh bg.sh python process_videos.py\n  sh bg.sh python perturb_frames.py\n  sh bg.sh python extract_features.py i3d-rgb\n  sh bg.sh python extract_features.py i3d-flow\n  sh bg.sh python train.py i3d-rgb\n  sh bg.sh python train.py i3d-flow\n  sh bg.sh python train.py i3d-rgb-cv-1\n  sh bg.sh python train.py i3d-flow-cv-1\n  sh bg.sh python train.py svm-rgb\n  sh bg.sh python train.py svm-flow\n  sh bg.sh python train.py svm-rgb-cv-1\n  sh bg.sh python train.py svm-flow-cv-1\n  sh bg.sh python train.py ts-rgb\n  sh bg.sh python train.py ts-flow\n  sh bg.sh python train.py lstm\n  sh bg.sh python test.py i3d-rgb [model_path]\n  sh bg.sh python test.py i3d-flow [model_path]\n  sh bg.sh python test.py i3d-rgb-cv-1 [model_path]\n  sh bg.sh python test.py i3d-flow-cv-1 [model_path]\n  sh bg.sh python test.py svm-rgb-cv-1 [model_path]\n  sh bg.sh python test.py svm-flow-cv-1 [model_path]\n  sh bg.sh python grad_cam_viz.py i3d-rgb [model_path]"
   exit 1
@@ -24,7 +24,7 @@ done
 sudo rm screenlog.0
 
 # For python in conda env in Ubuntu
-sudo screen -dmSL "$1.$2.$3" bash -c "export PATH='/opt/miniconda3/bin:$PATH'; . '/opt/miniconda3/etc/profile.d/conda.sh'; conda activate deep-smoke-machine; $1 $2 $3 $4"
+sudo screen -dmSL "$1.$2.$3" bash -c "export PATH='/opt/miniconda3/bin:$PATH'; . '/opt/miniconda3/etc/profile.d/conda.sh'; conda activate deep-smoke-machine; $1 $2 $3 $4 $5 $6"
 
 # List screens
 sudo screen -ls
