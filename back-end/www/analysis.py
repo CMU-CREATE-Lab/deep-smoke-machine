@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter, OrderedDict
 from matplotlib import gridspec
+from copy import deepcopy
 
 
 def main(argv):
@@ -15,7 +16,7 @@ def main(argv):
 
     # Print label types
     df["label_type"] = df.apply(get_label_type, axis=1)
-    for name, df in df.groupby(["label_type"]):
+    for name, g in df.groupby(["label_type"]):
         print(name)
         print(df[["label_type", "label_state_admin", "label_state"]])
 
@@ -29,22 +30,43 @@ def main(argv):
     gp = df.groupby(["camera_id", "view_id"])
 
     # Plot dataset
+    print("\n")
+    print("="*40)
+    print("== page 1")
+    print("="*40)
     plot_dataset(gp, "../data/analysis/dataset_1.png",
             keys=[(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)])
+    print("\n")
+    print("="*40)
+    print("== page 2")
+    print("="*40)
     plot_dataset(gp, "../data/analysis/dataset_2.png",
             keys=[(0, 5), (0, 6), (0, 7), (0, 8), (0, 9)])
+    print("\n")
+    print("="*40)
+    print("== page 3")
+    print("="*40)
     plot_dataset(gp, "../data/analysis/dataset_3.png",
             keys=[(0, 10), (0, 11), (0, 12), (0, 13), (0, 14)])
+    print("\n")
+    print("="*40)
+    print("== page 4")
+    print("="*40)
     plot_dataset(gp, "../data/analysis/dataset_4.png",
             keys=[(1, 0), (2, 0), (2, 1), (2, 2)])
 
     # Plot all
     df["dummy1"] = 0
     df["dummy2"] = 0
+    print("\n")
+    print("="*40)
+    print("== all data")
+    print("="*40)
     plot_dataset(df.groupby(["dummy1", "dummy2"]), "../data/analysis/dataset.png", use_ylim=False)
 
 
 def plot_dataset(gp, p_out, p_frame="../data/rgb/", keys=None, use_ylim=True):
+    gp = deepcopy(gp)
     print(gp.groups.keys())
     check_and_create_dir(p_out)
 
@@ -74,6 +96,7 @@ def plot_dataset(gp, p_out, p_frame="../data/rgb/", keys=None, use_ylim=True):
     # Plot graphs
     for name, df in gp:
         if keys is not None and name not in keys: continue
+        print("-"*20)
         print(name)
         # Randomly sample a file and plot it
         frame = []
@@ -89,7 +112,8 @@ def plot_dataset(gp, p_out, p_frame="../data/rgb/", keys=None, use_ylim=True):
         c += 1
         # Plot label distribution
         L = OrderedDict(sorted(Counter(df["label"]).items()))
-        print(L)
+        print("$ label distribution: [yes, no]")
+        print(L.values())
         ax = plt.subplot(gs[c])
         plt.bar(["no", "yes"], L.values(), alpha=0.6, width=0.65, color="black")
         ax.spines["right"].set_visible(False)
@@ -109,7 +133,8 @@ def plot_dataset(gp, p_out, p_frame="../data/rgb/", keys=None, use_ylim=True):
         M = Counter(df["month"])
         for i in range(4): M[i] += 0
         M = OrderedDict(sorted(M.items()))
-        print(M)
+        print("$ season distribution: [winter, spring, summer, fall]")
+        print(M.values())
         ax = plt.subplot(gs[c])
         plt.bar(["winter", "spring", "summer", "fall"], M.values(), alpha=0.6, width=0.35, color="black")
         ax.spines["right"].set_visible(False)
@@ -128,7 +153,8 @@ def plot_dataset(gp, p_out, p_frame="../data/rgb/", keys=None, use_ylim=True):
         T = Counter(df["time"])
         for i in range(3): T[i] += 0
         T = OrderedDict(sorted(T.items()))
-        print(T)
+        print("$ time distribution: [6-10, 11-15, 16-20]")
+        print(T.values())
         ax = plt.subplot(gs[c])
         plt.bar(["6-10", "11-15", "16-20"], T.values(), alpha=0.6, width=0.4, color="black")
         ax.spines["right"].set_visible(False)
