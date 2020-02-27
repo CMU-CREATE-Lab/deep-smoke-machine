@@ -18,7 +18,7 @@ def main(argv):
     df["label_type"] = df.apply(get_label_type, axis=1)
     for name, g in df.groupby(["label_type"]):
         print(name)
-        print(df[["label_type", "label_state_admin", "label_state"]])
+        print(g[["label_type", "label_state_admin", "label_state"]])
 
     # Aggregate labels
     df["label"] = df.apply(aggregate_label, axis=1)
