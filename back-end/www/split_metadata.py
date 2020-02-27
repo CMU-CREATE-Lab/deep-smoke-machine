@@ -149,9 +149,11 @@ def aggregate_label(vm):
         if label_state_admin == 47: # pos (gold standard)
             v["label"] = 1
             v["weight"] = 1
+            print("Warning: found gold standards")
         elif label_state_admin == 32: # neg (gold standard)
             v["label"] = 0
             v["weight"] = 1
+            print("Warning: found gold standards")
         elif label_state_admin == 23: # strong pos
             v["label"] = 1
             if label_state == 23: # strong pos
