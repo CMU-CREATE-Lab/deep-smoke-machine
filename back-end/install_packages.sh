@@ -26,3 +26,7 @@ pip install moviepy==1.0.1
 
 # For data analysis
 pip install pandas==0.25.3
+
+# For pytorch related
+pip install torchviz==0.0.1
+pip install torchsummary==1.5.1

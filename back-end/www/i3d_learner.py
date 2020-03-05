@@ -2,10 +2,10 @@ import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
-from model.pytorch_i3d import InceptionI3d
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
 from model.pytorch_i3d import InceptionI3d
+from model.pytorch_i3d_tc import InceptionI3dTc
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -36,6 +36,7 @@ import shutil
 class I3dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
+            num_tc_layers=None, # number of Timeception layers after i3d layers
             batch_size_train=10, # size for each batch for training (8 max for each GTX 1080Ti)
             batch_size_test=50, # size for each batch for testing (32 max for each GTX 1080Ti)
             batch_size_extract_features=40, # size for each batch for extracting features
@@ -59,6 +60,7 @@ class I3dLearner(BaseLearner):
             ):
         super().__init__(use_cuda=use_cuda)
 
+        self.num_tc_layers = num_tc_layers
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
         self.batch_size_extract_features = batch_size_extract_features
@@ -86,6 +88,7 @@ class I3dLearner(BaseLearner):
 
     def log_parameters(self):
         text = "\nParameters:\n"
+        text += "  num_tc_layers: " + str(self.num_tc_layers) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
         text += "  batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
@@ -111,9 +114,15 @@ class I3dLearner(BaseLearner):
     def set_model(self, rank, world_size, mode, p_model, parallel):
         # Setup the model based on mode
         if mode == "rgb":
-            model = InceptionI3d(400, in_channels=3)
+            if self.num_tc_layers is not None:
+                model = InceptionI3dTc(400, in_channels=3, num_tc_layers=self.num_tc_layers)
+            else:
+                model = InceptionI3d(400, in_channels=3)
         elif mode == "flow":
-            model = InceptionI3d(400, in_channels=2)
+            if self.num_tc_layers is not None:
+                model = InceptionI3dTc(400, in_channels=2, num_tc_layers=self.num_tc_layers)
+            else:
+                model = InceptionI3d(400, in_channels=2)
         else:
             return None
 
