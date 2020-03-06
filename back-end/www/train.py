@@ -61,6 +61,20 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         cv("flow", "i3d", model_path=model_path, augment=True, perturb=False)
+    elif method == "i3d-ft-tc-rgb-cv-1":
+        if model_path is None:
+            model_path = [
+                    "../data/saved_i3d/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/2047.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/2058.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb/a8a7205-i3d-rgb-s2/model/2037.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/2005.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/2068.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/2047.pt"]
+        cv("rgb", "i3d-ft-tc", model_path=model_path, augment=True, perturb=False)
+    elif method == "i3d-tc-rgb-cv-1":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        cv("rgb", "i3d-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.fit()
@@ -101,43 +115,55 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         p_frame_flow = "../data/flow/"
     if method == "i3d":
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
+    elif method == "i3d-ft-tc":
+        # Use i3d model weights to finetune TC layers
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                num_tc_layers=2, freeze_i3d=True)
+    elif method == "i3d-tc":
+        # Use Kinetics pretrained weights to train the entire network
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                num_tc_layers=2, freeze_i3d=False)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:
         print("Method not allowed.")
         return
+
+    if type(model_path) is not list:
+        model_path = [model_path]*6
+
     # Cross validation on the 1st split by camera
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[0],
             model_id_suffix="-s0",
             p_metadata_train="../data/split/metadata_train_split_0_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_0_by_camera.json")
     # Cross validation on the 2nd split by camera
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[1],
             model_id_suffix="-s1",
             p_metadata_train="../data/split/metadata_train_split_1_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_1_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_1_by_camera.json")
     # Cross validation on the 3rd split by camera
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[2],
             model_id_suffix="-s2",
             p_metadata_train="../data/split/metadata_train_split_2_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_2_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_2_by_camera.json")
     # Cross validation on the split by date
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[3],
             model_id_suffix="-s3",
             p_metadata_train="../data/split/metadata_train_split_by_date.json",
             p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
             p_metadata_test="../data/split/metadata_test_split_by_date.json")
     # Cross validation on the 4th split by camera
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[4],
             model_id_suffix="-s4",
             p_metadata_train="../data/split/metadata_train_split_3_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_3_by_camera.json",
             p_metadata_test="../data/split/metadata_test_split_3_by_camera.json")
     # Cross validation on the 5th split by camera
-    model.fit(p_model=model_path,
+    model.fit(p_model=model_path[5],
             model_id_suffix="-s5",
             p_metadata_train="../data/split/metadata_train_split_4_by_camera.json",
             p_metadata_validation="../data/split/metadata_validation_split_4_by_camera.json",

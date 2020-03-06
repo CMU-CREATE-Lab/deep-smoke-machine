@@ -37,8 +37,9 @@ class I3dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
             num_tc_layers=None, # number of Timeception layers after i3d layers
-            batch_size_train=10, # size for each batch for training (8 max for each GTX 1080Ti)
-            batch_size_test=50, # size for each batch for testing (32 max for each GTX 1080Ti)
+            freeze_i3d=False, # freeze i3d layers when training Timeception
+            batch_size_train=8, # size for each batch for training
+            batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
@@ -61,6 +62,7 @@ class I3dLearner(BaseLearner):
         super().__init__(use_cuda=use_cuda)
 
         self.num_tc_layers = num_tc_layers
+        self.freeze_i3d = freeze_i3d
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
         self.batch_size_extract_features = batch_size_extract_features
@@ -89,6 +91,7 @@ class I3dLearner(BaseLearner):
     def log_parameters(self):
         text = "\nParameters:\n"
         text += "  num_tc_layers: " + str(self.num_tc_layers) + "\n"
+        text += "  freeze_i3d: " + str(self.freeze_i3d) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
         text += "  batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
@@ -111,18 +114,28 @@ class I3dLearner(BaseLearner):
         text += "  p_frame_flow: " + self.p_frame_flow + "\n"
         self.log(text)
 
-    def set_model(self, rank, world_size, mode, p_model, parallel):
+    def set_model(self, rank, world_size, mode, p_model, parallel, phase="train"):
+        model_batch_size = self.batch_size_train
+        if phase == "test":
+            model_batch_size = self.batch_size_test
+        elif phase == "feature":
+            model_batch_size = self.batch_size_extract_features
+
         # Setup the model based on mode
         if mode == "rgb":
-            if self.num_tc_layers is not None:
-                model = InceptionI3dTc(400, in_channels=3, num_tc_layers=self.num_tc_layers)
+            if self.num_tc_layers is None:
+                model = InceptionI3d(num_classes=400, in_channels=3)
             else:
-                model = InceptionI3d(400, in_channels=3)
+                input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
+                model = InceptionI3dTc(input_size, num_classes=400, in_channels=3,
+                        num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
         elif mode == "flow":
-            if self.num_tc_layers is not None:
-                model = InceptionI3dTc(400, in_channels=2, num_tc_layers=self.num_tc_layers)
+            if self.num_tc_layers is None:
+                model = InceptionI3d(num_classes=400, in_channels=2)
             else:
-                model = InceptionI3d(400, in_channels=2)
+                input_size = [model_batch_size, 2, 36, 224, 224] # (batch_size, channel, time, height, width)
+                model = InceptionI3dTc(input_size, num_classes=400, in_channels=2,
+                        num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
         else:
             return None
 
@@ -130,16 +143,36 @@ class I3dLearner(BaseLearner):
         is_self_trained = False
         try:
             if p_model is not None:
-                self.load(model, p_model)
+                if self.num_tc_layers is None:
+                    self.load(model, p_model)
+                else:
+                    self.load(model.get_i3d_model(), p_model)
         except:
             # Not pre-trained weights
             is_self_trained = True
 
         # Set the number of output classes in the model
+        # The reason why we use 400 classes at the begining is because of loading the pretrained model
         model.replace_logits(self.num_of_action_classes)
 
-        # Load self-trained weights from fine-tuned models
-        if p_model is not None and is_self_trained:
+        # Load self-trained i3d weights from fine-tuned models
+        has_timeception_layers = False
+        try:
+            if p_model is not None and is_self_trained:
+                if self.num_tc_layers is None:
+                    self.load(model, p_model)
+                else:
+                    self.load(model.get_i3d_model(), p_model)
+        except:
+            # This means that the model has Timeception layers
+            has_timeception_layers = True
+
+        # Delete the unused logits layers in the I3D model if using Timeception layers
+        if self.num_tc_layers is not None:
+            model.delete_i3d_logits()
+
+        # Load the model with Timeception layers
+        if p_model is not None and has_timeception_layers:
             self.load(model, p_model)
 
         # Use GPU or not
@@ -257,7 +290,7 @@ class I3dLearner(BaseLearner):
         self.log_parameters()
 
         # Set model
-        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
+        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel, phase="train")
         if model is None: return None
 
         # Load datasets
@@ -454,7 +487,7 @@ class I3dLearner(BaseLearner):
         self.log_parameters()
 
         # Set model
-        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel)
+        model = self.set_model(rank, world_size, self.mode, p_model, self.can_parallel, phase="test")
         if model is None: return None
 
         # Load dataset
@@ -552,7 +585,7 @@ class I3dLearner(BaseLearner):
         self.log("Start extracting features...")
 
         # Set model (currently we use only one GPU for extracting features)
-        model = self.set_model(0, 1, self.mode, p_model, False)
+        model = self.set_model(0, 1, self.mode, p_model, False, phase="feature")
         if model is None: return None
 
         # Load datasets
