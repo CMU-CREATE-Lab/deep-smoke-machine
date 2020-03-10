@@ -210,10 +210,6 @@ sh bg.sh python train.py i3d-flow
 # Use Two-Stream Inflated 3D ConvNet and resume from a saved model (rgb or flow mode)
 python train.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
 python train.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
-
-# Use Two-Stream ConvNet (rgb or flow mode)
-python train.py ts-rgb
-python train.py ts-flow
 ```
 Test the performance of a model on the test set.
 ```sh
