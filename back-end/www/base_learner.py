@@ -70,17 +70,39 @@ class BaseLearner(ABC):
             torch.save(state_dict, out_path)
 
     # Load model
-    def load(self, model, in_path):
+    def load(self, model, in_path, ignore_fc=False):
         if model is not None and in_path is not None:
             self.log("Load model weights from " + in_path)
+            sd_loaded = torch.load(in_path)
+            if "state_dict" in sd_loaded:
+                sd_loaded = sd_loaded["state_dict"]
+            sd_model = model.state_dict()
+            replace_dict = []
+            for k, v in sd_loaded.items():
+                if k not in sd_model and k.replace(".net", "") in sd_model:
+                    print("Load after remove .net: ", k)
+                    replace_dict.append((k, k.replace(".net", "")))
+            for k, v in sd_model.items():
+                if k not in sd_loaded and k.replace(".net", "") in sd_loaded:
+                    print("Load after adding .net: ", k)
+                    replace_dict.append((k.replace(".net", ""), k))
+            for k, k_new in replace_dict:
+                sd_loaded[k_new] = sd_loaded.pop(k)
+            keys1 = set(list(sd_loaded.keys()))
+            keys2 = set(list(sd_model.keys()))
+            set_diff = (keys1 - keys2) | (keys2 - keys1)
+            #print('#### Notice: keys that failed to load: {}'.format(set_diff))
+            if ignore_fc:
+                print("Ignore fully connected layer weights")
+                sd_loaded = {k: v for k, v in sd_model.items() if "fc" not in k}
+            sd_model.update(sd_loaded)
             try:
-                model.load_state_dict(torch.load(in_path))
+                model.load_state_dict(sd_model)
             except:
                 self.log("Weights were from nn.DataParallel or DistributedDataParallel...")
                 self.log("Remove 'module.' prefix from state_dict keys...")
-                state_dict = torch.load(in_path)
                 new_state_dict = OrderedDict()
-                for k, v in state_dict.items():
+                for k, v in sd_model.items():
                     new_state_dict[k.replace("module.", "")] = v
                 model.load_state_dict(new_state_dict)
 

@@ -29,6 +29,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
 import shutil
+from model.tsm.ops.models import TSN
 
 
 # Two-Stream Inflated 3D ConvNet learner
@@ -36,9 +37,11 @@ import shutil
 class I3dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
+            use_tsm=False, # use the Temporal Shift Module or not (work together with use_nl)
+            use_nl=False, # use the Non-local Module or not (work together with use_tsm)
             num_tc_layers=None, # number of Timeception layers after i3d layers
             freeze_i3d=False, # freeze i3d layers when training Timeception
-            batch_size_train=8, # size for each batch for training
+            batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
@@ -61,6 +64,8 @@ class I3dLearner(BaseLearner):
             ):
         super().__init__(use_cuda=use_cuda)
 
+        self.use_tsm = use_tsm
+        self.use_nl = use_nl
         self.num_tc_layers = num_tc_layers
         self.freeze_i3d = freeze_i3d
         self.batch_size_train = batch_size_train
@@ -90,6 +95,8 @@ class I3dLearner(BaseLearner):
 
     def log_parameters(self):
         text = "\nParameters:\n"
+        text += "  use_tsm: " + str(self.use_tsm) + "\n"
+        text += "  use_nl: " + str(self.use_nl) + "\n"
         text += "  num_tc_layers: " + str(self.num_tc_layers) + "\n"
         text += "  freeze_i3d: " + str(self.freeze_i3d) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
@@ -123,19 +130,29 @@ class I3dLearner(BaseLearner):
 
         # Setup the model based on mode
         if mode == "rgb":
-            if self.num_tc_layers is None:
-                model = InceptionI3d(num_classes=400, in_channels=3)
+            if self.use_tsm or self.use_nl:
+                num_segments = 36 # must be the same as the time dimension
+                modality = "RGB"
+                model = TSN(self.num_of_action_classes, num_segments, modality,
+                        base_model="mobilenetv2", dropout=0.5, is_shift=self.use_tsm, non_local=self.use_nl,
+                        shift_div=8, shift_place="blockres", consensus_type="avg", img_feature_dim=224)
             else:
-                input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
-                model = InceptionI3dTc(input_size, num_classes=400, in_channels=3,
-                        num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
+                if self.num_tc_layers is None:
+                    model = InceptionI3d(num_classes=400, in_channels=3)
+                else:
+                    input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
+                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=3,
+                            num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
         elif mode == "flow":
-            if self.num_tc_layers is None:
-                model = InceptionI3d(num_classes=400, in_channels=2)
+            if self.use_tsm or self.use_nl:
+                raise NotImplementedError("Not implemented.")
             else:
-                input_size = [model_batch_size, 2, 36, 224, 224] # (batch_size, channel, time, height, width)
-                model = InceptionI3dTc(input_size, num_classes=400, in_channels=2,
-                        num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
+                if self.num_tc_layers is None:
+                    model = InceptionI3d(num_classes=400, in_channels=2)
+                else:
+                    input_size = [model_batch_size, 2, 36, 224, 224] # (batch_size, channel, time, height, width)
+                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=2,
+                            num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
         else:
             return None
 
@@ -143,16 +160,20 @@ class I3dLearner(BaseLearner):
         is_self_trained = False
         try:
             if p_model is not None:
-                if self.num_tc_layers is None:
-                    self.load(model, p_model)
+                if self.use_tsm or self.use_nl:
+                    self.load(model, p_model, ignore_fc=True)
                 else:
-                    self.load(model.get_i3d_model(), p_model)
+                    if self.num_tc_layers is None:
+                        self.load(model, p_model)
+                    else:
+                        self.load(model.get_i3d_model(), p_model)
         except:
             # Not pre-trained weights
             is_self_trained = True
 
         # Set the number of output classes in the model
         # The reason why we use 400 classes at the begining is because of loading the pretrained model
+        # Note that for the TSM model this function is empty (no need to replace the last layer)
         model.replace_logits(self.num_of_action_classes)
 
         # Load self-trained i3d weights from fine-tuned models
