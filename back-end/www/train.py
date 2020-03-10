@@ -75,11 +75,10 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d-tc", model_path=model_path, augment=True, perturb=False)
-    if method == "tsm-rgb":
+    elif method == "mn2-tsm-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/TSM_kinetics_RGB_mobilenetv2_shift8_blockres_avg_segment8_e100_dense.pth"
-        model = I3dLearner(mode="rgb", use_tsm=True, use_nl=False, batch_size_train=5)
-        model.fit(p_model=model_path)
+        cv("rgb", "mn2-tsm", model_path=model_path, augment=True, perturb=False)
     elif method == "ts-rgb":
         model = TsLearner(mode="rgb")
         model.fit()
@@ -128,6 +127,9 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 num_tc_layers=2, freeze_i3d=False, batch_size_train=8)
+    elif method == "mn2-tsm":
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                use_tsm=True, batch_size_train=4, num_steps_per_update=4, init_lr_rgb=0.01)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:
