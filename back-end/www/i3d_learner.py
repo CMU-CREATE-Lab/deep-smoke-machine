@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
 from model.pytorch_i3d import InceptionI3d
 from model.pytorch_i3d_tc import InceptionI3dTc
+from model.pytorch_i3d_tsm import InceptionI3dTsm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,9 +38,9 @@ from model.tsm.ops.models import TSN
 class I3dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
-            use_tsm=False, # use the Temporal Shift Module or not (work together with use_nl)
-            use_nl=False, # use the Non-local Module or not (work together with use_tsm)
-            num_tc_layers=None, # number of Timeception layers after i3d layers
+            use_tsm=False, # use the Temporal Shift module or not
+            use_nl=False, # use the Non-local module or not
+            use_tc=False, # use the Timeception module or not
             freeze_i3d=False, # freeze i3d layers when training Timeception
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
@@ -66,7 +67,7 @@ class I3dLearner(BaseLearner):
 
         self.use_tsm = use_tsm
         self.use_nl = use_nl
-        self.num_tc_layers = num_tc_layers
+        self.use_tc = use_tc
         self.freeze_i3d = freeze_i3d
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
@@ -97,7 +98,7 @@ class I3dLearner(BaseLearner):
         text = "\nParameters:\n"
         text += "  use_tsm: " + str(self.use_tsm) + "\n"
         text += "  use_nl: " + str(self.use_nl) + "\n"
-        text += "  num_tc_layers: " + str(self.num_tc_layers) + "\n"
+        text += "  use_tc: " + str(self.use_tc) + "\n"
         text += "  freeze_i3d: " + str(self.freeze_i3d) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
@@ -130,29 +131,19 @@ class I3dLearner(BaseLearner):
 
         # Setup the model based on mode
         if mode == "rgb":
-            if self.use_tsm or self.use_nl:
-                num_segments = 36 # must be the same as the time dimension
-                modality = "RGB"
-                model = TSN(self.num_of_action_classes, num_segments, modality,
-                        base_model="mobilenetv2", dropout=0.5, is_shift=self.use_tsm, non_local=self.use_nl,
-                        shift_div=8, shift_place="blockres", consensus_type="avg", img_feature_dim=224)
+            if not self.use_tc and not self.use_tsm and not self.use_nl:
+                model = InceptionI3d(num_classes=400, in_channels=3)
             else:
-                if self.num_tc_layers is None:
-                    model = InceptionI3d(num_classes=400, in_channels=3)
+                input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
+                if self.use_tsm:
+                    model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, freeze_i3d=self.freeze_i3d)
                 else:
-                    input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
-                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=3,
-                            num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
+                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=3, freeze_i3d=self.freeze_i3d)
         elif mode == "flow":
-            if self.use_tsm or self.use_nl:
-                raise NotImplementedError("Not implemented.")
+            if not self.use_tc and not self.use_tsm and not self.use_nl:
+                model = InceptionI3d(num_classes=400, in_channels=2)
             else:
-                if self.num_tc_layers is None:
-                    model = InceptionI3d(num_classes=400, in_channels=2)
-                else:
-                    input_size = [model_batch_size, 2, 36, 224, 224] # (batch_size, channel, time, height, width)
-                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=2,
-                            num_tc_layers=self.num_tc_layers, freeze_i3d=self.freeze_i3d)
+                raise NotImplementedError("Not implemented.")
         else:
             return None
 
@@ -160,13 +151,10 @@ class I3dLearner(BaseLearner):
         is_self_trained = False
         try:
             if p_model is not None:
-                if self.use_tsm or self.use_nl:
-                    self.load(model, p_model, ignore_fc=True)
+                if self.use_tc or self.use_tsm or self.use_nl:
+                    self.load(model.get_i3d_model(), p_model)
                 else:
-                    if self.num_tc_layers is None:
-                        self.load(model, p_model)
-                    else:
-                        self.load(model.get_i3d_model(), p_model)
+                    self.load(model, p_model)
         except:
             # Not pre-trained weights
             is_self_trained = True
@@ -177,23 +165,23 @@ class I3dLearner(BaseLearner):
         model.replace_logits(self.num_of_action_classes)
 
         # Load self-trained i3d weights from fine-tuned models
-        has_timeception_layers = False
+        has_extra_layers = False # extra layers means tsm, tc, and nl layers
         try:
             if p_model is not None and is_self_trained:
-                if self.num_tc_layers is None:
-                    self.load(model, p_model)
-                else:
+                if self.use_tc or self.use_tsm or self.use_nl:
                     self.load(model.get_i3d_model(), p_model)
+                else:
+                    self.load(model, p_model)
         except:
-            # This means that the model has Timeception layers
-            has_timeception_layers = True
+            # This means that the model has extra layers
+            has_extra_layers = True
 
-        # Delete the unused logits layers in the I3D model if using Timeception layers
-        if self.num_tc_layers is not None:
+        # Delete the unused logits layers in the I3D model if using extra layers
+        if self.use_tc or self.use_tsm or self.use_nl:
             model.delete_i3d_logits()
 
-        # Load the model with Timeception layers
-        if p_model is not None and has_timeception_layers:
+        # Load the model with extra layers
+        if p_model is not None and has_extra_layers:
             self.load(model, p_model)
 
         # Use GPU or not
