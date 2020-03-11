@@ -12,11 +12,9 @@ from copy import deepcopy
 # https://arxiv.org/abs/1811.08383
 class InceptionI3dTsm(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, freeze_i3d=False):
+    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, enable_tsm=True):
         super(InceptionI3dTsm, self).__init__()
         print("Initialize the I3D+TSM model...")
-        print("freeze_i3d: " + str(freeze_i3d))
-        self.freeze_i3d = freeze_i3d
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
@@ -28,18 +26,18 @@ class InceptionI3dTsm(nn.Module):
         print("\t", a.size())
 
         # TSM
-        self.tsm = TemporalShift(None, n_segment=a.size(2), n_div=8, is_video=True)
-
-        # TSM output has shape (1, 3, 36, 224, 224)
-        b = self.tsm(a)
-        print("TSM model output size:")
-        print("\t", b.size())
+        if enable_tsm:
+            # Set n_div=3 because we only have 3 channels (rgb)
+            self.tsm = TemporalShift(None, n_segment=a.size(2), n_div=3, is_video=True, random=False)
+            # TSM output has shape (1, 3, 36, 224, 224)
+            b = self.tsm(a)
+            print("TSM model output size:")
+            print("\t", b.size())
+        else:
+            b = a
 
         # I3D
         self.i3d = InceptionI3d(num_classes=num_classes, in_channels=in_channels)
-        if freeze_i3d:
-            print("Freeze I3D model")
-            self.i3d.train(False)
 
         # I3D output has shape (1, 1024, 5, 7, 7)
         c = self.i3d(b, no_logits=True)

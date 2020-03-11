@@ -10,7 +10,7 @@ from model.timeception.nets import timeception_pytorch
 # https://arxiv.org/abs/1812.01289
 class InceptionI3dTc(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, num_tc_layers=2, dropout_keep_prob=0.5, freeze_i3d=False):
+    def __init__(self, input_size, num_classes=2, in_channels=3, num_tc_layers=1, dropout_keep_prob=0.5, freeze_i3d=False):
         super(InceptionI3dTc, self).__init__()
         print("Initialize the I3D+Timeception model...")
         print("num_tc_layers: " + str(num_tc_layers))
@@ -46,7 +46,7 @@ class InceptionI3dTc(nn.Module):
         print("\t", c.size())
 
         # Logits
-        self.avg_pool = nn.AvgPool3d(kernel_size=[1, 7, 7], stride=(1, 1, 1))
+        self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7], stride=(1, 1, 1))
         self.dropout = nn.Dropout(dropout_keep_prob)
         self.logits_in_channels = c.size(1)
         self.logits = Unit3D(in_channels=self.logits_in_channels, output_channels=num_classes,

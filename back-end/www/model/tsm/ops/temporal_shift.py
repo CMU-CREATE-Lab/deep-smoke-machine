@@ -9,26 +9,28 @@ import torch.nn.functional as F
 
 
 class TemporalShift(nn.Module):
-    def __init__(self, net, n_segment=3, n_div=8, inplace=False, is_video=False):
+    def __init__(self, net, n_segment=3, n_div=8, inplace=False, is_video=False, random=False):
         super(TemporalShift, self).__init__()
         self.net = net
         self.n_segment = n_segment
         self.fold_div = n_div
         self.inplace = inplace
         self.is_video = is_video
+        self.random = random
         if inplace:
             print('=> Using in-place shift...')
         print('=> Using fold div: {}'.format(self.fold_div))
 
     def forward(self, x):
-        x = self.shift(x, self.n_segment, fold_div=self.fold_div, inplace=self.inplace, is_video=self.is_video)
+        x = self.shift(x, self.n_segment, fold_div=self.fold_div,
+                inplace=self.inplace, is_video=self.is_video, random=self.random)
         if self.net is None:
             return x
         else:
             return self.net(x)
 
     @staticmethod
-    def shift(x, n_segment, fold_div=3, inplace=False, is_video=False):
+    def shift(x, n_segment, fold_div=3, inplace=False, is_video=False, random=False):
         if is_video:
             n_batch, c, t, h, w = x.size()
             x = x.view(n_batch, n_segment, c*t//n_segment, h, w)
@@ -208,7 +210,3 @@ if __name__ == '__main__':
             grad2 = torch.autograd.grad((y2 ** 2).mean(), [x2])[0]
             assert torch.norm(grad1 - grad2).item() < 1e-5
     print('Test passed.')
-
-
-
-
