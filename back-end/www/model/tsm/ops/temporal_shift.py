@@ -19,6 +19,10 @@ class TemporalShift(nn.Module):
         self.random = random
         if inplace:
             print('=> Using in-place shift...')
+        if random:
+            print('=> Using random channel shift...')
+        if is_video:
+            print('=> Using video mode...')
         print('=> Using fold div: {}'.format(self.fold_div))
 
     def forward(self, x):
@@ -47,9 +51,15 @@ class TemporalShift(nn.Module):
             #out = InplaceShift.apply(x, fold)
         else:
             out = torch.zeros_like(x)
-            out[:, :-1, :fold] = x[:, 1:, :fold]  # shift left
-            out[:, 1:, fold: 2 * fold] = x[:, :-1, fold: 2 * fold]  # shift right
-            out[:, :, 2 * fold:] = x[:, :, 2 * fold:]  # not shift
+            if random:
+                idx = torch.randperm(out.size()[2])
+                out[:, :-1, :fold] = x[:, 1:, idx[:fold]]  # shift left
+                out[:, 1:, fold: 2 * fold] = x[:, :-1, idx[fold: 2 * fold]]  # shift right
+                out[:, :, 2 * fold:] = x[:, :, idx[2 * fold:]]  # not shift
+            else:
+                out[:, :-1, :fold] = x[:, 1:, :fold]  # shift left
+                out[:, 1:, fold: 2 * fold] = x[:, :-1, fold: 2 * fold]  # shift right
+                out[:, :, 2 * fold:] = x[:, :, 2 * fold:]  # not shift
 
         if is_video:
             return out.view(n_batch, c, t, h, w)

@@ -15,7 +15,7 @@ class DummyLearner(BaseLearner):
 
 
 # (batch_size, channel, time, height, width)
-batch_size = 8
+batch_size = 2
 time = 36
 input_size = [batch_size, 3, time, 224, 224]
 
@@ -23,9 +23,11 @@ input_size = [batch_size, 3, time, 224, 224]
 def test_model(model="tc"):
     x = torch.tensor(np.zeros(input_size), dtype=torch.float32)
     if model == "tc":
-        model = InceptionI3dTc(input_size, num_classes=400, in_channels=3, num_tc_layers=2)
+        model = InceptionI3dTc(input_size, num_classes=400, in_channels=3)
     elif model == "tsm":
-        model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3)
+        model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, random=True)
+    elif model == "tsm-disabled":
+        model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, random=True, enable_tsm=False)
     else:
         raise NotImplementedError("Model not implemented")
     dl = DummyLearner()
@@ -47,6 +49,9 @@ def test_tsn():
     print(model(x).size())
 
 
-#test_model(model="tc")
+print("="*60)
+test_model(model="tc")
+print("="*60)
 test_model(model="tsm")
-#test_tsn()
+print("="*60)
+test_model(model="tsm-disabled")

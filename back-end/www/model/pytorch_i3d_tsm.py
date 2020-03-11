@@ -12,9 +12,10 @@ from copy import deepcopy
 # https://arxiv.org/abs/1811.08383
 class InceptionI3dTsm(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, enable_tsm=True):
+    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, enable_tsm=True, random=False):
         super(InceptionI3dTsm, self).__init__()
         print("Initialize the I3D+TSM model...")
+        print("enable_tsm: " + str(enable_tsm))
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
@@ -28,13 +29,14 @@ class InceptionI3dTsm(nn.Module):
         # TSM
         if enable_tsm:
             # Set n_div=3 because we only have 3 channels (rgb)
-            self.tsm = TemporalShift(None, n_segment=a.size(2), n_div=3, is_video=True, random=False)
+            self.tsm = TemporalShift(None, n_segment=a.size(2), n_div=3, is_video=True, random=random)
             # TSM output has shape (1, 3, 36, 224, 224)
             b = self.tsm(a)
             print("TSM model output size:")
             print("\t", b.size())
         else:
-            b = a
+            self.tsm = nn.Identity()
+            b = self.tsm(a)
 
         # I3D
         self.i3d = InceptionI3d(num_classes=num_classes, in_channels=in_channels)

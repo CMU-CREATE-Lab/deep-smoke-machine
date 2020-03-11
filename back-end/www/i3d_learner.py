@@ -136,7 +136,8 @@ class I3dLearner(BaseLearner):
             else:
                 input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
                 if self.use_tsm:
-                    model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3)
+                    enable_tsm = True if phase == "train" else False # use tsm module as data augmentation
+                    model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, enable_tsm=enable_tsm)
                 else:
                     model = InceptionI3dTc(input_size, num_classes=400, in_channels=3, freeze_i3d=self.freeze_i3d)
         elif mode == "flow":

@@ -15,7 +15,6 @@ class InceptionI3dTc(nn.Module):
         print("Initialize the I3D+Timeception model...")
         print("num_tc_layers: " + str(num_tc_layers))
         print("freeze_i3d: " + str(freeze_i3d))
-        self.freeze_i3d = freeze_i3d
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
@@ -40,7 +39,7 @@ class InceptionI3dTc(nn.Module):
         # Timeception
         self.tc = timeception_pytorch.Timeception(b.size(), n_layers=num_tc_layers)
 
-        # Timeception output has shape (1, 1600, 1, 7, 7)
+        # Timeception output has shape (1, 1280, 2, 7, 7) if num_tc_layers=1
         c = self.tc(b)
         print("Timeception model output size:")
         print("\t", c.size())
