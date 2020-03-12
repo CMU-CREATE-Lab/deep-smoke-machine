@@ -16,7 +16,7 @@ class RequestFormatter(logging.Formatter):
         return super().format(record)
 
 
-class View(nn.Module):
+class Reshape(nn.Module):
     def __init__(self, shape):
         super().__init__()
         self.shape = shape
@@ -25,7 +25,9 @@ class View(nn.Module):
         """
         Reshapes the input according to the shape saved in the view data structure.
         """
-        out = input.view(self.shape)
+        batch_size = input.size(0)
+        shape = (batch_size, *self.shape)
+        out = input.reshape(shape)
         return out
 
 

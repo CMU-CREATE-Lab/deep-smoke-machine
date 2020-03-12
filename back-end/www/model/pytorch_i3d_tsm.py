@@ -3,8 +3,6 @@ import torch.nn as nn
 import numpy as np
 from model.tsm.ops.temporal_shift import TemporalShift
 from model.pytorch_i3d import InceptionI3d, Unit3D
-from base_learner import View
-from copy import deepcopy
 
 
 # I3D + TSM
@@ -20,7 +18,7 @@ class InceptionI3dTsm(nn.Module):
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
 
-        # I3D input has shape (1, 3, 36, 224, 224)
+        # I3D input has shape (batch_size, 3, 36, 224, 224)
         # (batch_size, channel, time, height, width)
         a = torch.tensor(np.zeros(input_size), dtype=torch.float32)
         print("Input size:")
@@ -41,7 +39,7 @@ class InceptionI3dTsm(nn.Module):
         # I3D
         self.i3d = InceptionI3d(num_classes=num_classes, in_channels=in_channels)
 
-        # I3D output has shape (1, 1024, 5, 7, 7)
+        # I3D output has shape (batch_size, 1024, 5, 7, 7)
         c = self.i3d(b, no_logits=True)
         print("I3D model output size:")
         print("\t", c.size())
@@ -58,6 +56,8 @@ class InceptionI3dTsm(nn.Module):
                              use_bias=True,
                              name='logits')
         d = self.logits(self.dropout(self.avg_pool(c))).squeeze(3).squeeze(3)
+
+        # Final output has shape (batch_size, num_classes, time)
         print("Final layer output size:")
         print("\t", d.size())
 
@@ -83,7 +83,5 @@ class InceptionI3dTsm(nn.Module):
     def forward(self, x):
         x = x + self.tsm(x) # residual
         x = self.i3d(x, no_logits=True)
-        # Logit output has shape (10, 2, 1, 1, 1)
-        # Final output has shape (batch, classes, time), which is what we want to work with
         x = self.logits(self.dropout(self.avg_pool(x))).squeeze(3).squeeze(3)
         return x

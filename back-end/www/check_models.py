@@ -3,6 +3,7 @@ import torch
 from model.tsm.ops.models import TSN
 from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
+from model.pytorch_i3d_lstm import InceptionI3dLstm
 from collections import OrderedDict
 from base_learner import BaseLearner
 
@@ -15,7 +16,7 @@ class DummyLearner(BaseLearner):
 
 
 # (batch_size, channel, time, height, width)
-batch_size = 2
+batch_size = 4
 time = 36
 input_size = [batch_size, 3, time, 224, 224]
 
@@ -28,6 +29,8 @@ def test_model(model="tc"):
         model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, random=True)
     elif model == "tsm-disabled":
         model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, random=True, enable_tsm=False)
+    elif model == "lstm":
+        model = InceptionI3dLstm(input_size, num_classes=400, in_channels=3)
     else:
         raise NotImplementedError("Model not implemented")
     dl = DummyLearner()
@@ -48,10 +51,11 @@ def test_tsn():
     dl.load(model, model_path, ignore_fc=True)
     print(model(x).size())
 
-
 print("="*60)
 test_model(model="tc")
 print("="*60)
 test_model(model="tsm")
 print("="*60)
 test_model(model="tsm-disabled")
+print("="*60)
+test_model(model="lstm")

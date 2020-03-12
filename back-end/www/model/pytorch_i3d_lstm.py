@@ -2,19 +2,15 @@ import torch
 import torch.nn as nn
 import numpy as np
 from model.pytorch_i3d import InceptionI3d, Unit3D
-from model.timeception.nets import timeception_pytorch
+from base_learner import Reshape
 
 
-# I3D + Timeception
-# Timeception for Complex Action Recognition
-# https://arxiv.org/abs/1812.01289
-class InceptionI3dTc(nn.Module):
+# I3D + LSTM
+class InceptionI3dLstm(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, num_tc_layers=1, dropout_keep_prob=0.5, freeze_i3d=False):
-        super(InceptionI3dTc, self).__init__()
-        print("Initialize the I3D+Timeception model...")
-        print("num_tc_layers: " + str(num_tc_layers))
-        print("freeze_i3d: " + str(freeze_i3d))
+    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, freeze_i3d=False):
+        super(InceptionI3dLstm, self).__init__()
+        print("Initialize the I3D+LSTM model...")
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
@@ -36,16 +32,21 @@ class InceptionI3dTc(nn.Module):
         print("I3D model output size:")
         print("\t", b.size())
 
-        # Timeception
-        self.tc = timeception_pytorch.Timeception(b.size(), n_layers=num_tc_layers)
+        # LSTM
+        bs = b.size()
+        self.lstm = nn.LSTM(bs[1]*bs[3]*bs[4], 512, num_layers=1, batch_first=True)
 
-        # Timeception output has shape (batch_size, 1280, 2, 7, 7) if num_tc_layers=1
-        c = self.tc(b)
-        print("Timeception model output size:")
+        # LSTM output has shape (batch_size, 512, 5, 1, 1)
+        self.lstm_reshape_before = Reshape((bs[2], -1))
+        c = self.lstm_reshape_before(b)
+        c, _ = self.lstm(c)
+        cs = c.size()
+        self.lstm_reshape_after = Reshape((cs[2], cs[1], 1, 1))
+        c = self.lstm_reshape_after(c)
+        print("LSTM model output size:")
         print("\t", c.size())
 
         # Logits
-        self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7], stride=(1, 1, 1))
         self.dropout = nn.Dropout(dropout_keep_prob)
         self.logits_in_channels = c.size(1)
         self.logits = Unit3D(in_channels=self.logits_in_channels, output_channels=num_classes,
@@ -55,9 +56,9 @@ class InceptionI3dTc(nn.Module):
                              use_batch_norm=False,
                              use_bias=True,
                              name='logits')
-        d = self.logits(self.dropout(self.avg_pool(c))).squeeze(3).squeeze(3)
+        d = self.logits(self.dropout(c)).squeeze(3).squeeze(3)
 
-        # Final output has shape (batch, num_classes, time)
+        # Final output has shape (batch_size, num_classes, time)
         print("Final layer output size:")
         print("\t", d.size())
 
@@ -82,6 +83,8 @@ class InceptionI3dTc(nn.Module):
 
     def forward(self, x):
         x = self.i3d(x, no_logits=True)
-        x = self.tc(x)
-        x = self.logits(self.dropout(self.avg_pool(x))).squeeze(3).squeeze(3)
+        x = self.lstm_reshape_before(x)
+        x, _ = self.lstm(x)
+        x = self.lstm_reshape_after(x)
+        x = self.logits(self.dropout(x)).squeeze(3).squeeze(3)
         return x

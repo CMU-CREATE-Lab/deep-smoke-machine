@@ -7,6 +7,7 @@ from smoke_video_dataset import SmokeVideoDataset
 from model.pytorch_i3d import InceptionI3d
 from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
+from model.pytorch_i3d_lstm import InceptionI3dLstm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -41,6 +42,7 @@ class I3dLearner(BaseLearner):
             use_tsm=False, # use the Temporal Shift module or not
             use_nl=False, # use the Non-local module or not
             use_tc=False, # use the Timeception module or not
+            use_lstm=False, # use LSTM module or not
             freeze_i3d=False, # freeze i3d layers when training Timeception
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
@@ -68,6 +70,7 @@ class I3dLearner(BaseLearner):
         self.use_tsm = use_tsm
         self.use_nl = use_nl
         self.use_tc = use_tc
+        self.use_lstm = use_lstm
         self.freeze_i3d = freeze_i3d
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
@@ -99,6 +102,7 @@ class I3dLearner(BaseLearner):
         text += "  use_tsm: " + str(self.use_tsm) + "\n"
         text += "  use_nl: " + str(self.use_nl) + "\n"
         text += "  use_tc: " + str(self.use_tc) + "\n"
+        text += "  use_lstm: " + str(self.use_lstm) + "\n"
         text += "  freeze_i3d: " + str(self.freeze_i3d) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
@@ -130,59 +134,70 @@ class I3dLearner(BaseLearner):
             model_batch_size = self.batch_size_extract_features
 
         # Setup the model based on mode
+        # The reason why we use 400 classes at the begining is because of loading the pretrained model
+        has_extra_layers = self.use_tc or self.use_tsm or self.use_nl or self.use_lstm
+        nc_kinetics = 400
         if mode == "rgb":
-            if not self.use_tc and not self.use_tsm and not self.use_nl:
-                model = InceptionI3d(num_classes=400, in_channels=3)
+            ic = 3
+            if not has_extra_layers:
+                model = InceptionI3d(num_classes=nc_kinetics, in_channels=ic)
             else:
                 input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
                 if self.use_tsm:
                     enable_tsm = True if phase == "train" else False # use tsm module as data augmentation
-                    model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3, enable_tsm=enable_tsm, random=True)
+                    model = InceptionI3dTsm(input_size, num_classes=nc_kinetics, in_channels=ic,
+                            enable_tsm=enable_tsm, random=True)
+                elif self.use_tc:
+                    model = InceptionI3dTc(input_size, num_classes=nc_kinetics, in_channels=ic,
+                            freeze_i3d=self.freeze_i3d)
+                elif self.use_lstm:
+                    model = InceptionI3dLstm(input_size, num_classes=nc_kinetics, in_channels=ic,
+                            freeze_i3d=self.freeze_i3d)
                 else:
-                    model = InceptionI3dTc(input_size, num_classes=400, in_channels=3, freeze_i3d=self.freeze_i3d)
+                    raise NotImplementedError("Not implemented.")
         elif mode == "flow":
-            if not self.use_tc and not self.use_tsm and not self.use_nl:
-                model = InceptionI3d(num_classes=400, in_channels=2)
+            ic = 2
+            if not has_extra_layers:
+                model = InceptionI3d(num_classes=nc_kinetics, in_channels=ic)
             else:
                 raise NotImplementedError("Not implemented.")
         else:
             return None
 
-        # Load i3d pre-trained weights
-        is_self_trained = False
+        # Try loading pre-trained i3d weights (from the 400-class model trained on the Kinetics dataset)
+        error_1 = False
         try:
             if p_model is not None:
-                if self.use_tc or self.use_tsm or self.use_nl:
+                if has_extra_layers:
                     self.load(model.get_i3d_model(), p_model)
                 else:
                     self.load(model, p_model)
         except:
-            # Not pre-trained weights
-            is_self_trained = True
+            # This means that the i3d weights are self-trained
+            error_1 = True
 
-        # Set the number of output classes in the model
-        # The reason why we use 400 classes at the begining is because of loading the pretrained model
+        # Set the number of output classes
         # Note that for the TSM model this function is empty (no need to replace the last layer)
         model.replace_logits(self.num_of_action_classes)
 
-        # Load self-trained i3d weights from fine-tuned models
-        has_extra_layers = False # extra layers means tsm, tc, and nl layers
+        # Load self-trained weights (from the 2-class model fine-tuned on our dataset)
+        error_2 = False
         try:
-            if p_model is not None and is_self_trained:
-                if self.use_tc or self.use_tsm or self.use_nl:
+            if error_1 and p_model is not None:
+                if has_extra_layers:
                     self.load(model.get_i3d_model(), p_model)
                 else:
                     self.load(model, p_model)
         except:
-            # This means that the model has extra layers
-            has_extra_layers = True
+            # This means that the model we want to load has extra layers
+            error_2 = True
 
         # Delete the unused logits layers in the I3D model if using extra layers
-        if self.use_tc or self.use_tsm or self.use_nl:
+        if has_extra_layers:
             model.delete_i3d_logits()
 
-        # Load the model with extra layers
-        if p_model is not None and has_extra_layers:
+        # Load self-trained weights with extra layers
+        if error_2 and p_model is not None:
             self.load(model, p_model)
 
         # Use GPU or not
