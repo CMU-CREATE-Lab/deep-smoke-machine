@@ -1,4 +1,4 @@
-## deep-smoke-machine
+# deep-smoke-machine
 Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed.
 
 # Install Nvidia drivers, cuda, and cuDNN
