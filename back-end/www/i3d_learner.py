@@ -390,7 +390,8 @@ class I3dLearner(BaseLearner):
                     # Backprop
                     loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
                     tot_loss[phase] += loss.data
-                    loss.backward()
+                    if phase == "train":
+                        loss.backward()
                     # Accumulate gradients during training
                     if (accum[phase] == nspu) and phase == "train":
                         steps += 1
