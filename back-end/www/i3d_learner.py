@@ -368,8 +368,12 @@ class I3dLearner(BaseLearner):
                     epochs += 1
                     self.log("epochs: %d steps: %d/%d" % (epochs, steps, self.max_steps))
                     model.train(True) # set model to training mode
+                    for param in model.parameters():
+                        param.requires_grad = True
                 else:
                     model.train(False) # set model to evaluate mode
+                    for param in model.parameters():
+                        param.requires_grad = False
                 optimizer.zero_grad()
                 # Iterate over batch data
                 for d in tqdm.tqdm(dataloader[phase]):
