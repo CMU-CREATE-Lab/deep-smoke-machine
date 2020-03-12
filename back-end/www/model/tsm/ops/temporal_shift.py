@@ -36,8 +36,9 @@ class TemporalShift(nn.Module):
     @staticmethod
     def shift(x, n_segment, fold_div=3, inplace=False, is_video=False, random=False):
         if is_video:
+            # In the video mode, n_segment will be ignored
             n_batch, c, t, h, w = x.size()
-            x = x.view(n_batch, n_segment, c*t//n_segment, h, w)
+            x = x.view(n_batch, t, c, h, w)
         else:
             nt, c, h, w = x.size()
             n_batch = nt // n_segment

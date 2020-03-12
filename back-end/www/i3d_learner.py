@@ -48,7 +48,7 @@ class I3dLearner(BaseLearner):
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
-            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
             weight_decay=0.000001, # L2 regularization
@@ -144,9 +144,7 @@ class I3dLearner(BaseLearner):
             else:
                 input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
                 if self.use_tsm:
-                    enable_tsm = True if phase == "train" else False # use tsm module as data augmentation
-                    model = InceptionI3dTsm(input_size, num_classes=nc_kinetics, in_channels=ic,
-                            enable_tsm=enable_tsm, random=True)
+                    model = InceptionI3dTsm(input_size, num_classes=nc_kinetics, in_channels=ic)
                 elif self.use_tc:
                     model = InceptionI3dTc(input_size, num_classes=nc_kinetics, in_channels=ic,
                             freeze_i3d=self.freeze_i3d)
@@ -199,6 +197,10 @@ class I3dLearner(BaseLearner):
         # Load self-trained weights with extra layers
         if error_2 and p_model is not None:
             self.load(model, p_model)
+
+        # Add TSM
+        if self.use_tsm:
+            model.add_tsm_to_i3d()
 
         # Use GPU or not
         if self.use_cuda:

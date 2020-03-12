@@ -10,10 +10,11 @@ from model.pytorch_i3d import InceptionI3d, Unit3D
 # https://arxiv.org/abs/1811.08383
 class InceptionI3dTsm(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, enable_tsm=True, random=False):
+    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, random=False):
         super(InceptionI3dTsm, self).__init__()
         print("Initialize the I3D+TSM model...")
-        print("enable_tsm: " + str(enable_tsm))
+        print("random_temporal_shift: " + str(random))
+        self.random = random
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
@@ -24,30 +25,18 @@ class InceptionI3dTsm(nn.Module):
         print("Input size:")
         print("\t", a.size())
 
-        # TSM
-        if enable_tsm:
-            # Set n_div=3 because we only have 3 channels (rgb)
-            self.tsm = TemporalShift(None, n_segment=a.size(2), n_div=3, is_video=True, random=random)
-            # TSM output has shape (1, 3, 36, 224, 224)
-            b = self.tsm(a)
-            print("TSM model output size:")
-            print("\t", b.size())
-        else:
-            self.tsm = nn.Identity()
-            b = self.tsm(a)
-
         # I3D
         self.i3d = InceptionI3d(num_classes=num_classes, in_channels=in_channels)
 
         # I3D output has shape (batch_size, 1024, 5, 7, 7)
-        c = self.i3d(b, no_logits=True)
+        b = self.i3d(a, no_logits=True)
         print("I3D model output size:")
-        print("\t", c.size())
+        print("\t", b.size())
 
         # Logits
         self.avg_pool = nn.AvgPool3d(kernel_size=[2, 7, 7], stride=(1, 1, 1))
         self.dropout = nn.Dropout(dropout_keep_prob)
-        self.logits_in_channels = c.size(1)
+        self.logits_in_channels = b.size(1)
         self.logits = Unit3D(in_channels=self.logits_in_channels, output_channels=num_classes,
                              kernel_shape=[1, 1, 1],
                              padding=0,
@@ -55,11 +44,25 @@ class InceptionI3dTsm(nn.Module):
                              use_batch_norm=False,
                              use_bias=True,
                              name='logits')
-        d = self.logits(self.dropout(self.avg_pool(c))).squeeze(3).squeeze(3)
+        d = self.logits(self.dropout(self.avg_pool(b))).squeeze(3).squeeze(3)
 
         # Final output has shape (batch_size, num_classes, time)
         print("Final layer output size:")
         print("\t", d.size())
+
+    def add_tsm_before_conv3d(self, model):
+        for child_name, child in model.named_children():
+            if isinstance(child, nn.Conv3d):
+                if child.kernel_size != [1, 1, 1]:
+                    if child.in_channels >= 8 and child.in_channels % 8 == 0:
+                        print("Add tsm to: %r" % child)
+                        m = TemporalShift(child, n_segment=None, n_div=3, is_video=True, random=self.random)
+                        setattr(model, child_name, m)
+            else:
+                self.add_tsm_before_conv3d(child)
+
+    def add_tsm_to_i3d(self):
+        self.add_tsm_before_conv3d(self.i3d)
 
     def get_i3d_model(self):
         return self.i3d
@@ -81,7 +84,6 @@ class InceptionI3dTsm(nn.Module):
         del self.i3d.dropout
 
     def forward(self, x):
-        x = x + self.tsm(x) # residual
         x = self.i3d(x, no_logits=True)
         x = self.logits(self.dropout(self.avg_pool(x))).squeeze(3).squeeze(3)
         return x
