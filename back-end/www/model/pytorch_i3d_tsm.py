@@ -56,7 +56,7 @@ class InceptionI3dTsm(nn.Module):
                 if child.kernel_size != [1, 1, 1]:
                     if child.in_channels >= 8 and child.in_channels % 8 == 0:
                         print("Add tsm to: %r" % child)
-                        m = TemporalShift(child, n_segment=None, n_div=3, is_video=True, random=self.random)
+                        m = TemporalShift(child, n_segment=None, n_div=8, is_video=True, random=self.random)
                         setattr(model, child_name, m)
             else:
                 self.add_tsm_before_conv3d(child)
