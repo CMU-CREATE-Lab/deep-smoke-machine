@@ -77,7 +77,7 @@ def cv(mode, method, model_path, augment=True, perturb=False):
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
-                use_tsm=True, freeze_i3d=False)
+                use_tsm=True)
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,

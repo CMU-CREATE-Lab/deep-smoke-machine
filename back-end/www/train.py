@@ -109,7 +109,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                use_lstm=True, batch_size_train=8)
+                use_lstm=True, freeze_i3d=False, batch_size_train=8)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:
