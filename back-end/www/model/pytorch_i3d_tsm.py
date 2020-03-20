@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from model.tsm.ops.temporal_shift import TemporalShift
-from model.pytorch_i3d import InceptionI3d, Unit3D
+from model.pytorch_i3d import InceptionI3d, Unit3D, InceptionModule
 
 
 # I3D + TSM
@@ -50,19 +50,24 @@ class InceptionI3dTsm(nn.Module):
         print("Final layer output size:")
         print("\t", d.size())
 
+    def add_tsm_in_inception(self, model):
+        for child_name, child in model.named_children():
+            if isinstance(child, InceptionModule):
+                self.add_tsm_before_conv3d(child)
+
     def add_tsm_before_conv3d(self, model):
         for child_name, child in model.named_children():
             if isinstance(child, nn.Conv3d):
                 if child.kernel_size != [1, 1, 1]:
-                    if child.in_channels >= 8 and child.in_channels % 8 == 0:
+                    if child.in_channels >= 16:
                         print("Add tsm to: %r" % child)
-                        m = TemporalShift(child, n_segment=None, n_div=8, is_video=True, random=self.random)
+                        m = TemporalShift(child, n_segment=None, n_div=16, is_video=True, random=self.random)
                         setattr(model, child_name, m)
             else:
                 self.add_tsm_before_conv3d(child)
 
     def add_tsm_to_i3d(self):
-        self.add_tsm_before_conv3d(self.i3d)
+        self.add_tsm_in_inception(self.i3d)
 
     def get_i3d_model(self):
         return self.i3d
