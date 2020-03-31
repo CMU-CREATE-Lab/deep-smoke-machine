@@ -57,6 +57,16 @@ def train(method=None, model_path=None):
                     "../data/saved_i3d/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/2068.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/2047.pt"]
         cv("rgb", "i3d-ft-tc", model_path=model_path, augment=True, perturb=False)
+    elif method == "i3d-ft-tc-tsm-rgb-cv-1":
+        if model_path is None:
+            model_path = [
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/852e8a8-i3d-rgb-s0/model/2047.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b93e0af-i3d-rgb-s1/model/2058.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/eb083d3-i3d-rgb-s2/model/2037.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/8cb712b-i3d-rgb-s3/model/2005.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/616fb4d-i3d-rgb-s4/model/2068.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b831f55-i3d-rgb-s5/model/2047.pt"]
+        cv("rgb", "i3d-ft-tc-tsm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
@@ -94,6 +104,11 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         p_frame_flow = "../data/flow/"
     if method == "i3d":
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
+    elif method == "i3d-ft-tc-tsm":
+        # Use i3d model weights to finetune extra layers
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                use_tsm=True, use_tc=True, freeze_i3d=True, batch_size_train=8,
+                milestones_rgb=[1000, 2000], num_steps_per_update=1, max_steps=3000)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
