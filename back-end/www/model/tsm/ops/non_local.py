@@ -113,20 +113,25 @@ class NONLocalBlock3D(_NonLocalBlockND):
 
 
 class NL3DWrapper(nn.Module):
-    def __init__(self, block, n_segment):
+    def __init__(self, block, n_segment=1, is_video=False, num_features=None):
         super(NL3DWrapper, self).__init__()
         self.block = block
-        self.nl = NONLocalBlock3D(block.bn3.num_features)
+        if num_features is None:
+            num_features = block.bn3.num_features
+        self.nl = NONLocalBlock3D(num_features)
         self.n_segment = n_segment
+        self.is_video = is_video
 
     def forward(self, x):
         x = self.block(x)
-
-        nt, c, h, w = x.size()
-        x = x.view(nt // self.n_segment, self.n_segment, c, h, w).transpose(1, 2)  # n, c, t, h, w
+        if not self.is_video:
+            nt, c, h, w = x.size()
+            x.view(nt // self.n_segment, self.n_segment, c, h, w).transpose(1, 2)  # n, c, t, h, w
         x = self.nl(x)
-        x = x.transpose(1, 2).contiguous().view(nt, c, h, w)
-        return x
+        if self.is_video:
+            return x
+        else:
+            return x.transpose(1, 2).contiguous().view(nt, c, h, w)
 
 
 def make_non_local(net, n_segment):

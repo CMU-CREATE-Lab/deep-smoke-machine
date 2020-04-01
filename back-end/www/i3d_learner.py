@@ -8,6 +8,7 @@ from model.pytorch_i3d import InceptionI3d
 from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
 from model.pytorch_i3d_lstm import InceptionI3dLstm
+from model.pytorch_i3d_nl import InceptionI3dNl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,7 +49,7 @@ class I3dLearner(BaseLearner):
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
-            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
+            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
             weight_decay=0.000001, # L2 regularization
@@ -151,6 +152,8 @@ class I3dLearner(BaseLearner):
                 elif self.use_lstm:
                     model = InceptionI3dLstm(input_size, num_classes=nc_kinetics, in_channels=ic,
                             freeze_i3d=self.freeze_i3d)
+                elif seld.use_nl:
+                    model = InceptionI3dNl(input_size, num_classes=nc_kinetics, in_channels=ic)
                 else:
                     raise NotImplementedError("Not implemented.")
         elif mode == "flow":

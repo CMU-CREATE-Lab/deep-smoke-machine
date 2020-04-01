@@ -75,6 +75,10 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d-tsm", model_path=model_path, augment=True, perturb=False)
+    elif method == "i3d-nl-rgb-cv-1":
+        if model_path is None:
+            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
+        cv("rgb", "i3d-nl", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-lstm-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
@@ -121,7 +125,11 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                use_tsm=True, weight_decay=0.00000001, milestones_rgb=[1000])
+                use_tsm=True, freeze_i3d=False, weight_decay=0.00000001, milestones_rgb=[1000])
+    elif method == "i3d-nl":
+        # Use Kinetics pretrained weights to train the entire network
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                use_nl=True, freeze_i3d=False)
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,

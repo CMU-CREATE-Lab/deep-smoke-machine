@@ -43,6 +43,8 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-tc", model_path, augment=True, perturb=False)
     elif method == "i3d-tsm-rgb-cv-1":
         cv("rgb", "i3d-tsm", model_path, augment=True, perturb=False)
+    elif method == "i3d-nl-rgb-cv-1":
+        cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
     elif method == "i3d-lstm-rgb-cv-1":
         cv("rgb", "i3d-lstm", model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
@@ -84,6 +86,10 @@ def cv(mode, method, model_path, augment=True, perturb=False):
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
                 use_tsm=True)
+    elif method == "i3d-nl":
+        # Use Kinetics pretrained weights to train the entire network
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
+                use_nl=True)
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,

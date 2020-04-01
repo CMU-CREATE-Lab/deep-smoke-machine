@@ -4,6 +4,7 @@ from model.tsm.ops.models import TSN
 from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
 from model.pytorch_i3d_lstm import InceptionI3dLstm
+from model.pytorch_i3d_nl import InceptionI3dNl
 from collections import OrderedDict
 from base_learner import BaseLearner
 
@@ -29,6 +30,8 @@ def test_model(method="tc"):
         model = InceptionI3dTsm(input_size, num_classes=400, in_channels=3)
     elif method == "lstm":
         model = InceptionI3dLstm(input_size, num_classes=400, in_channels=3)
+    elif method == "nl":
+        model = InceptionI3dNl(input_size, num_classes=400, in_channels=3)
     else:
         raise NotImplementedError("Method not implemented")
     dl = DummyLearner()
@@ -40,6 +43,8 @@ def test_model(method="tc"):
     model.delete_i3d_logits()
     if method == "tsm":
         model.add_tsm_to_i3d()
+    elif method == "nl":
+        model.add_nl_to_i3d()
     print(model(x).size())
 
 
@@ -54,6 +59,8 @@ def test_tsn():
 print("="*60)
 #test_model(method="tc")
 print("="*60)
-test_model(method="tsm")
+#test_model(method="tsm")
+print("="*60)
+test_model(method="nl")
 print("="*60)
 #test_model(method="lstm")
