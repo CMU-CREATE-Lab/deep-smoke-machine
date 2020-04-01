@@ -152,7 +152,7 @@ class I3dLearner(BaseLearner):
                 elif self.use_lstm:
                     model = InceptionI3dLstm(input_size, num_classes=nc_kinetics, in_channels=ic,
                             freeze_i3d=self.freeze_i3d)
-                elif seld.use_nl:
+                elif self.use_nl:
                     model = InceptionI3dNl(input_size, num_classes=nc_kinetics, in_channels=ic)
                 else:
                     raise NotImplementedError("Not implemented.")
