@@ -11,7 +11,7 @@ class InceptionI3dNl(nn.Module):
 
     def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5):
         super(InceptionI3dNl, self).__init__()
-        print("Initialize the I3D+TSM model...")
+        print("Initialize the I3D+NL model...")
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
