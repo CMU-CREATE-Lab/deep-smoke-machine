@@ -19,7 +19,7 @@ class _NonLocalBlockND(nn.Module):
         self.inter_channels = inter_channels
 
         if self.inter_channels is None:
-            self.inter_channels = in_channels // 2
+            self.inter_channels = in_channels // 8 # change this to reduce temporal complexity
             if self.inter_channels == 0:
                 self.inter_channels = 1
 
