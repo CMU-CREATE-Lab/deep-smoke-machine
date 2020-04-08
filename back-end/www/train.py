@@ -60,12 +60,12 @@ def train(method=None, model_path=None):
     elif method == "i3d-ft-tc-tsm-rgb-cv-1":
         if model_path is None:
             model_path = [
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/852e8a8-i3d-rgb-s0/model/2047.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b93e0af-i3d-rgb-s1/model/2058.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/eb083d3-i3d-rgb-s2/model/2037.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/8cb712b-i3d-rgb-s3/model/2005.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/616fb4d-i3d-rgb-s4/model/2068.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b831f55-i3d-rgb-s5/model/2047.pt"]
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/852e8a8-i3d-rgb-s0/model/1267.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b93e0af-i3d-rgb-s1/model/1274.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/eb083d3-i3d-rgb-s2/model/1261.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/8cb712b-i3d-rgb-s3/model/1241.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/616fb4d-i3d-rgb-s4/model/1280.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b831f55-i3d-rgb-s5/model/1267.pt"]
         cv("rgb", "i3d-ft-tc-tsm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
         if model_path is None:
@@ -112,12 +112,12 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1, max_steps=3000)
+                milestones_rgb=[300,900], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1, max_steps=3000)
+                milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-tc":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
@@ -125,7 +125,8 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                use_tsm=True, freeze_i3d=False, weight_decay=0.00000001, milestones_rgb=[1000])
+                use_tsm=True, freeze_i3d=False,
+                milestones_rgb=[1000], weight_decay=0.00000001)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
