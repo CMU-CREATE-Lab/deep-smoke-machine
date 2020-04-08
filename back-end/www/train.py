@@ -112,7 +112,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[300,900], num_steps_per_update=1, weight_decay=0.0001)
+                milestones_rgb=[300, 900], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
@@ -130,7 +130,8 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                use_nl=True, freeze_i3d=False)
+                use_nl=True, freeze_i3d=False,
+                milestones_rgb=[300, 900], weight_decay=0.0001)
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
