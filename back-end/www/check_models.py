@@ -45,6 +45,7 @@ def test_model(method="tc"):
         model.add_tsm_to_i3d()
     elif method == "nl":
         model.add_nl_to_i3d()
+    print(model.get_i3d_model())
     print(model(x).size())
 
 

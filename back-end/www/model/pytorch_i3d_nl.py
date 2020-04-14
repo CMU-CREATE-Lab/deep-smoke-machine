@@ -48,11 +48,15 @@ class InceptionI3dNl(nn.Module):
         print("\t", d.size())
 
     def add_nl_in_inception(self, model):
-        c = 0 # only add some non-local layers
+        n = 0
+        for child_name, child in model.named_children():
+            if isinstance(child, InceptionModule):
+                n += 1 # count the number of inception layers
+        c = 0
         for child_name, child in model.named_children():
             if isinstance(child, InceptionModule):
                 c += 1
-                if c % 3 != 0: continue
+                if c != n: continue # only add to the last layer
                 print("Add non-local block to: %r" % child)
                 for cc_name, cc in child.named_children():
                     if isinstance(cc, Unit3D):
@@ -62,7 +66,6 @@ class InceptionI3dNl(nn.Module):
 
     def add_nl_to_i3d(self):
         self.add_nl_in_inception(self.i3d)
-        print(self.i3d)
 
     def get_i3d_model(self):
         return self.i3d
