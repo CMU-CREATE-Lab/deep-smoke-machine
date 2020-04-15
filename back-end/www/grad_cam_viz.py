@@ -102,7 +102,7 @@ def save_class_activation_videos(org_vid, activation_map, file_name, root_dir=".
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    span = 4 # downample the time dimension
+    span = 9 # downample the time dimension
     org_vid = org_vid[:, :, ::span, :, :]
     activation_map = activation_map[::span, :, :]
 
