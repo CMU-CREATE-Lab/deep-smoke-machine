@@ -44,7 +44,6 @@ class I3dLearner(BaseLearner):
             use_nl=False, # use the Non-local module or not
             use_tc=False, # use the Timeception module or not
             use_lstm=False, # use LSTM module or not
-            use_mil=False, # use the Multiple Instance Learning mode
             freeze_i3d=False, # freeze i3d layers when training Timeception
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
@@ -73,7 +72,6 @@ class I3dLearner(BaseLearner):
         self.use_nl = use_nl
         self.use_tc = use_tc
         self.use_lstm = use_lstm
-        self.use_mil = use_mil
         self.freeze_i3d = freeze_i3d
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
@@ -106,7 +104,6 @@ class I3dLearner(BaseLearner):
         text += "  use_nl: " + str(self.use_nl) + "\n"
         text += "  use_tc: " + str(self.use_tc) + "\n"
         text += "  use_lstm: " + str(self.use_lstm) + "\n"
-        text += "  use_mil: " + str(self.use_mil) + "\n"
         text += "  freeze_i3d: " + str(self.freeze_i3d) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
@@ -393,19 +390,14 @@ class I3dLearner(BaseLearner):
                     labels = self.to_variable(labels)
                     pred = self.make_pred(model, frames)
                     pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
-                    if not self.use_mil:
-                        # Compute localization loss only when not in the multiple instance learning mode
-                        loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
-                        tot_loc_loss[phase] += loc_loss.data
+                    # Compute localization loss
+                    loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
+                    tot_loc_loss[phase] += loc_loss.data
                     # Compute classification loss (with max-pooling along time, batch x channel x time)
                     cls_loss = F.binary_cross_entropy_with_logits(torch.max(pred, dim=2)[0], torch.max(labels, dim=2)[0])
                     tot_cls_loss[phase] += cls_loss.data
                     # Backprop
-                    if self.use_mil:
-                        # Ignore classification loss if in the multiple instance learning mode
-                        loss = cls_loss / nspu
-                    else:
-                        loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
+                    loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
                     tot_loss[phase] += loss.data
                     if phase == "train":
                         loss.backward()

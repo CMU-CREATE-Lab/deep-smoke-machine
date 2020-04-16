@@ -30,10 +30,6 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=False)
-    elif method == "i3d-rgb-mil-cv-1":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        cv("rgb", "i3d", model_path=model_path, augment=True, perturb=False, use_mil=True)
     elif method == "i3d-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
@@ -107,7 +103,7 @@ def train(method=None, model_path=None):
 
 
 # Cross validation of i3d or svm model
-def cv(mode, method, model_path=None, augment=True, perturb=False, use_mil=False):
+def cv(mode, method, model_path=None, augment=True, perturb=False):
     if perturb:
         p_frame_rgb = "../data/rgb_perturb/"
         p_frame_flow = "../data/flow_perturb/"
@@ -115,33 +111,33 @@ def cv(mode, method, model_path=None, augment=True, perturb=False, use_mil=False
         p_frame_rgb = "../data/rgb/"
         p_frame_flow = "../data/flow/"
     if method == "i3d":
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil)
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
     elif method == "i3d-ft-tc-tsm":
         # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, use_tc=True, freeze_i3d=True, batch_size_train=8,
                 milestones_rgb=[300, 900], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tc=True, freeze_i3d=True, batch_size_train=8,
                 milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-tc":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tc=True, freeze_i3d=False, batch_size_train=8)
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, freeze_i3d=False,
                 milestones_rgb=[1000, 2000], weight_decay=0.00000001)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_nl=True, freeze_i3d=False)
     elif method == "i3d-lstm":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, use_mil=use_mil,
+        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_lstm=True, freeze_i3d=False, batch_size_train=8)
     elif method == "svm":
         model = SvmLearner(mode=mode)

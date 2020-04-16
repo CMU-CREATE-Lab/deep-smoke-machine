@@ -27,7 +27,7 @@ def test(method=None, model_path=None):
     elif method == "i3d-flow":
         model = I3dLearner(mode="flow")
         model.test(p_model=model_path)
-    elif method == "i3d-rgb-cv-1" or method == "i3d-rgb-mil-cv-1":
+    elif method == "i3d-rgb-cv-1":
         cv("rgb", "i3d", model_path, augment=True, perturb=False)
     elif method == "i3d-rgb-cv-2":
         cv("rgb", "i3d", model_path, augment=False, perturb=False)
