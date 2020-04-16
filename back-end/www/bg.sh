@@ -17,13 +17,12 @@ else
   sh bg.sh python extract_features.py i3d-flow\n\
   sh bg.sh python train.py i3d-rgb\n\
   sh bg.sh python train.py i3d-rgb-cv-1\n\
-  sh bg.sh python train.py i3d-rgb-mil-cv-1\n\
   sh bg.sh python train.py i3d-ft-tc-rgb-cv-1\n\
   sh bg.sh python train.py i3d-ft-tc-tsm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-tc-rgb-cv-1\n\
   sh bg.sh python train.py i3d-tsm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-nl-rgb-cv-1\n\
-  sh bg.sh python train.py i3d-lstm-rgb-cv-1\n\
+  sh bg.sh python train.py i3d-ft-lstm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-flow\n\
   sh bg.sh python train.py i3d-flow-cv-1\n\
   sh bg.sh python train.py svm-rgb\n\
@@ -32,13 +31,12 @@ else
   sh bg.sh python train.py svm-flow-cv-1\n\
   sh bg.sh python test.py i3d-rgb [model_path]\n\
   sh bg.sh python test.py i3d-rgb-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-rgb-mil-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-ft-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-ft-tc-tsm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-tsm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-nl-rgb-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-lstm-rgb-cv-1 [model_path]\n\
+  sh bg.sh python test.py i3d-ft-lstm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-flow [model_path]\n\
   sh bg.sh python test.py i3d-flow-cv-1 [model_path]\n\
   sh bg.sh python test.py svm-rgb-cv-1 [model_path]\n\

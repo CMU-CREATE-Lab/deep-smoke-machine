@@ -45,8 +45,8 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-tsm", model_path, augment=True, perturb=False)
     elif method == "i3d-nl-rgb-cv-1":
         cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
-    elif method == "i3d-lstm-rgb-cv-1":
-        cv("rgb", "i3d-lstm", model_path, augment=True, perturb=False)
+    elif method == "i3d-ft-lstm-rgb-cv-1":
+        cv("rgb", "i3d-ft-lstm", model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.test(p_model=model_path)
@@ -85,15 +85,15 @@ def cv(mode, method, model_path, augment=True, perturb=False):
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
-                use_tsm=True)
+                use_tsm=True, freeze_i3d=False)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
-                use_nl=True)
-    elif method == "i3d-lstm":
-        # Use Kinetics pretrained weights to train the entire network
+                use_nl=True, freeze_i3d=False)
+    elif method == "i3d-ft-lstm":
+        # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
-                use_lstm=True, freeze_i3d=False)
+                use_lstm=True, freeze_i3d=True)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:

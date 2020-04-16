@@ -34,9 +34,9 @@ class InceptionI3dLstm(nn.Module):
 
         # LSTM
         bs = b.size()
-        self.lstm = nn.LSTM(bs[1]*bs[3]*bs[4], 512, num_layers=1, batch_first=True)
+        self.lstm = nn.LSTM(bs[1]*bs[3]*bs[4], 128, num_layers=1, batch_first=True)
 
-        # LSTM output has shape (batch_size, 512, 5, 1, 1)
+        # LSTM output has shape (batch_size, 128, 5, 1, 1)
         self.lstm_reshape_before = Reshape((bs[2], -1))
         c = self.lstm_reshape_before(b)
         c, _ = self.lstm(c)
