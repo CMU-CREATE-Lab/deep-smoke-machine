@@ -38,7 +38,7 @@ class TemporalShift(nn.Module):
         if is_video:
             # In the video mode, n_segment will be ignored
             n_batch, c, t, h, w = x.size()
-            x = x.view(n_batch, t, c, h, w) # TODO: try x = x.transpose(1, 2)
+            x = x.transpose(1, 2) # swap time and channel
         else:
             nt, c, h, w = x.size()
             n_batch = nt // n_segment
@@ -63,7 +63,7 @@ class TemporalShift(nn.Module):
                 out[:, :, 2 * fold:] = x[:, :, 2 * fold:]  # not shift
 
         if is_video:
-            return out.view(n_batch, c, t, h, w) # TODO: try x = x.transpose(1, 2)
+            return out.transpose(1, 2) # swap time and channel back
         else:
             return out.view(nt, c, h, w)
 

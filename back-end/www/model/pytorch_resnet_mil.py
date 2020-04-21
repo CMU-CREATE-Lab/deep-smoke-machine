@@ -1,33 +1,36 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from model.pytorch_i3d import InceptionI3d, Unit3D
 from base_learner import Reshape
 
 
-# I3D + LSTM
-class InceptionI3dLstm(nn.Module):
+# 2D ResNet + Multiple Instance Learning
+# Real-world Anomaly Detection in Surveillance Videos
+# https://arxiv.org/pdf/1801.04264.pdf
+class MIL(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, freeze_i3d=False):
-        super(InceptionI3dLstm, self).__init__()
-        print("Initialize the I3D+LSTM model...")
+    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5):
+        super(MIL, self).__init__()
+        print("Initialize 2D ResNet + Multiple Instance Learning...")
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation
         input_size[0] = 1
 
-        # I3D input has shape (batch_size, 3, 36, 224, 224)
+        # Input has shape (batch_size, 3, 36, 224, 224)
         # (batch_size, channel, time, height, width)
         a = torch.tensor(np.zeros(input_size), dtype=torch.float32)
         print("Input size:")
         print("\t", a.size())
 
-        # I3D
-        self.i3d = InceptionI3d(num_classes=num_classes, in_channels=in_channels)
-        if freeze_i3d:
-            print("Freeze I3D model")
-            self.i3d.train(False)
+        # Change it to have shape (batch_size X time, channel, height, width)
+        b = a.transpose(1, 2) # swap time and channel
+        bs = b.size()
+        b = b.reshape(bs[0]*bs[1], bs[2], bs[3], bs[4])
 
-        # I3D output has shape (batch_size, 1024, 5, 7, 7)
+        # 2D ResNet
+        self.cnn = None
+
+        # 2D Resnet output has shape (batch_size, 1024, 5, 7, 7)
         b = self.i3d(a, no_logits=True)
         print("I3D model output size:")
         print("\t", b.size())
@@ -37,14 +40,12 @@ class InceptionI3dLstm(nn.Module):
         self.lstm = nn.LSTM(bs[1]*bs[3]*bs[4], 128, num_layers=1, batch_first=True)
 
         # LSTM output has shape (batch_size, 128, 5, 1, 1)
-        b = b.transpose(1, 2) # swap time and channel
         self.lstm_reshape_before = Reshape((bs[2], -1))
         c = self.lstm_reshape_before(b)
         c, _ = self.lstm(c)
         cs = c.size()
-        self.lstm_reshape_after = Reshape((cs[1], cs[2], 1, 1))
+        self.lstm_reshape_after = Reshape((cs[2], cs[1], 1, 1))
         c = self.lstm_reshape_after(c)
-        c = c.transpose(1, 2) # swap time and channel back
         print("LSTM model output size:")
         print("\t", c.size())
 
@@ -85,10 +86,8 @@ class InceptionI3dLstm(nn.Module):
 
     def forward(self, x):
         x = self.i3d(x, no_logits=True)
-        x = x.transpose(1, 2) # swap time and channel
         x = self.lstm_reshape_before(x)
         x, _ = self.lstm(x)
         x = self.lstm_reshape_after(x)
-        x = x.transpose(1, 2) # swap time and channel back
         x = self.logits(self.dropout(x)).squeeze(3).squeeze(3)
         return x
