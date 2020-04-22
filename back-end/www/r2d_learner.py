@@ -48,7 +48,7 @@ class R2dLearner(BaseLearner):
             milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for r2d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=10, # the number of steps to save a model and log information
+            num_steps_per_check=50, # the number of steps to save a model and log information
             parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
