@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
-from model.pytorch_2dcnn_mil import MIL
+from model.pytorch_r2d import R2d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -31,24 +31,24 @@ import shutil
 from model.tsm.ops.models import TSN
 
 
-# Multiple Instance Learning
-class MilLearner(BaseLearner):
+# ResNet 2D Learner
+class R2dLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
-            num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr_rgb=0.1, # initial learning rate (for mil-rgb)
-            init_lr_flow=0.1, # initial learning rate (for mil-flow)
+            num_steps_per_update=4, # gradient accumulation (for large batch size that does not fit into memory)
+            init_lr_rgb=0.01, # initial learning rate (for r2d-rgb)
+            init_lr_flow=0.01, # initial learning rate (for r2d-flow)
             weight_decay=0.000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for mil-rgb)
-            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for mil-flow)
+            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for r2d-rgb)
+            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for r2d-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
-            num_steps_per_check=50, # the number of steps to save a model and log information
+            num_steps_per_check=10, # the number of steps to save a model and log information
             parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
@@ -117,7 +117,7 @@ class MilLearner(BaseLearner):
         # Setup the model based on mode
         if mode == "rgb":
             input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
-            model = MIL(input_size, num_classes=self.num_of_action_classes)
+            model = R2d(input_size, num_classes=self.num_of_action_classes)
         elif mode == "flow":
             raise NotImplementedError("Not implemented.")
         else:
@@ -175,7 +175,8 @@ class MilLearner(BaseLearner):
         return v
 
     def make_pred(self, model, frames):
-        return model(frames)
+        # Upsample prediction to frame length (because we want prediction for each frame)
+        return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
 
     def flatten_tensor(self, t):
         t = t.reshape(1, -1)
@@ -192,13 +193,13 @@ class MilLearner(BaseLearner):
             p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
             p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
             p_metadata_test="../data/split/metadata_test_split_0_by_camera.json", # metadata path (test)
-            save_model_path="../data/saved_mil/[model_id]/model/", # path to save the models ([model_id] will be replaced)
-            save_tensorboard_path="../data/saved_mil/[model_id]/run/", # path to save data ([model_id] will be replaced)
-            save_log_path="../data/saved_mil/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
-            save_metadata_path="../data/saved_mil/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
+            save_model_path="../data/saved_r2d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
+            save_tensorboard_path="../data/saved_r2d/[model_id]/run/", # path to save data ([model_id] will be replaced)
+            save_log_path="../data/saved_r2d/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
+            save_metadata_path="../data/saved_r2d/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
             ):
         # Set path
-        model_id = str(uuid.uuid4())[0:7] + "-mil-" + self.mode
+        model_id = str(uuid.uuid4())[0:7] + "-r2d-" + self.mode
         model_id += model_id_suffix
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
@@ -231,7 +232,7 @@ class MilLearner(BaseLearner):
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
-        self.log("Use MIL learner")
+        self.log("Use R2d learner")
         self.log("save_model_path: " + save_model_path)
         self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
@@ -264,7 +265,7 @@ class MilLearner(BaseLearner):
         lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
 
         # Set logging format
-        log_fm = "%s step: %d lr: %r rank_loss: %.4f smoothness: %.4f loss: %.4f"
+        log_fm = "%s step: %d lr: %r loc_loss: %.4f cls_loss: %.4f loss: %.4f"
 
         # Train and validate
         steps = 0
@@ -274,15 +275,15 @@ class MilLearner(BaseLearner):
         nspu_nspc = nspu * nspc
         accum = {} # counter for accumulating gradients
         tot_loss = {} # total loss
-        tot_rank_loss = {} # total ranking loss
-        tot_smoothness = {} # total smoothness constraints
+        tot_loc_loss = {} # total localization loss
+        tot_cls_loss = {} # total classification loss
         pred_labels = {} # predicted labels
         true_labels = {} # true labels
         for phase in ["train", "validation"]:
             accum[phase] = 0
             tot_loss[phase] = 0.0
-            tot_rank_loss[phase] = 0.0
-            tot_smoothness[phase] = 0.0
+            tot_loc_loss[phase] = 0.0
+            tot_cls_loss[phase] = 0.0
             pred_labels[phase] = []
             true_labels[phase] = []
         while steps < self.max_steps:
@@ -311,19 +312,15 @@ class MilLearner(BaseLearner):
                     labels = self.to_variable(labels)
                     pred = self.make_pred(model, frames)
                     pred_labels[phase] += self.labels_to_list(pred.cpu().detach())
-                    # Compute ranking loss, for notations check the following paper:
-                    # Real-world Anomaly Detection in Surveillance Videos
-                    # https://arxiv.org/pdf/1801.04264.pdf
-                    v_0 = pred[:,0,:] # the negative bag
-                    v_1 = pred[:,1,:] # the positive bag
-                    rank_loss = 1 - torch.max(v_1) + torch.max(v_0)
-                    rank_loss[rank_loss < 0] = 0
-                    tot_rank_loss[phase] += rank_loss
-                    smoothness = torch.sum(torch.pow(v_1[1:] - v_1[:-1], 2))
-                    tot_smoothness[phase] += smoothness
+                    # Compute localization loss
+                    loc_loss = F.binary_cross_entropy_with_logits(pred, labels)
+                    tot_loc_loss[phase] += loc_loss.data
+                    # Compute classification loss (with max-pooling along time, batch x channel x time)
+                    cls_loss = F.binary_cross_entropy_with_logits(torch.max(pred, dim=2)[0], torch.max(labels, dim=2)[0])
+                    tot_cls_loss[phase] += cls_loss.data
                     # Backprop
-                    loss = (rank_loss + 0.0001*smoothness) / nspu
-                    tot_loss[phase] += loss
+                    loss = (0.5*loc_loss + 0.5*cls_loss) / nspu
+                    tot_loss[phase] += loss.data
                     if phase == "train":
                         loss.backward()
                     # Accumulate gradients during training
@@ -332,18 +329,18 @@ class MilLearner(BaseLearner):
                         if steps % nspc == 0:
                             # Log learning rate and loss
                             lr = lr_sche.get_lr()[0]
-                            trl = tot_rank_loss[phase]/nspu_nspc
-                            ts = tot_smoothness[phase]/nspu_nspc
+                            tll = tot_loc_loss[phase]/nspu_nspc
+                            tcl = tot_cls_loss[phase]/nspu_nspc
                             tl = tot_loss[phase]/nspc
-                            self.log(log_fm % (phase, steps, lr, trl, ts, tl))
+                            self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                             # Add to tensorboard
                             if rank == 0:
-                                writer_t.add_scalar("ranking_loss", trl, global_step=steps)
-                                writer_t.add_scalar("smoothness", ts, global_step=steps)
+                                writer_t.add_scalar("localization_loss", tll, global_step=steps)
+                                writer_t.add_scalar("classification_loss", tcl, global_step=steps)
                                 writer_t.add_scalar("loss", tl, global_step=steps)
                                 writer_t.add_scalar("learning_rate", lr, global_step=steps)
                             # Reset loss
-                            tot_loss[phase] = tot_rank_loss[phase] = tot_smoothness[phase] = 0.0
+                            tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                         # Reset gradient accumulation
                         accum[phase] = 0
                         # Update learning rate and optimizer
@@ -354,26 +351,26 @@ class MilLearner(BaseLearner):
                 if phase == "validation":
                     # Log learning rate and loss
                     lr = lr_sche.get_lr()[0]
-                    trl = tot_rank_loss[phase]/accum[phase]
-                    ts = tot_smoothness[phase]/accum[phase]
+                    tll = tot_loc_loss[phase]/accum[phase]
+                    tcl = tot_cls_loss[phase]/accum[phase]
                     tl = (tot_loss[phase]*nspu)/accum[phase]
                     # Sync losses for validation set
                     if self.can_parallel:
-                        trl_ts_tl = torch.Tensor([trl, ts, tl]).cuda()
-                        dist.all_reduce(trl_ts_tl, op=dist.ReduceOp.SUM)
-                        trl = trl_ts_tl[0].item() / world_size
-                        ts = trl_ts_tl[1].item() / world_size
-                        tl = trl_ts_tl[2].item() / world_size
-                    self.log(log_fm % (phase, steps, lr, trl, ts, tl))
+                        tll_tcl_tl = torch.Tensor([tll, tcl, tl]).cuda()
+                        dist.all_reduce(tll_tcl_tl, op=dist.ReduceOp.SUM)
+                        tll = tll_tcl_tl[0].item() / world_size
+                        tcl = tll_tcl_tl[1].item() / world_size
+                        tl = tll_tcl_tl[2].item() / world_size
+                    self.log(log_fm % (phase, steps, lr, tll, tcl, tl))
                     # Add to tensorboard and save model
                     if rank == 0:
-                        writer_v.add_scalar("ranking_loss", trl, global_step=steps)
-                        writer_v.add_scalar("smoothness", ts, global_step=steps)
+                        writer_v.add_scalar("localization_loss", tll, global_step=steps)
+                        writer_v.add_scalar("classification_loss", tcl, global_step=steps)
                         writer_v.add_scalar("loss", tl, global_step=steps)
                         writer_v.add_scalar("learning_rate", lr, global_step=steps)
                         self.save(model, save_model_path + str(steps) + ".pt")
                     # Reset loss
-                    tot_loss[phase] = tot_rank_loss[phase] = tot_smoothness[phase] = 0.0
+                    tot_loss[phase] = tot_loc_loss[phase] = tot_cls_loss[phase] = 0.0
                     # Reset gradient accumulation
                     accum[phase] = 0
                     # Save precision, recall, and f-score to the log and tensorboard
@@ -411,7 +408,7 @@ class MilLearner(BaseLearner):
             return
 
         # Set path
-        match = re.search(r'\b/[0-9a-fA-F]{7}-mil-(rgb|flow)[^/]*/\b', p_model)
+        match = re.search(r'\b/[0-9a-fA-F]{7}-r2d-(rgb|flow)[^/]*/\b', p_model)
         model_id = match.group()[1:-1]
         if model_id is None:
             self.log("Cannot find a valid model id from the model path.")
@@ -439,7 +436,7 @@ class MilLearner(BaseLearner):
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
-        self.log("Use MIL learner")
+        self.log("Use R2d learner")
         self.log("Start testing with mode: " + self.mode)
         self.log("save_log_path: " + save_log_path)
         self.log("save_viz_path: " + save_viz_path)

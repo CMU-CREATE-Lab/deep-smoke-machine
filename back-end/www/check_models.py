@@ -5,7 +5,7 @@ from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
 from model.pytorch_i3d_lstm import InceptionI3dLstm
 from model.pytorch_i3d_nl import InceptionI3dNl
-from model.pytorch_2dcnn_mil import MIL
+from model.pytorch_r2d import R2d
 from collections import OrderedDict
 from base_learner import BaseLearner
 
@@ -33,11 +33,11 @@ def test_model(method="tc"):
         model = InceptionI3dLstm(input_size, num_classes=400, in_channels=3)
     elif method == "nl":
         model = InceptionI3dNl(input_size, num_classes=400, in_channels=3)
-    elif method == "mil":
-        model = MIL(input_size)
+    elif method == "r2d":
+        model = R2d(input_size)
     else:
         raise NotImplementedError("Method not implemented")
-    if method != "mil":
+    if method != "r2d":
         dl = DummyLearner()
         model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         dl.load(model.get_i3d_model(), model_path)
@@ -70,4 +70,4 @@ def test_tsn():
 #print("="*60)
 #test_model(method="lstm")
 #print("="*60)
-test_model(method="mil")
+test_model(method="r2d")

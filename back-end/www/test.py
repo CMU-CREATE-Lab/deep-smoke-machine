@@ -1,7 +1,7 @@
 import sys
 from util import *
 from i3d_learner import I3dLearner
-from mil_learner import MilLearner
+from r2d_learner import R2dLearner
 from svm_learner import SvmLearner
 
 
@@ -48,8 +48,8 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         cv("rgb", "i3d-ft-lstm", model_path, augment=True, perturb=False)
-    elif method == "mil-rgb-cv-1":
-        cv("rgb", "mil", model_path, augment=True, perturb=False)
+    elif method == "r2d-rgb-cv-1":
+        cv("rgb", "r2d", model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.test(p_model=model_path)
@@ -97,8 +97,8 @@ def cv(mode, method, model_path, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
                 use_lstm=True, freeze_i3d=True)
-    elif method == "mil":
-        model = MilLearner(mode=mode)
+    elif method == "r2d":
+        model = R2dLearner(mode=mode)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:
