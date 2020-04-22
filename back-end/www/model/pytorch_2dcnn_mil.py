@@ -9,12 +9,9 @@ import numpy as np
 # https://arxiv.org/pdf/1801.04264.pdf
 class MIL(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5):
+    def __init__(self, input_size, num_classes=2):
         super(MIL, self).__init__()
         print("Initialize 2D CNN + Multiple Instance Learning...")
-
-        # Set the first dimension of the input size to be 4, to reduce the amount of computation
-        input_size[0] = 4
 
         # Input has shape (batch_size, 3, 36, 224, 224)
         # (batch_size, channel, time, height, width)
