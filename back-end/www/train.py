@@ -126,7 +126,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.000000001)
+                milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-tc":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
