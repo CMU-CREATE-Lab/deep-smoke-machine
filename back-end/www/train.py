@@ -61,12 +61,12 @@ def train(method=None, model_path=None):
     elif method == "i3d-ft-tc-tsm-rgb-cv-1":
         if model_path is None:
             model_path = [
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/852e8a8-i3d-rgb-s0/model/1072.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b93e0af-i3d-rgb-s1/model/1078.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/eb083d3-i3d-rgb-s2/model/776.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/8cb712b-i3d-rgb-s3/model/1050.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/616fb4d-i3d-rgb-s4/model/689.pt",
-                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b831f55-i3d-rgb-s5/model/877.pt"]
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/0870159-i3d-rgb-s0/model/1755.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/b4ac541-i3d-rgb-s1/model/1764.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/dea1995-i3d-rgb-s2/model/1164.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/de37726-i3d-rgb-s3/model/1337.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/9150da2-i3d-rgb-s4/model/788.pt",
+                    "../data/saved_i3d/paper_result/full-augm-rgb-tsm/4f4204b-i3d-rgb-s5/model/1170.pt"]
         cv("rgb", "i3d-ft-tc-tsm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
         if model_path is None:
