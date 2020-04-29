@@ -126,7 +126,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1)
+                milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.000000001)
     elif method == "i3d-tc":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
@@ -135,7 +135,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, freeze_i3d=False,
-                milestones_rgb=[1000, 2000], weight_decay=0.00000001)
+                milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
@@ -156,6 +156,18 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
     if type(model_path) is not list:
         model_path = [model_path]*6
 
+    # Cross validation on the 5th split by camera
+    model.fit(p_model=model_path[5],
+            model_id_suffix="-s5",
+            p_metadata_train="../data/split/metadata_train_split_4_by_camera.json",
+            p_metadata_validation="../data/split/metadata_validation_split_4_by_camera.json",
+            p_metadata_test="../data/split/metadata_test_split_4_by_camera.json")
+    # Cross validation on the 4th split by camera
+    model.fit(p_model=model_path[4],
+            model_id_suffix="-s4",
+            p_metadata_train="../data/split/metadata_train_split_3_by_camera.json",
+            p_metadata_validation="../data/split/metadata_validation_split_3_by_camera.json",
+            p_metadata_test="../data/split/metadata_test_split_3_by_camera.json")
     # Cross validation on the 1st split by camera
     model.fit(p_model=model_path[0],
             model_id_suffix="-s0",
@@ -180,18 +192,6 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
             p_metadata_train="../data/split/metadata_train_split_by_date.json",
             p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
             p_metadata_test="../data/split/metadata_test_split_by_date.json")
-    # Cross validation on the 4th split by camera
-    model.fit(p_model=model_path[4],
-            model_id_suffix="-s4",
-            p_metadata_train="../data/split/metadata_train_split_3_by_camera.json",
-            p_metadata_validation="../data/split/metadata_validation_split_3_by_camera.json",
-            p_metadata_test="../data/split/metadata_test_split_3_by_camera.json")
-    # Cross validation on the 5th split by camera
-    model.fit(p_model=model_path[5],
-            model_id_suffix="-s5",
-            p_metadata_train="../data/split/metadata_train_split_4_by_camera.json",
-            p_metadata_validation="../data/split/metadata_validation_split_4_by_camera.json",
-            p_metadata_test="../data/split/metadata_test_split_4_by_camera.json")
 
 
 if __name__ == "__main__":

@@ -53,18 +53,14 @@ class InceptionI3dTsm(nn.Module):
     def add_tsm_in_inception(self, model):
         for child_name, child in model.named_children():
             if isinstance(child, InceptionModule):
-                self.add_tsm_before_conv3d(child)
+                self.add_tsm(child)
 
-    def add_tsm_before_conv3d(self, model):
+    def add_tsm(self, model):
         for child_name, child in model.named_children():
-            if isinstance(child, nn.Conv3d):
-                if child.kernel_size != [1, 1, 1]:
-                    if child.in_channels >= 16:
-                        print("Add tsm to: %r" % child)
-                        m = TemporalShift(child, n_segment=None, n_div=16, is_video=True, random=self.random)
-                        setattr(model, child_name, m)
-            else:
-                self.add_tsm_before_conv3d(child)
+            if child_name in ["b1a", "b2a", "b3a"]:
+                print("Add tsm to: %r" % child)
+                m = TemporalShift(child, n_segment=None, n_div=16, is_video=True, random=self.random)
+                setattr(model, child_name, m)
 
     def add_tsm_to_i3d(self):
         self.add_tsm_in_inception(self.i3d)
