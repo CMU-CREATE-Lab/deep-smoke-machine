@@ -135,7 +135,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_tsm=True, freeze_i3d=False,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1)
+                milestones_rgb=[1000, 2000], weight_decay=0.0000000001, num_steps_per_update=1)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
