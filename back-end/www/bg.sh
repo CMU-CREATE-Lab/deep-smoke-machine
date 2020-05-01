@@ -18,7 +18,6 @@ else
   sh bg.sh python train.py i3d-rgb\n\
   sh bg.sh python train.py i3d-rgb-cv-1\n\
   sh bg.sh python train.py i3d-ft-tc-rgb-cv-1\n\
-  sh bg.sh python train.py i3d-ft-tc-tsm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-tc-rgb-cv-1\n\
   sh bg.sh python train.py i3d-tsm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-nl-rgb-cv-1\n\
@@ -33,7 +32,6 @@ else
   sh bg.sh python test.py i3d-rgb [model_path]\n\
   sh bg.sh python test.py i3d-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-ft-tc-rgb-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-ft-tc-tsm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-tsm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-nl-rgb-cv-1 [model_path]\n\

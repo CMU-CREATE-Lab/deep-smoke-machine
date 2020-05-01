@@ -38,8 +38,6 @@ def test(method=None, model_path=None):
         cv("flow", "i3d", model_path, augment=True, perturb=False)
     elif method == "i3d-ft-tc-rgb-cv-1":
         cv("rgb", "i3d-ft-tc", model_path, augment=True, perturb=False)
-    elif method == "i3d-ft-tc-tsm-rgb-cv-1":
-        cv("rgb", "i3d-ft-tc-tsm", model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
         cv("rgb", "i3d-tc", model_path, augment=True, perturb=False)
     elif method == "i3d-tsm-rgb-cv-1":
@@ -73,10 +71,6 @@ def cv(mode, method, model_path, augment=True, perturb=False):
         p_frame_rgb = "../data/rgb/"
     if method == "i3d":
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb)
-    elif method == "i3d-ft-tc-tsm":
-        # Use i3d model weights to finetune extra layers (with TSM)
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
-                use_tsm=True, use_tc=True, freeze_i3d=True)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
