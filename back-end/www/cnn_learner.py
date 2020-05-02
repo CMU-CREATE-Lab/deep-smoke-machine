@@ -5,6 +5,7 @@ from base_learner import BaseLearner
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
 from model.pytorch_r2d import R2d
+from model.pytorch_r2d_tc import R2dTc
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -55,7 +56,8 @@ class CnnLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            method="r2d" # the method for the CNN model
+            method="r2d", # the method for the model
+            freeze_cnn=False # freeze the CNN model while training or not
             ):
         super().__init__(use_cuda=use_cuda)
 
@@ -80,6 +82,7 @@ class CnnLearner(BaseLearner):
         self.p_frame_rgb = p_frame_rgb
         self.p_frame_flow = p_frame_flow
         self.method = method
+        self.freeze_cnn = freeze_cnn
 
         # Internal parameters
         self.image_size = 224 # 224 is the input for the ResNet18 network structure
@@ -108,6 +111,7 @@ class CnnLearner(BaseLearner):
         text += "  p_frame_rgb: " + self.p_frame_rgb + "\n"
         text += "  p_frame_flow: " + self.p_frame_flow + "\n"
         text += "  method: " + self.method + "\n"
+        text += "  freeze_cnn: " + str(self.freeze_cnn) + "\n"
         self.log(text)
 
     def set_model(self, rank, world_size, mode, p_model, parallel, phase="train"):
@@ -122,6 +126,8 @@ class CnnLearner(BaseLearner):
             input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
             if self.method == "r2d":
                 model = R2d(input_size, num_classes=self.num_of_action_classes)
+            elif self.method == "r2d-tc":
+                model = R2dTc(input_size, num_classes=self.num_of_action_classes, freeze_cnn=self.freeze_cnn)
         elif mode == "flow":
             raise NotImplementedError("Not implemented.")
         else:
@@ -130,6 +136,9 @@ class CnnLearner(BaseLearner):
         # Load self-trained weights (from the 2-class model fine-tuned on our dataset)
         if p_model is not None:
             self.load(model, p_model)
+
+        if self.method == "r2d-tc":
+            model.replace_logits(self.num_of_action_classes)
 
         # Use GPU or not
         if self.use_cuda:

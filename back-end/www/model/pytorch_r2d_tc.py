@@ -9,9 +9,11 @@ from model.timeception.nets import timeception_pytorch
 # 2D ResNet + Timeception
 class R2dTc(nn.Module):
 
-    def __init__(self, input_size, num_classes=2, num_tc_layers=1, dropout_keep_prob=0.5):
+    def __init__(self, input_size, num_classes=2, num_tc_layers=1, dropout_keep_prob=0.5, freeze_cnn=False):
         super().__init__()
-        print("Initialize 2D ResNet")
+        print("Initialize R2D+Timeception model")
+        print("num_tc_layers: " + str(num_tc_layers))
+        print("freeze_cnn: " + str(freeze_cnn))
 
         # Set the first dimension of the input size to be 4, to reduce the amount of computation
         input_size[0] = 4
@@ -27,6 +29,11 @@ class R2dTc(nn.Module):
         bs = b.size()
         b = b.reshape(bs[0]*bs[1], bs[2], bs[3], bs[4]) # (batch_size X time, channel, height, width)
         self.cnn = torchvision.models.resnet18(pretrained=True, progress=True)
+        num_features = self.cnn.fc.in_features
+        self.cnn.fc = nn.Identity()
+        if freeze_cnn:
+            print("Freeze CNN model")
+            self.cnn.train(False)
         b = self.cnn(b) # (batch_size X time, num_features)
         print("CNN model output size:")
         print("\t", b.size())
@@ -37,7 +44,7 @@ class R2dTc(nn.Module):
         c = c.reshape(cs[0], cs[1], cs[2], 1, 1) # (batch_size, time, num_features, 1, 1)
         c = c.transpose(1, 2) # (batch_size, num_features, time, 1, 1)
         self.tc = timeception_pytorch.Timeception(c.size(), n_layers=num_tc_layers)
-        c = self.tc(c) # (batch_size, 1240, 18, 1, 1) if num_tc_layers=1
+        c = self.tc(c) # (batch_size, 640, 18, 1, 1) if num_tc_layers=1
         print("Timeception model output size:")
         print("\t", c.size())
 
@@ -56,10 +63,11 @@ class R2dTc(nn.Module):
         print("Final layer output size:")
         print("\t", d.size())
 
-    def get_cnn_model(self):
-        return self.cnn
+        # We need to set the fully connected layer for loading self-trained models
+        self.cnn.fc = nn.Linear(num_features, num_classes)
 
     def replace_logits(self, num_classes):
+        self.cnn.fc = nn.Identity() # delete the fully connected layer
         self.logits = Unit3D(in_channels=self.logits_in_channels, output_channels=num_classes,
                              kernel_shape=[1, 1, 1],
                              padding=0,
@@ -67,10 +75,6 @@ class R2dTc(nn.Module):
                              use_batch_norm=False,
                              use_bias=True,
                              name='logits')
-
-    def delete_cnn_fc(self):
-        print("Delete the final fully connected layer in CNN...")
-        del self.cnn.fc
 
     def forward(self, x):
         # x has shape (batch_size, channel, time, height, width)
@@ -82,6 +86,6 @@ class R2dTc(nn.Module):
         xs = x.size()
         x = x.reshape(xs[0], xs[1], xs[2], 1, 1) # (batch_size, time, num_features, 1, 1)
         x = x.transpose(1, 2) # (batch_size, num_features, time, 1, 1)
-        x = self.tc(x) # (batch_size, 1240, 18, 1, 1) if num_tc_layers=1
+        x = self.tc(x) # (batch_size, 640, 18, 1, 1) if num_tc_layers=1
         x = self.logits(self.dropout(self.avg_pool(x))).squeeze(3).squeeze(3) # (batch, num_classes, time)
         return x

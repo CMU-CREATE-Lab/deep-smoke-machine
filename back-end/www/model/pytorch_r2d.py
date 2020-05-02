@@ -9,7 +9,7 @@ class R2d(nn.Module):
 
     def __init__(self, input_size, num_classes=2):
         super().__init__()
-        print("Initialize 2D ResNet")
+        print("Initialize R2D model...")
 
         # Set the first dimension of the input size to be 4, to reduce the amount of computation
         input_size[0] = 4

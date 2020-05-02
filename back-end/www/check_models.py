@@ -6,6 +6,7 @@ from model.pytorch_i3d_tsm import InceptionI3dTsm
 from model.pytorch_i3d_lstm import InceptionI3dLstm
 from model.pytorch_i3d_nl import InceptionI3dNl
 from model.pytorch_r2d import R2d
+from model.pytorch_r2d_tc import R2dTc
 from collections import OrderedDict
 from base_learner import BaseLearner
 
@@ -25,6 +26,7 @@ time = 36
 def test_model(method="tc"):
     input_size = [batch_size, 3, time, 224, 224]
     x = torch.tensor(np.zeros(input_size), dtype=torch.float32)
+    # Test for creating object
     if method == "tc":
         model = InceptionI3dTc(input_size, num_classes=400, in_channels=3)
     elif method == "tsm":
@@ -35,10 +37,13 @@ def test_model(method="tc"):
         model = InceptionI3dNl(input_size, num_classes=400, in_channels=3)
     elif method == "r2d":
         model = R2d(input_size)
+    elif method == "r2d-tc":
+        model = R2dTc(input_size)
     else:
         raise NotImplementedError("Method not implemented")
-    if method not in ["r2d"]:
-        dl = DummyLearner()
+    # Test for loading model
+    dl = DummyLearner()
+    if method not in ["r2d", "r2d-tc"]:
         model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         dl.load(model.get_i3d_model(), model_path)
         model.replace_logits(2)
@@ -49,6 +54,13 @@ def test_model(method="tc"):
             model.add_tsm_to_i3d()
         elif method == "nl":
             model.add_nl_to_i3d()
+    else:
+        model_path = "../data/saved_cnn/test/9cb952d-cnn-rgb/model/97.pt"
+        if method == "r2d":
+            dl.load(model, model_path)
+        elif method == "r2d-tc":
+            dl.load(model, model_path)
+            model.replace_logits(2)
     print(model)
     print(model(x).size())
 
@@ -66,4 +78,5 @@ def test_tsn():
 #test_model(method="tsm")
 #test_model(method="nl")
 #test_model(method="lstm")
-test_model(method="r2d")
+#test_model(method="r2d")
+test_model(method="r2d-tc")

@@ -82,9 +82,16 @@ def train(method=None, model_path=None):
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
     elif method == "r2d-rgb-cv-1":
         cv("rgb", "r2d", model_path=model_path, augment=True, perturb=False)
-    elif method == "r2d-rgb":
-        model = CnnLearner(mode="rgb", method="r2d")
-        model.fit()
+    elif method == "r2d-ft-tc-rgb-cv-1":
+        if model_path is None:
+            model_path = [
+                    "../data/saved_cnn/test/7522094-cnn-rgb-s0/model/97.pt",
+                    "../data/saved_cnn/test/82fb054-cnn-rgb-s1/model/98.pt",
+                    "../data/saved_cnn/test/330c932-cnn-rgb-s2/model/97.pt",
+                    "../data/saved_cnn/test/f7d6971-cnn-rgb-s3/model/95.pt",
+                    "../data/saved_cnn/test/07936c0-cnn-rgb-s4/model/98.pt",
+                    "../data/saved_cnn/test/98194a3-cnn-rgb-s5/model/97.pt"]
+        cv("rgb", "r2d-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.fit()
@@ -134,7 +141,13 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
                 use_lstm=True, freeze_i3d=True, batch_size_train=8,
                 milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "r2d":
-        model = CnnLearner(mode=mode, method="r2d")
+        model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                method="r2d", freeze_cnn=False)
+    elif method == "r2d-ft-tc":
+        # Use r2d model weights to finetune extra layers
+        model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+                method="r2d-tc", freeze_cnn=True,
+                milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:
