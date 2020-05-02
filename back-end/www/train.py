@@ -1,6 +1,6 @@
 import sys
 from i3d_learner import I3dLearner
-from r2d_learner import R2dLearner
+from cnn_learner import CnnLearner
 from svm_learner import SvmLearner
 
 
@@ -82,6 +82,9 @@ def train(method=None, model_path=None):
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
     elif method == "r2d-rgb-cv-1":
         cv("rgb", "r2d", model_path=model_path, augment=True, perturb=False)
+    elif method == "r2d-rgb":
+        model = CnnLearner(mode="rgb", method="r2d")
+        model.fit()
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.fit()
@@ -131,7 +134,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
                 use_lstm=True, freeze_i3d=True, batch_size_train=8,
                 milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "r2d":
-        model = R2dLearner(mode=mode)
+        model = CnnLearner(mode=mode, method="r2d")
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:

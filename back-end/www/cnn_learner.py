@@ -31,14 +31,14 @@ import shutil
 from model.tsm.ops.models import TSN
 
 
-# ResNet 2D Learner
-class R2dLearner(BaseLearner):
+# General CNN Learner
+class CnnLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
-            max_steps=2000, # total number of steps for training
+            max_steps=10,#2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.01, # initial learning rate (for r2d-rgb)
             init_lr_flow=0.01, # initial learning rate (for r2d-flow)
@@ -54,7 +54,8 @@ class R2dLearner(BaseLearner):
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/" # path to load optical flow frame
+            p_frame_flow="../data/flow/", # path to load optical flow frame
+            method="r2d" # the method for the CNN model
             ):
         super().__init__(use_cuda=use_cuda)
 
@@ -78,6 +79,7 @@ class R2dLearner(BaseLearner):
         self.mode = mode
         self.p_frame_rgb = p_frame_rgb
         self.p_frame_flow = p_frame_flow
+        self.method = method
 
         # Internal parameters
         self.image_size = 224 # 224 is the input for the ResNet18 network structure
@@ -105,6 +107,7 @@ class R2dLearner(BaseLearner):
         text += "  mode: " + self.mode + "\n"
         text += "  p_frame_rgb: " + self.p_frame_rgb + "\n"
         text += "  p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "  method: " + self.method + "\n"
         self.log(text)
 
     def set_model(self, rank, world_size, mode, p_model, parallel, phase="train"):
@@ -117,7 +120,8 @@ class R2dLearner(BaseLearner):
         # Setup the model based on mode
         if mode == "rgb":
             input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
-            model = R2d(input_size, num_classes=self.num_of_action_classes)
+            if self.method == "r2d":
+                model = R2d(input_size, num_classes=self.num_of_action_classes)
         elif mode == "flow":
             raise NotImplementedError("Not implemented.")
         else:
@@ -193,13 +197,13 @@ class R2dLearner(BaseLearner):
             p_metadata_train="../data/split/metadata_train_split_0_by_camera.json", # metadata path (train)
             p_metadata_validation="../data/split/metadata_validation_split_0_by_camera.json", # metadata path (validation)
             p_metadata_test="../data/split/metadata_test_split_0_by_camera.json", # metadata path (test)
-            save_model_path="../data/saved_r2d/[model_id]/model/", # path to save the models ([model_id] will be replaced)
-            save_tensorboard_path="../data/saved_r2d/[model_id]/run/", # path to save data ([model_id] will be replaced)
-            save_log_path="../data/saved_r2d/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
-            save_metadata_path="../data/saved_r2d/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
+            save_model_path="../data/saved_cnn/[model_id]/model/", # path to save the models ([model_id] will be replaced)
+            save_tensorboard_path="../data/saved_cnn/[model_id]/run/", # path to save data ([model_id] will be replaced)
+            save_log_path="../data/saved_cnn/[model_id]/log/train.log", # path to save log files ([model_id] will be replaced)
+            save_metadata_path="../data/saved_cnn/[model_id]/metadata/" # path to save metadata ([model_id] will be replaced)
             ):
         # Set path
-        model_id = str(uuid.uuid4())[0:7] + "-r2d-" + self.mode
+        model_id = str(uuid.uuid4())[0:7] + "-cnn-" + self.mode
         model_id += model_id_suffix
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
@@ -232,7 +236,7 @@ class R2dLearner(BaseLearner):
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
-        self.log("Use R2d learner")
+        self.log("Use CNN learner")
         self.log("save_model_path: " + save_model_path)
         self.log("save_tensorboard_path: " + save_tensorboard_path)
         self.log("save_log_path: " + save_log_path)
@@ -436,7 +440,7 @@ class R2dLearner(BaseLearner):
         self.create_logger(log_path=save_log_path)
         self.log("="*60)
         self.log("="*60)
-        self.log("Use R2d learner")
+        self.log("Use CNN learner")
         self.log("Start testing with mode: " + self.mode)
         self.log("save_log_path: " + save_log_path)
         self.log("save_viz_path: " + save_viz_path)

@@ -1,7 +1,7 @@
 import sys
 from util import *
 from i3d_learner import I3dLearner
-from r2d_learner import R2dLearner
+from cnn_learner import CnnLearner
 from svm_learner import SvmLearner
 
 
@@ -92,7 +92,7 @@ def cv(mode, method, model_path, augment=True, perturb=False):
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb,
                 use_lstm=True, freeze_i3d=True)
     elif method == "r2d":
-        model = R2dLearner(mode=mode)
+        model = CnnLearner(mode=mode, method="r2d")
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:

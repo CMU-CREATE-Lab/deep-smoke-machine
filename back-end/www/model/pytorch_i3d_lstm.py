@@ -9,7 +9,7 @@ from base_learner import Reshape
 class InceptionI3dLstm(nn.Module):
 
     def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, freeze_i3d=False):
-        super(InceptionI3dLstm, self).__init__()
+        super().__init__()
         print("Initialize the I3D+LSTM model...")
 
         # Set the first dimension of the input size to be 1, to reduce the amount of computation

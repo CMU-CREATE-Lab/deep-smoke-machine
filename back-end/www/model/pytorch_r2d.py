@@ -8,7 +8,7 @@ import numpy as np
 class R2d(nn.Module):
 
     def __init__(self, input_size, num_classes=2):
-        super(R2d, self).__init__()
+        super().__init__()
         print("Initialize 2D ResNet")
 
         # Set the first dimension of the input size to be 4, to reduce the amount of computation

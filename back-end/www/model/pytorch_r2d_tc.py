@@ -10,7 +10,7 @@ from model.timeception.nets import timeception_pytorch
 class R2dTc(nn.Module):
 
     def __init__(self, input_size, num_classes=2, num_tc_layers=1, dropout_keep_prob=0.5):
-        super(R2dTc, self).__init__()
+        super().__init__()
         print("Initialize 2D ResNet")
 
         # Set the first dimension of the input size to be 4, to reduce the amount of computation
@@ -55,6 +55,22 @@ class R2dTc(nn.Module):
         d = self.logits(self.dropout(self.avg_pool(c))).squeeze(3).squeeze(3) # (batch, num_classes, time)
         print("Final layer output size:")
         print("\t", d.size())
+
+    def get_cnn_model(self):
+        return self.cnn
+
+    def replace_logits(self, num_classes):
+        self.logits = Unit3D(in_channels=self.logits_in_channels, output_channels=num_classes,
+                             kernel_shape=[1, 1, 1],
+                             padding=0,
+                             activation_fn=None,
+                             use_batch_norm=False,
+                             use_bias=True,
+                             name='logits')
+
+    def delete_cnn_fc(self):
+        print("Delete the final fully connected layer in CNN...")
+        del self.cnn.fc
 
     def forward(self, x):
         # x has shape (batch_size, channel, time, height, width)

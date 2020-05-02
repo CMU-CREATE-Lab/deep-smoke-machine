@@ -11,7 +11,7 @@ from model.timeception.nets import timeception_pytorch
 class InceptionI3dTc(nn.Module):
 
     def __init__(self, input_size, num_classes=2, in_channels=3, num_tc_layers=1, dropout_keep_prob=0.5, freeze_i3d=False):
-        super(InceptionI3dTc, self).__init__()
+        super().__init__()
         print("Initialize the I3D+Timeception model...")
         print("num_tc_layers: " + str(num_tc_layers))
         print("freeze_i3d: " + str(freeze_i3d))

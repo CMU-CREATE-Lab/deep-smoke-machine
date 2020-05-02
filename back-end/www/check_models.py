@@ -37,7 +37,7 @@ def test_model(method="tc"):
         model = R2d(input_size)
     else:
         raise NotImplementedError("Method not implemented")
-    if method != "r2d":
+    if method not in ["r2d"]:
         dl = DummyLearner()
         model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         dl.load(model.get_i3d_model(), model_path)
@@ -61,13 +61,9 @@ def test_tsn():
     dl.load(model, model_path, ignore_fc=True)
     print(model(x).size())
 
-#print("="*60)
+
 #test_model(method="tc")
-#print("="*60)
-test_model(method="tsm")
-#print("="*60)
+#test_model(method="tsm")
 #test_model(method="nl")
-#print("="*60)
 #test_model(method="lstm")
-#print("="*60)
-#test_model(method="r2d")
+test_model(method="r2d")

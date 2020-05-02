@@ -11,7 +11,7 @@ from model.pytorch_i3d import InceptionI3d, Unit3D, InceptionModule
 class InceptionI3dTsm(nn.Module):
 
     def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, random=False):
-        super(InceptionI3dTsm, self).__init__()
+        super().__init__()
         print("Initialize the I3D+TSM model...")
         print("random_temporal_shift: " + str(random))
         self.random = random
