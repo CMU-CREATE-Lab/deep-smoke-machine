@@ -39,7 +39,7 @@ class CnnLearner(BaseLearner):
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
-            max_steps=10,#2000, # total number of steps for training
+            max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.01, # initial learning rate (for r2d-rgb)
             init_lr_flow=0.01, # initial learning rate (for r2d-flow)
