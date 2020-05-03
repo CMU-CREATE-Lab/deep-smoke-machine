@@ -37,7 +37,7 @@ class CnnLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
             batch_size_train=10, # size for each batch for training
-            batch_size_test=50, # size for each batch for testing
+            batch_size_test=40, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
@@ -421,7 +421,7 @@ class CnnLearner(BaseLearner):
             return
 
         # Set path
-        match = re.search(r'\b/[0-9a-fA-F]{7}-r2d-(rgb|flow)[^/]*/\b', p_model)
+        match = re.search(r'\b/[0-9a-fA-F]{7}-cnn-(rgb|flow)[^/]*/\b', p_model)
         model_id = match.group()[1:-1]
         if model_id is None:
             self.log("Cannot find a valid model id from the model path.")

@@ -85,12 +85,12 @@ def train(method=None, model_path=None):
     elif method == "r2d-ft-tc-rgb-cv-1":
         if model_path is None:
             model_path = [
-                    "../data/saved_cnn/test/7522094-cnn-rgb-s0/model/97.pt",
-                    "../data/saved_cnn/test/82fb054-cnn-rgb-s1/model/98.pt",
-                    "../data/saved_cnn/test/330c932-cnn-rgb-s2/model/97.pt",
-                    "../data/saved_cnn/test/f7d6971-cnn-rgb-s3/model/95.pt",
-                    "../data/saved_cnn/test/07936c0-cnn-rgb-s4/model/98.pt",
-                    "../data/saved_cnn/test/98194a3-cnn-rgb-s5/model/97.pt"]
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/ce58dec-cnn-rgb-s0/model/1267.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/fbe176a-cnn-rgb-s1/model/1470.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/2cf3cdd-cnn-rgb-s2/model/1261.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/a4b4b72-cnn-rgb-s3/model/2005.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/4ba65f6-cnn-rgb-s4/model/1477.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/2841c96-cnn-rgb-s5/model/1267.pt"]
         cv("rgb", "r2d-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
