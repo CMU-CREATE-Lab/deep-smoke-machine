@@ -55,7 +55,7 @@ def test_model(method="tc"):
         elif method == "nl":
             model.add_nl_to_i3d()
     else:
-        model_path = "../data/saved_cnn/test/9cb952d-cnn-rgb/model/97.pt"
+        model_path = "../data/saved_cnn/paper_result/full-augm-rgb-r2d/ce58dec-cnn-rgb-s0/model/2047.pt"
         if method == "r2d":
             dl.load(model, model_path)
         elif method == "r2d-tc":
@@ -78,5 +78,5 @@ def test_tsn():
 #test_model(method="tsm")
 #test_model(method="nl")
 #test_model(method="lstm")
-#test_model(method="r2d")
-test_model(method="r2d-tc")
+test_model(method="r2d")
+#test_model(method="r2d-tc")
