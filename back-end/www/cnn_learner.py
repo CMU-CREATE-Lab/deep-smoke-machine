@@ -4,8 +4,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 from base_learner import BaseLearner
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
-from model.pytorch_r2d import R2d
-from model.pytorch_r2d_tc import R2dTc
+from model.pytorch_cnn import Cnn
+from model.pytorch_cnn_tc import CnnTc
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -41,12 +41,12 @@ class CnnLearner(BaseLearner):
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr_rgb=0.01, # initial learning rate (for r2d-rgb)
-            init_lr_flow=0.01, # initial learning rate (for r2d-flow)
+            init_lr_rgb=0.01, # initial learning rate (for cnn-rgb)
+            init_lr_flow=0.01, # initial learning rate (for cnn-flow)
             weight_decay=0.000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for r2d-rgb)
-            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for r2d-flow)
+            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for cnn-rgb)
+            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for cnn-flow)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
@@ -56,7 +56,7 @@ class CnnLearner(BaseLearner):
             mode="rgb", # can be "rgb" or "flow"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
             p_frame_flow="../data/flow/", # path to load optical flow frame
-            method="r2d", # the method for the model
+            method="cnn", # the method for the model
             freeze_cnn=False # freeze the CNN model while training or not
             ):
         super().__init__(use_cuda=use_cuda)
@@ -124,10 +124,10 @@ class CnnLearner(BaseLearner):
         # Setup the model based on mode
         if mode == "rgb":
             input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
-            if self.method == "r2d":
-                model = R2d(input_size, num_classes=self.num_of_action_classes)
-            elif self.method == "r2d-tc":
-                model = R2dTc(input_size, num_classes=self.num_of_action_classes, freeze_cnn=self.freeze_cnn)
+            if self.method == "cnn":
+                model = Cnn(input_size, num_classes=self.num_of_action_classes)
+            elif self.method == "cnn-tc":
+                model = CnnTc(input_size, num_classes=self.num_of_action_classes, freeze_cnn=self.freeze_cnn)
         elif mode == "flow":
             raise NotImplementedError("Not implemented.")
         else:
@@ -137,7 +137,7 @@ class CnnLearner(BaseLearner):
         if p_model is not None:
             self.load(model, p_model)
 
-        if self.method == "r2d-tc":
+        if self.method == "cnn-tc":
             model.replace_logits(self.num_of_action_classes)
 
         # Use GPU or not

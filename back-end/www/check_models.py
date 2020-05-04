@@ -5,8 +5,8 @@ from model.pytorch_i3d_tc import InceptionI3dTc
 from model.pytorch_i3d_tsm import InceptionI3dTsm
 from model.pytorch_i3d_lstm import InceptionI3dLstm
 from model.pytorch_i3d_nl import InceptionI3dNl
-from model.pytorch_r2d import R2d
-from model.pytorch_r2d_tc import R2dTc
+from model.pytorch_cnn import Cnn
+from model.pytorch_cnn_tc import CnnTc
 from collections import OrderedDict
 from base_learner import BaseLearner
 
@@ -35,15 +35,15 @@ def test_model(method="tc"):
         model = InceptionI3dLstm(input_size, num_classes=400, in_channels=3)
     elif method == "nl":
         model = InceptionI3dNl(input_size, num_classes=400, in_channels=3)
-    elif method == "r2d":
-        model = R2d(input_size)
-    elif method == "r2d-tc":
-        model = R2dTc(input_size)
+    elif method == "cnn":
+        model = Cnn(input_size)
+    elif method == "cnn-tc":
+        model = CnnTc(input_size)
     else:
         raise NotImplementedError("Method not implemented")
     # Test for loading model
     dl = DummyLearner()
-    if method not in ["r2d", "r2d-tc"]:
+    if method not in ["cnn", "cnn-tc"]:
         model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         dl.load(model.get_i3d_model(), model_path)
         model.replace_logits(2)
@@ -55,10 +55,10 @@ def test_model(method="tc"):
         elif method == "nl":
             model.add_nl_to_i3d()
     else:
-        model_path = "../data/saved_cnn/paper_result/full-augm-rgb-r2d/ce58dec-cnn-rgb-s0/model/2047.pt"
-        if method == "r2d":
+        model_path = "../data/saved_cnn/paper_result/full-augm-rgb-cnn/ce58dec-cnn-rgb-s0/model/2047.pt"
+        if method == "cnn":
             dl.load(model, model_path)
-        elif method == "r2d-tc":
+        elif method == "cnn-tc":
             dl.load(model, model_path)
             model.replace_logits(2)
     print(model)
@@ -74,9 +74,9 @@ def test_tsn():
     print(model(x).size())
 
 
-#test_model(method="tc")
+test_model(method="tc")
 #test_model(method="tsm")
 #test_model(method="nl")
 #test_model(method="lstm")
-test_model(method="r2d")
-#test_model(method="r2d-tc")
+#test_model(method="cnn")
+#test_model(method="cnn-tc")

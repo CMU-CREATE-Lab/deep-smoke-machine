@@ -4,8 +4,8 @@ import torchvision
 import numpy as np
 
 
-# 2D ResNet
-class R2d(nn.Module):
+# 2D CNN
+class Cnn(nn.Module):
 
     def __init__(self, input_size, num_classes=2):
         super().__init__()
@@ -24,7 +24,7 @@ class R2d(nn.Module):
         b = a.transpose(1, 2) # (batch_size, time, channel, height, width)
         bs = b.size()
         b = b.reshape(bs[0]*bs[1], bs[2], bs[3], bs[4]) # (batch_size X time, channel, height, width)
-        self.cnn = torchvision.models.resnet18(pretrained=True, progress=True)
+        self.cnn = torchvision.models.googlenet(pretrained=True, progress=True)
         num_features = self.cnn.fc.in_features
         self.cnn.fc = nn.Linear(num_features, num_classes)
         b = self.cnn(b) # (batch_size X time, num_classes)

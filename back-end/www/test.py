@@ -46,10 +46,10 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         cv("rgb", "i3d-ft-lstm", model_path, augment=True, perturb=False)
-    elif method == "r2d-rgb-cv-1":
-        cv("rgb", "r2d", model_path, augment=True, perturb=False)
-    elif method == "r2d-ft-tc-rgb-cv-1":
-        cv("rgb", "r2d-ft-tc", model_path, augment=True, perturb=False)
+    elif method == "cnn-rgb-cv-1":
+        cv("rgb", "cnn", model_path, augment=True, perturb=False)
+    elif method == "cnn-ft-tc-rgb-cv-1":
+        cv("rgb", "cnn-ft-tc", model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.test(p_model=model_path)
@@ -95,13 +95,13 @@ def cv(mode, method, model_path, augment=True, perturb=False):
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_lstm=True, freeze_i3d=True)
-    elif method == "r2d":
+    elif method == "cnn":
         model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                method="r2d", freeze_cnn=False)
-    elif method == "r2d-ft-tc":
-        # Use r2d model weights to finetune extra layers
+                method="cnn", freeze_cnn=False)
+    elif method == "cnn-ft-tc":
+        # Use CNN model weights to finetune extra layers
         model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                method="r2d-tc", freeze_cnn=True)
+                method="cnn-tc", freeze_cnn=True)
     elif method == "svm":
         model = SvmLearner(mode=mode)
     else:

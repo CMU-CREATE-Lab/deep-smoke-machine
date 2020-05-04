@@ -6,8 +6,8 @@ from model.pytorch_i3d import Unit3D
 from model.timeception.nets import timeception_pytorch
 
 
-# 2D ResNet + Timeception
-class R2dTc(nn.Module):
+# 2D CNN + Timeception
+class CnnTc(nn.Module):
 
     def __init__(self, input_size, num_classes=2, num_tc_layers=1, dropout_keep_prob=0.5, freeze_cnn=False):
         super().__init__()
@@ -28,7 +28,7 @@ class R2dTc(nn.Module):
         b = a.transpose(1, 2) # (batch_size, time, channel, height, width)
         bs = b.size()
         b = b.reshape(bs[0]*bs[1], bs[2], bs[3], bs[4]) # (batch_size X time, channel, height, width)
-        self.cnn = torchvision.models.resnet18(pretrained=True, progress=True)
+        self.cnn = torchvision.models.googlenet(pretrained=True, progress=True)
         num_features = self.cnn.fc.in_features
         self.cnn.fc = nn.Identity()
         if freeze_cnn:

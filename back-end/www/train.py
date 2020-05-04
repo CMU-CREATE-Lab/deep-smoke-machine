@@ -80,18 +80,18 @@ def train(method=None, model_path=None):
                     "../data/saved_i3d/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
-    elif method == "r2d-rgb-cv-1":
-        cv("rgb", "r2d", model_path=model_path, augment=True, perturb=False)
-    elif method == "r2d-ft-tc-rgb-cv-1":
+    elif method == "cnn-rgb-cv-1":
+        cv("rgb", "cnn", model_path=model_path, augment=True, perturb=False)
+    elif method == "cnn-ft-tc-rgb-cv-1":
         if model_path is None:
             model_path = [
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/ce58dec-cnn-rgb-s0/model/1267.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/fbe176a-cnn-rgb-s1/model/1470.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/2cf3cdd-cnn-rgb-s2/model/1261.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/a4b4b72-cnn-rgb-s3/model/2005.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/4ba65f6-cnn-rgb-s4/model/1477.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-r2d/2841c96-cnn-rgb-s5/model/1267.pt"]
-        cv("rgb", "r2d-ft-tc", model_path=model_path, augment=True, perturb=False)
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/ce58dec-cnn-rgb-s0/model/1267.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/fbe176a-cnn-rgb-s1/model/1470.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2cf3cdd-cnn-rgb-s2/model/1261.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/a4b4b72-cnn-rgb-s3/model/2005.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/4ba65f6-cnn-rgb-s4/model/1477.pt",
+                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2841c96-cnn-rgb-s5/model/1267.pt"]
+        cv("rgb", "cnn-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb":
         model = SvmLearner(mode="rgb")
         model.fit()
@@ -140,13 +140,13 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
                 use_lstm=True, freeze_i3d=True, batch_size_train=8,
                 milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.0001)
-    elif method == "r2d":
+    elif method == "cnn":
         model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                method="r2d", freeze_cnn=False)
-    elif method == "r2d-ft-tc":
-        # Use r2d model weights to finetune extra layers
+                method="cnn", freeze_cnn=False)
+    elif method == "cnn-ft-tc":
+        # Use CNN model weights to finetune extra layers
         model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
-                method="r2d-tc", freeze_cnn=True,
+                method="cnn-tc", freeze_cnn=True,
                 milestones_rgb=[1000, 2000], num_steps_per_update=1)
     elif method == "svm":
         model = SvmLearner(mode=mode)
