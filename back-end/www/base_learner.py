@@ -85,7 +85,7 @@ class BaseLearner(ABC):
             torch.save(state_dict, out_path)
 
     # Load model
-    def load(self, model, in_path, ignore_fc=False):
+    def load(self, model, in_path, ignore_fc=False, fill_dim=False):
         if model is not None and in_path is not None:
             self.log("Load model weights from " + in_path)
             sd_loaded = torch.load(in_path)
@@ -110,6 +110,25 @@ class BaseLearner(ABC):
             if ignore_fc:
                 print("Ignore fully connected layer weights")
                 sd_loaded = {k: v for k, v in sd_model.items() if "fc" not in k}
+            if fill_dim:
+                # Note that this only works for the Inception-v1 I3D model
+                print("Auto-fill the mismatched dimension for the i3d model...")
+                for name, param in model.named_parameters():
+                    if param.requires_grad:
+                        if param.data.size() != sd_loaded[name].size():
+                            print("\t Found dimension mismatch for:", name)
+                            ds = param.data.size()
+                            ls = sd_loaded[name].size()
+                            print("\t\t Desired data size:", param.data.size())
+                            print("\t\t Loaded data size:", sd_loaded[name].size())
+                            for i in range(len(ds)):
+                                diff = ds[i] - ls[i]
+                                if diff > 0:
+                                    print("\t\t\t Desired dimension %d is larger than the loaded dimension" % i)
+                                    m = sd_loaded[name].mean(i).unsqueeze(i)
+                                    print("\t\t\t Compute the missing dimension to have size:", m.size())
+                                    sd_loaded[name] = torch.cat([sd_loaded[name], m], i)
+                                    print("\t\t\t Loaded data are filled to have size:", sd_loaded[name].size())
             sd_model.update(sd_loaded)
             try:
                 model.load_state_dict(sd_model)
