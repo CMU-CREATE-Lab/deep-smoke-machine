@@ -12,6 +12,7 @@ else
   echo "Usage examples:\n\
   sh bg.sh python download_videos.py\n\
   sh bg.sh python process_videos.py\n\
+  sh bg.sh python compute_dark_channel.py\n\
   sh bg.sh python perturb_frames.py\n\
   sh bg.sh python extract_features.py i3d-rgb\n\
   sh bg.sh python extract_features.py i3d-flow\n\

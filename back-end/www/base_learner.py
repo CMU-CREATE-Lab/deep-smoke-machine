@@ -153,7 +153,7 @@ class BaseLearner(ABC):
 
     # Data augmentation pipeline
     def get_transform(self, mode, phase=None, image_size=224):
-        if mode == "rgb": # two channels (r, g, and b)
+        if mode == "rgb": # three channels (r, g, and b)
             mean = (127.5, 127.5, 127.5)
             std = (127.5, 127.5, 127.5)
         elif mode == "flow": # two channels (x and y)
