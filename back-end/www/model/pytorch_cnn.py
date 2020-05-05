@@ -20,7 +20,7 @@ class Cnn(nn.Module):
         print("Input size:")
         print("\t", a.size())
 
-        # 2D CNN (we use ResNet18)
+        # 2D CNN (we the Inception-v1 version 2D CNN)
         b = a.transpose(1, 2) # (batch_size, time, channel, height, width)
         bs = b.size()
         b = b.reshape(bs[0]*bs[1], bs[2], bs[3], bs[4]) # (batch_size X time, channel, height, width)

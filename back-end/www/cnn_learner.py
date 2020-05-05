@@ -36,7 +36,7 @@ from model.tsm.ops.models import TSN
 class CnnLearner(BaseLearner):
     def __init__(self,
             use_cuda=None, # use cuda or not
-            batch_size_train=10, # size for each batch for training
+            batch_size_train=6, # size for each batch for training
             batch_size_test=40, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
