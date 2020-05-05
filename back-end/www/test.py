@@ -46,6 +46,11 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         cv("rgb", "i3d-ft-lstm", model_path, augment=True, perturb=False)
+    elif method == "i3d-rgbd":
+        model = I3dLearner(mode="rgbd")
+        model.test(p_model=model_path)
+    elif method == "i3d-rgbd-cv-1":
+        cv("rgbd", "i3d", model_path, augment=True, perturb=False)
     elif method == "cnn-rgb-cv-1":
         cv("rgb", "cnn", model_path, augment=True, perturb=False)
     elif method == "cnn-ft-tc-rgb-cv-1":
@@ -70,37 +75,47 @@ def cv(mode, method, model_path, augment=True, perturb=False):
     if perturb:
         p_frame_rgb = "../data/rgb_perturb/"
         p_frame_flow = "../data/flow_perturb/"
+        p_frame_rgbd = "../data/rgbd_perturb/"
     else:
         p_frame_rgb = "../data/rgb/"
         p_frame_flow = "../data/flow/"
+        p_frame_rgbd = "../data/rgbd/"
     if method == "i3d":
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow)
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 use_tc=True, freeze_i3d=True)
     elif method == "i3d-tc":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 use_tc=True, freeze_i3d=False)
     elif method == "i3d-tsm":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 use_tsm=True, freeze_i3d=False)
     elif method == "i3d-nl":
         # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 use_nl=True, freeze_i3d=False)
     elif method == "i3d-ft-lstm":
         # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = I3dLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 use_lstm=True, freeze_i3d=True)
     elif method == "cnn":
-        model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = CnnLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 method="cnn", freeze_cnn=False)
     elif method == "cnn-ft-tc":
         # Use CNN model weights to finetune extra layers
-        model = CnnLearner(mode=mode, augment=augment, p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow,
+        model = CnnLearner(mode=mode, augment=augment,
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
                 method="cnn-tc", freeze_cnn=True)
     elif method == "svm":
         model = SvmLearner(mode=mode)

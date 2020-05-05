@@ -42,6 +42,8 @@ else
   sh bg.sh python test.py i3d-ft-lstm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-flow [model_path]\n\
   sh bg.sh python test.py i3d-flow-cv-1 [model_path]\n\
+  sh bg.sh python test.py i3d-rgbd [model_path]\n\
+  sh bg.sh python test.py i3d-rgbd-cv-1 [model_path]\n\
   sh bg.sh python test.py cnn-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py cnn-ft-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py svm-rgb-cv-1 [model_path]\n\
