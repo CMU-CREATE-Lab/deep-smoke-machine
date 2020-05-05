@@ -25,6 +25,8 @@ else
   sh bg.sh python train.py i3d-ft-lstm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-flow\n\
   sh bg.sh python train.py i3d-flow-cv-1\n\
+  sh bg.sh python train.py i3d-rgbd\n\
+  sh bg.sh python train.py i3d-rgbd-cv-1\n\
   sh bg.sh python train.py cnn-rgb-cv-1\n\
   sh bg.sh python train.py cnn-ft-tc-rgb-cv-1\n\
   sh bg.sh python train.py svm-rgb\n\
