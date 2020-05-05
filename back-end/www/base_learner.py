@@ -159,6 +159,9 @@ class BaseLearner(ABC):
         elif mode == "flow": # two channels (x and y)
             mean = (127.5, 127.5)
             std = (127.5, 127.5)
+        elif mode == "rgbd": # four channels (r, g, b, and dark channel)
+            mean = (127.5, 127.5, 127.5, 127.5)
+            std = (127.5, 127.5, 127.5, 127.5)
         else:
             return None
         nm = Normalize(mean=mean, std=std) # same as (img/255)*2-1
@@ -171,7 +174,7 @@ class BaseLearner(ABC):
             rhf = RandomHorizontalFlip(p=0.5)
             # Deal with dirts, ants, or spiders on the camera lense
             re = RandomErasing(p=0.5, scale=(0.003, 0.01), ratio=(0.3, 3.3), value=0)
-            if mode == "rgb":
+            if mode == "rgb" or mode == "rgbd":
                 # Color jitter deals with different lighting and weather conditions
                 cj = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=(-0.1, 0.1), gamma=0.3)
                 return Compose([cj, rrc, rp, rhf, tt, nm, re, re])

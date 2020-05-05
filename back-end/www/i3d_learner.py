@@ -48,23 +48,26 @@ class I3dLearner(BaseLearner):
             batch_size_train=10, # size for each batch for training
             batch_size_test=50, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
-            max_steps=2000, # total number of steps for training
+            max_steps=10,#2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
+            init_lr_rgbd=0.2, # initial learning rate (for i3d-rgbd)
             weight_decay=0.000001, # L2 regularization
             momentum=0.9, # SGD parameters
             milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-rgb)
             milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-flow)
+            milestones_rgbd=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-rgbd)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
             parallel=True, # use nn.DistributedDataParallel or not
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
-            mode="rgb", # can be "rgb" or "flow"
+            mode="rgb", # can be "rgb" or "flow" or "rgbd"
             p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/" # path to load optical flow frame
+            p_frame_flow="../data/flow/", # path to load optical flow frame
+            p_frame_rgbd="../data/rgbd/" # path to load rgb + dark channel frame
             ):
         super().__init__(use_cuda=use_cuda)
 
@@ -80,10 +83,12 @@ class I3dLearner(BaseLearner):
         self.num_steps_per_update = num_steps_per_update
         self.init_lr_rgb = init_lr_rgb
         self.init_lr_flow = init_lr_flow
+        self.init_lr_rgbd = init_lr_rgbd
         self.weight_decay = weight_decay
         self.momentum = momentum
         self.milestones_rgb = milestones_rgb
         self.milestones_flow = milestones_flow
+        self.milestones_rgbd = milestones_rgbd
         self.gamma = gamma
         self.num_of_action_classes = num_of_action_classes
         self.num_steps_per_check = num_steps_per_check
@@ -93,6 +98,7 @@ class I3dLearner(BaseLearner):
         self.mode = mode
         self.p_frame_rgb = p_frame_rgb
         self.p_frame_flow = p_frame_flow
+        self.p_frame_rgbd = p_frame_rgbd
 
         # Internal parameters
         self.image_size = 224 # 224 is the input for the i3d network structure
@@ -112,10 +118,12 @@ class I3dLearner(BaseLearner):
         text += "  num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
         text += "  init_lr_rgb: " + str(self.init_lr_rgb) + "\n"
         text += "  init_lr_flow: " + str(self.init_lr_flow) + "\n"
+        text += "  init_lr_rgbd: " + str(self.init_lr_rgbd) + "\n"
         text += "  weight_decay: " + str(self.weight_decay) + "\n"
         text += "  momentum: " + str(self.momentum) + "\n"
         text += "  milestones_rgb: " + str(self.milestones_rgb) + "\n"
         text += "  milestones_flow: " + str(self.milestones_flow) + "\n"
+        text += "  milestones_rgbd: " + str(self.milestones_rgbd) + "\n"
         text += "  gamma: " + str(self.gamma) + "\n"
         text += "  num_of_action_classes: " + str(self.num_of_action_classes) + "\n"
         text += "  num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
@@ -125,6 +133,7 @@ class I3dLearner(BaseLearner):
         text += "  mode: " + self.mode + "\n"
         text += "  p_frame_rgb: " + self.p_frame_rgb + "\n"
         text += "  p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "  p_frame_rgbd: " + self.p_frame_rgbd + "\n"
         self.log(text)
 
     def set_model(self, rank, world_size, mode, p_model, parallel, phase="train"):
@@ -138,12 +147,12 @@ class I3dLearner(BaseLearner):
         # The reason why we use 400 classes at the begining is because of loading the pretrained model
         has_extra_layers = self.use_tc or self.use_tsm or self.use_nl or self.use_lstm
         nc_kinetics = 400
-        if mode == "rgb":
-            ic = 3
+        if mode == "rgb" or mode == "rgbd":
+            ic = 3 if mode == "rgb" else 4
             if not has_extra_layers:
                 model = InceptionI3d(num_classes=nc_kinetics, in_channels=ic)
             else:
-                input_size = [model_batch_size, 3, 36, 224, 224] # (batch_size, channel, time, height, width)
+                input_size = [model_batch_size, ic, 36, 224, 224] # (batch_size, channel, time, height, width)
                 if self.use_tsm:
                     model = InceptionI3dTsm(input_size, num_classes=nc_kinetics, in_channels=ic)
                 elif self.use_tc:
@@ -172,7 +181,10 @@ class I3dLearner(BaseLearner):
                 if has_extra_layers:
                     self.load(model.get_i3d_model(), p_model)
                 else:
-                    self.load(model, p_model)
+                    if mode == "rgbd":
+                        self.load(model, p_model, fill_dim=True)
+                    else:
+                        self.load(model, p_model)
         except:
             # This means that the i3d weights are self-trained
             error_1 = True
@@ -283,7 +295,11 @@ class I3dLearner(BaseLearner):
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
         save_metadata_path = save_metadata_path.replace("[model_id]", model_id)
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+        p_frame = self.p_frame_rgb
+        if self.mode == "rgbd":
+            p_frame = self.p_frame_rgbd
+        elif self.mode == "flow":
+            p_frame = self.p_frame_flow
 
         # Copy training, validation, and testing metadata
         check_and_create_dir(save_metadata_path)
@@ -337,9 +353,15 @@ class I3dLearner(BaseLearner):
         writer_v = SummaryWriter(save_tensorboard_path + "/validation/")
 
         # Set optimizer
-        init_lr = self.init_lr_rgb if self.mode == "rgb" else self.init_lr_flow
+        init_lr = self.init_lr_rgb
+        milestones = self.milestones_rgb
+        if self.mode == "flow":
+            init_lr = self.init_lr_flow
+            milestones = self.milestones_flow
+        elif self.mode == "rgbd":
+            init_lr = self.init_lr_rgbd
+            milestones = self.milestones_rgbd
         optimizer = optim.SGD(model.parameters(), lr=init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
-        milestones = self.milestones_rgb if self.mode == "rgb" else self.milestones_flow
         lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
 
         # Set logging format
@@ -495,7 +517,11 @@ class I3dLearner(BaseLearner):
         p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
         save_log_path = p_root + "log/test.log" # path to save log files
         save_viz_path = p_root + "viz/" # path to save visualizations
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
+        p_frame = self.p_frame_rgb
+        if self.mode == "rgbd":
+            p_frame = self.p_frame_rgbd
+        elif self.mode == "flow":
+            p_frame = self.p_frame_flow
 
         # Spawn processes
         n_gpu = torch.cuda.device_count()
