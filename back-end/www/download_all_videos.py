@@ -21,7 +21,7 @@ def main(argv):
         except:
             print("\tError downloading video", v["id"])
             problem_video_ids.append(v["id"])
-    print("Done download_videos.py")
+    print("Done download_all_videos.py")
     if len(problem_video_ids) > 0:
         print("The following videos were not downloaded due to errors:")
         for i in problem_video_ids:
