@@ -36,7 +36,6 @@ def main(argv):
             except:
                 print("\tError downloading video", fn_320)
                 problem_videos.append(fn_320)
-        break
     print("Done download_all_videos.py")
     if len(problem_videos) > 0:
         print("The following videos were not downloaded due to errors:")
