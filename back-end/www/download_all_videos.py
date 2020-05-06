@@ -8,7 +8,7 @@ from util import *
 # IMPORTANT: this script should not be used for the smoke recognition pipeline
 def main(argv):
     vm = load_json("../data/metadata_all_videos_02242020.json")["data"]
-    video_root_path = "../data/videos_a/"
+    video_root_path = "../data/videos_all/"
     rp_180 = video_root_path + "180/"
     rp_320 = video_root_path + "320/"
     check_and_create_dir(rp_180)
