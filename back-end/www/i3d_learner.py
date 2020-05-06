@@ -52,12 +52,12 @@ class I3dLearner(BaseLearner):
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
             init_lr_rgb=0.1, # initial learning rate (for i3d-rgb)
             init_lr_flow=0.1, # initial learning rate (for i3d-flow)
-            init_lr_rgbd=0.2, # initial learning rate (for i3d-rgbd)
+            init_lr_rgbd=0.1, # initial learning rate (for i3d-rgbd)
             weight_decay=0.000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-rgb)
-            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-flow)
-            milestones_rgbd=[500, 1500, 3500, 7500], # MultiStepLR parameters (for i3d-rgbd)
+            milestones_rgb=[500, 1500], # MultiStepLR parameters (for i3d-rgb)
+            milestones_flow=[500, 1500], # MultiStepLR parameters (for i3d-flow)
+            milestones_rgbd=[1000, 2000], # MultiStepLR parameters (for i3d-rgbd)
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information

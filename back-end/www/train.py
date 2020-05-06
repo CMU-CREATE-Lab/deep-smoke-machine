@@ -128,8 +128,11 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         p_frame_flow = "../data/flow/"
 
     if method == "i3d":
+        num_steps_per_update = 2
+        if mode == "rgbd": num_steps_per_update = 1
         model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd)
+                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+                num_steps_per_update=num_steps_per_update)
     elif method == "i3d-ft-tc":
         # Use i3d model weights to finetune extra layers
         model = I3dLearner(mode=mode, augment=augment,
