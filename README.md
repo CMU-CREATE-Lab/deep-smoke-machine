@@ -166,7 +166,7 @@ python download_videos.py
 # Background script (on the background using the "screen" command)
 sh bg.sh python download_videos.py
 ```
-Process all videos into rgb frames and optical flows, then save all data to the disk.
+Process all videos into rgb frames and optical flows, then save all data to the disk. Note that this step will take a very long time. If you only need the rgb frames, change the flow_type to None in the script.
 ```sh
 python process_videos.py
 
@@ -189,42 +189,33 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with the training and validation sets. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
+Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
 - [Two-Stream ConvNet](http://papers.nips.cc/paper/5353-two-stream-convolutional)
 ```sh
 python train.py [method] [optional_model_path]
 
-# Use I3D features + SVM (rgb or flow mode)
-python train.py svm-rgb
-python train.py svm-flow
+# Use I3D features + SVM
+python train.py svm-rgb-cv-1
 
-# Use Two-Stream Inflated 3D ConvNet (rgb or flow mode)
-python train.py i3d-rgb
-python train.py i3d-flow
+# Use Two-Stream Inflated 3D ConvNet
+python train.py i3d-rgb-cv-1
 
 # Background script (on the background using the "screen" command)
-sh bg.sh python train.py i3d-rgb
-sh bg.sh python train.py i3d-flow
-
-# Use Two-Stream Inflated 3D ConvNet and resume from a saved model (rgb or flow mode)
-python train.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
-python train.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
+sh bg.sh python train.py i3d-rgb-cv-1
 ```
 Test the performance of a model on the test set.
 ```sh
 python test.py [method] [model_path]
 
-# Use I3D features + SVM (rgb or flow mode)
-python test.py svm-rgb ../data/saved_svm/445cc62-svm-rgb/model/model.pkl
-python test.py svm-flow ../data/saved_svm/b376702-svm-flow/model/model.pkl
+# Use I3D features + SVM
+python test.py svm-rgb-cv-1 ../data/saved_svm/445cc62-svm-rgb/model/model.pkl
 
-# Use Two-Stream Inflated 3D ConvNet (rgb or flow mode)
-python test.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
-python test.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
+# Use Two-Stream Inflated 3D ConvNet
+python test.py i3d-rgb-cv-1 ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
 ```
 Recommended training strategy:
-1. Set an initial learning rate (e.g., 0.001)
+1. Set an initial learning rate (e.g., 0.1)
 2. Keep this learning rate and train the model until the training error decreases too slow (or fluctuate) or until the validation error increases (a sign of overfitting)
 3. Decrease the learning rate (e.g., by a factor of 10)
 4. Load the best model weight from the ones that were trained using the previous learning rate
