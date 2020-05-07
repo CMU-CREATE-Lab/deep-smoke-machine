@@ -4,7 +4,8 @@ from cnn_learner import CnnLearner
 from svm_learner import SvmLearner
 
 
-# Train the model
+# This is the main script for model training and validating
+# For detailed usage, run terminal command "sh bg.sh"
 def main(argv):
     if len(argv) < 2:
         print("Usage: python train.py [method]")
@@ -22,12 +23,8 @@ def main(argv):
 
 
 def train(method=None, model_path=None):
-    if method == "i3d-rgb":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        model = I3dLearner(mode="rgb")
-        model.fit(p_model=model_path)
-    elif method == "i3d-rgb-cv-1":
+    # Description of the methods are in the cv function
+    if method == "i3d-rgb-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=False)
@@ -39,17 +36,13 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=True)
-    elif method == "i3d-flow":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        model = I3dLearner(mode="flow")
-        model.fit(p_model=model_path)
     elif method == "i3d-flow-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         cv("flow", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-tc-rgb-cv-1":
         if model_path is None:
+            # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
                     "../data/saved_i3d/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
@@ -72,6 +65,7 @@ def train(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         if model_path is None:
+            # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
                     "../data/saved_i3d/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
@@ -80,11 +74,6 @@ def train(method=None, model_path=None):
                     "../data/saved_i3d/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
-    elif method == "i3d-rgbd":
-        if model_path is None:
-            model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        model = I3dLearner(mode="rgbd")
-        model.fit(p_model=model_path)
     elif method == "i3d-rgbd-cv-1":
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
@@ -93,6 +82,7 @@ def train(method=None, model_path=None):
         cv("rgb", "cnn", model_path=model_path, augment=True, perturb=False)
     elif method == "cnn-ft-tc-rgb-cv-1":
         if model_path is None:
+            # Need to run the cnn-rgb-cv-1 method first to get the best models
             model_path = [
                     "../data/saved_cnn/paper_result/full-augm-rgb-cnn/ce58dec-cnn-rgb-s0/model/1267.pt",
                     "../data/saved_cnn/paper_result/full-augm-rgb-cnn/fbe176a-cnn-rgb-s1/model/1470.pt",
@@ -101,14 +91,8 @@ def train(method=None, model_path=None):
                     "../data/saved_cnn/paper_result/full-augm-rgb-cnn/4ba65f6-cnn-rgb-s4/model/1477.pt",
                     "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2841c96-cnn-rgb-s5/model/1267.pt"]
         cv("rgb", "cnn-ft-tc", model_path=model_path, augment=True, perturb=False)
-    elif method == "svm-rgb":
-        model = SvmLearner(mode="rgb")
-        model.fit()
     elif method == "svm-rgb-cv-1":
         cv("rgb", "svm")
-    elif method == "svm-flow":
-        model = SvmLearner(mode="flow")
-        model.fit()
     elif method == "svm-flow-cv-1":
         cv("flow", "svm")
     else:
@@ -116,67 +100,89 @@ def train(method=None, model_path=None):
         return
 
 
-# Cross validation of i3d or svm model
+# Cross validation of different models
+# mode="rgb" means using the rgb channels
+# mode="flow" means using the optical flow channels
+# mode="rgbd" means using the rgb and dark channel (see "compute_dark_channel.py")
 def cv(mode, method, model_path=None, augment=True, perturb=False):
+    # Set the path for loading video frames and features
+    if mode == "rgb":
+        p_feat = "../data/i3d_features_rgb/"
+    elif mode == "flow":
+        p_feat = "../data/i3d_features_flow/"
+    elif mode == "rgbd"
+        p_feat = "../data/i3d_features_rgbd/"
     if perturb:
-        p_frame_rgb = "../data/rgb_perturb/"
-        p_frame_rgbd = "../data/rgbd_perturb/"
-        p_frame_flow = "../data/flow_perturb/"
+        # Use frame perturbation, where video frames are randomly shuffled
+        if mode == "rgb":
+            p_frame = "../data/rgb_perturb/"
+        elif mode == "rgbd":
+            p_frame = "../data/rgbd_perturb/"
+        elif mode == "flow":
+            p_frame = "../data/flow_perturb/"
     else:
-        p_frame_rgb = "../data/rgb/"
-        p_frame_rgbd = "../data/rgbd/"
-        p_frame_flow = "../data/flow/"
+        # Use the original video frames
+        if mode == "rgb":
+            p_frame = "../data/rgb/"
+        elif mode == "rgbd":
+            p_frame = "../data/rgbd/"
+        elif mode == "flow":
+            p_frame = "../data/flow/"
 
+    # Set the model based on the desired method
     if method == "i3d":
+        # Use Kinetics pretrained weights to train the baseline I3D model with Inception-v1 layers
+        # https://arxiv.org/abs/1705.07750
         num_steps_per_update = 2
-        if mode == "rgbd": num_steps_per_update = 1
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
-                num_steps_per_update=num_steps_per_update)
+        init_lr = 0.1
+        milestones = [500, 1500]
+        if mode == "rgbd":
+            num_steps_per_update = 1
+            init_lr = 0.2
+            milestones = [1000, 2000]
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
+                init_lr=init_lr, num_steps_per_update=num_steps_per_update, milestones=milestones)
     elif method == "i3d-ft-tc":
-        # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use I3D model self-trained weights to finetune extra Timeception layers
+        # https://arxiv.org/abs/1812.01289
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_tc=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1)
-    elif method == "i3d-tc":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
-                use_tc=True, freeze_i3d=False, batch_size_train=8)
+                milestones=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-tsm":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use Kinetics pretrained weights to train the entire network with Temporal Shift Module
+        # https://arxiv.org/abs/1811.08383
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_tsm=True, freeze_i3d=False,
-                milestones_rgb=[1000, 2000], weight_decay=0.0000000001, num_steps_per_update=1)
+                milestones=[1000, 2000], weight_decay=0.0000000001, num_steps_per_update=1)
     elif method == "i3d-nl":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use Kinetics pretrained weights to train the entire network with Non-Local Blocks
+        # https://arxiv.org/abs/1711.07971
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_nl=True, freeze_i3d=False)
     elif method == "i3d-ft-lstm":
-        # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use I3D model self-trained weights to finetune LSTM layers
+        # https://www.mitpressjournals.org/doi/pdfplus/10.1162/neco.1997.9.8.1735
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_lstm=True, freeze_i3d=True, batch_size_train=8,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1, weight_decay=0.0001)
+                milestones=[1000, 2000], num_steps_per_update=1, weight_decay=0.0001)
     elif method == "cnn":
-        model = CnnLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use ImageNet pretrained weights to train the 2D CNN model
+        # https://arxiv.org/abs/1502.03167
+        model = CnnLearner(mode=mode, augment=augment, p_frame=p_frame,
                 method="cnn", freeze_cnn=False)
     elif method == "cnn-ft-tc":
-        # Use CNN model weights to finetune extra layers
-        model = CnnLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        # Use 2D CNN model self-trained weights to finetune extra Timeception layers
+        model = CnnLearner(mode=mode, augment=augment, p_frame=p_frame,
                 method="cnn-tc", freeze_cnn=True,
-                milestones_rgb=[1000, 2000], num_steps_per_update=1)
+                milestones=[1000, 2000], num_steps_per_update=1)
     elif method == "svm":
-        model = SvmLearner(mode=mode)
+        # Support vector machine
+        model = SvmLearner(mode=mode, p_feat=p_feat)
     else:
         print("Method not allowed.")
         return
 
+    # Set the pretrained model paths for all dataset splits
     if type(model_path) is not list:
         model_path = [model_path]*6
 

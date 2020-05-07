@@ -5,6 +5,8 @@ import numpy as np
 
 
 # 2D CNN
+# Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift
+# https://arxiv.org/abs/1502.03167
 class Cnn(nn.Module):
 
     def __init__(self, input_size, num_classes=2):

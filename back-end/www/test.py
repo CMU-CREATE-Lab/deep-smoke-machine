@@ -5,7 +5,8 @@ from cnn_learner import CnnLearner
 from svm_learner import SvmLearner
 
 
-# Test model performance
+# This is the main script for model testing
+# For detailed usage, run terminal command "sh bg.sh"
 def main(argv):
     if len(argv) < 3:
         print("Usage: python test.py [method] [model_path]")
@@ -22,13 +23,7 @@ def main(argv):
 
 
 def test(method=None, model_path=None):
-    if method == "i3d-rgb":
-        model = I3dLearner(mode="rgb")
-        model.test(p_model=model_path)
-    elif method == "i3d-flow":
-        model = I3dLearner(mode="flow")
-        model.test(p_model=model_path)
-    elif method == "i3d-rgb-cv-1":
+    if method == "i3d-rgb-cv-1":
         cv("rgb", "i3d", model_path, augment=True, perturb=False)
     elif method == "i3d-rgb-cv-2":
         cv("rgb", "i3d", model_path, augment=False, perturb=False)
@@ -46,23 +41,14 @@ def test(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         cv("rgb", "i3d-ft-lstm", model_path, augment=True, perturb=False)
-    elif method == "i3d-rgbd":
-        model = I3dLearner(mode="rgbd")
-        model.test(p_model=model_path)
     elif method == "i3d-rgbd-cv-1":
         cv("rgbd", "i3d", model_path, augment=True, perturb=False)
     elif method == "cnn-rgb-cv-1":
         cv("rgb", "cnn", model_path, augment=True, perturb=False)
     elif method == "cnn-ft-tc-rgb-cv-1":
         cv("rgb", "cnn-ft-tc", model_path, augment=True, perturb=False)
-    elif method == "svm-rgb":
-        model = SvmLearner(mode="rgb")
-        model.test(p_model=model_path)
     elif method == "svm-rgb-cv-1":
         cv("rgb", "svm", model_path)
-    elif method == "svm-flow":
-        model = SvmLearner(mode="flow")
-        model.test(p_model=model_path)
     elif method == "svm-flow-cv-1":
         cv("flow", "svm", model_path)
     else:
@@ -70,52 +56,47 @@ def test(method=None, model_path=None):
         return
 
 
-# Cross validation of i3d and svm model
+# Cross validation of different models
 def cv(mode, method, model_path, augment=True, perturb=False):
+    # Set the path for loading video frames
     if perturb:
-        p_frame_rgb = "../data/rgb_perturb/"
-        p_frame_flow = "../data/flow_perturb/"
-        p_frame_rgbd = "../data/rgbd_perturb/"
+        # Use frame perturbation, where video frames are randomly shuffled
+        if mode == "rgb":
+            p_frame = "../data/rgb_perturb/"
+        elif mode == "rgbd":
+            p_frame = "../data/rgbd_perturb/"
+        elif mode == "flow":
+            p_frame = "../data/flow_perturb/"
     else:
-        p_frame_rgb = "../data/rgb/"
-        p_frame_flow = "../data/flow/"
-        p_frame_rgbd = "../data/rgbd/"
+        # Use the original video frames
+        if mode == "rgb":
+            p_frame = "../data/rgb/"
+        elif mode == "rgbd":
+            p_frame = "../data/rgbd/"
+        elif mode == "flow":
+            p_frame = "../data/flow/"
+
+    # Set the model based on the desired method
+    # The training script "train.py" has descriptions about these methods
     if method == "i3d":
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd)
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame)
     elif method == "i3d-ft-tc":
-        # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_tc=True, freeze_i3d=True)
-    elif method == "i3d-tc":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
-                use_tc=True, freeze_i3d=False)
     elif method == "i3d-tsm":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_tsm=True, freeze_i3d=False)
     elif method == "i3d-nl":
-        # Use Kinetics pretrained weights to train the entire network
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_nl=True, freeze_i3d=False)
     elif method == "i3d-ft-lstm":
-        # Use i3d model weights to finetune extra layers
-        model = I3dLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 use_lstm=True, freeze_i3d=True)
     elif method == "cnn":
-        model = CnnLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = CnnLearner(mode=mode, augment=augment, p_frame=p_frame,
                 method="cnn", freeze_cnn=False)
     elif method == "cnn-ft-tc":
-        # Use CNN model weights to finetune extra layers
-        model = CnnLearner(mode=mode, augment=augment,
-                p_frame_rgb=p_frame_rgb, p_frame_flow=p_frame_flow, p_frame_rgbd=p_frame_rgbd,
+        model = CnnLearner(mode=mode, augment=augment, p_frame=p_frame,
                 method="cnn-tc", freeze_cnn=True)
     elif method == "svm":
         model = SvmLearner(mode=mode)

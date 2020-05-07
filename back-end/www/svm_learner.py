@@ -19,28 +19,19 @@ class SvmLearner(BaseLearner):
     def __init__(self,
             C=1, # SVM parameters
             mode="rgb", # can be "rgb" or "flow"
-            p_feat_rgb="../data/i3d_features_rgb/", # path to load rgb feature
-            p_feat_flow="../data/i3d_features_flow/", # path to load optical flow feature
-            p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/" # path to load optical flow frame
+            p_feat="../data/i3d_features_rgb/", # path to load features
             ):
         super().__init__()
 
         self.C = C
         self.mode = mode
-        self.p_feat_rgb = p_feat_rgb
-        self.p_feat_flow = p_feat_flow
-        self.p_frame_rgb = p_frame_rgb
-        self.p_frame_flow = p_frame_flow
+        self.p_feat = p_feat
 
     def log_parameters(self):
         text = ""
         text += "C: " + str(self.C) + "\n"
         text += "mode: " + str(self.mode) + "\n"
-        text += "p_feat_rgb: " + self.p_feat_rgb + "\n"
-        text += "p_feat_flow: " + self.p_feat_flow + "\n"
-        text += "p_frame_rgb: " + self.p_frame_rgb + "\n"
-        text += "p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "p_feat: " + self.p_feat + "\n"
         self.log(text)
 
     def set_dataloader(self, metadata_path, root_dir):
@@ -67,8 +58,6 @@ class SvmLearner(BaseLearner):
         save_model_path = save_model_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
         save_metadata_path = save_metadata_path.replace("[model_id]", model_id)
-        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Copy training, validation, and testing metadata
         check_and_create_dir(save_metadata_path)
@@ -94,7 +83,7 @@ class SvmLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"train": p_metadata_train, "validation": p_metadata_validation}
-        dataloader = self.set_dataloader(metadata_path, p_feat)
+        dataloader = self.set_dataloader(metadata_path, self.p_feat)
 
         # Train and validate
         for phase in ["train", "validation"]:
@@ -131,8 +120,6 @@ class SvmLearner(BaseLearner):
         p_root = p_model[:match.start()] + "/" + model_id + "/"
         p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
         save_log_path = p_root + "log/test.log" # path to save log files
-        p_feat = self.p_feat_rgb if self.mode == "rgb" else self.p_feat_flow
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Set logger
         self.create_logger(log_path=save_log_path)
@@ -149,7 +136,7 @@ class SvmLearner(BaseLearner):
 
         # Load datasets
         metadata_path = {"test": p_metadata_test}
-        dataloader = self.set_dataloader(metadata_path, p_feat)
+        dataloader = self.set_dataloader(metadata_path, self.p_feat)
 
         # Test
         for d in dataloader["test"]:

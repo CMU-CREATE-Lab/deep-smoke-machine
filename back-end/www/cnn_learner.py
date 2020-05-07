@@ -41,12 +41,10 @@ class CnnLearner(BaseLearner):
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
-            init_lr_rgb=0.01, # initial learning rate (for cnn-rgb)
-            init_lr_flow=0.01, # initial learning rate (for cnn-flow)
+            init_lr=0.01, # initial learning rate
             weight_decay=0.000001, # L2 regularization
             momentum=0.9, # SGD parameters
-            milestones_rgb=[500, 1500, 3500, 7500], # MultiStepLR parameters (for cnn-rgb)
-            milestones_flow=[500, 1500, 3500, 7500], # MultiStepLR parameters (for cnn-flow)
+            milestones=[500, 1500], # MultiStepLR parameters
             gamma=0.1, # MultiStepLR parameters
             num_of_action_classes=2, # currently we only have two classes (0 and 1, which means no and yes)
             num_steps_per_check=50, # the number of steps to save a model and log information
@@ -54,8 +52,7 @@ class CnnLearner(BaseLearner):
             augment=True, # use data augmentation or not
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow"
-            p_frame_rgb="../data/rgb/", # path to load rgb frame
-            p_frame_flow="../data/flow/", # path to load optical flow frame
+            p_frame="../data/rgb/", # path to load video frames
             method="cnn", # the method for the model
             freeze_cnn=False # freeze the CNN model while training or not
             ):
@@ -66,12 +63,10 @@ class CnnLearner(BaseLearner):
         self.batch_size_extract_features = batch_size_extract_features
         self.max_steps = max_steps
         self.num_steps_per_update = num_steps_per_update
-        self.init_lr_rgb = init_lr_rgb
-        self.init_lr_flow = init_lr_flow
+        self.init_lr = init_lr
         self.weight_decay = weight_decay
         self.momentum = momentum
-        self.milestones_rgb = milestones_rgb
-        self.milestones_flow = milestones_flow
+        self.milestones = milestones
         self.gamma = gamma
         self.num_of_action_classes = num_of_action_classes
         self.num_steps_per_check = num_steps_per_check
@@ -79,8 +74,7 @@ class CnnLearner(BaseLearner):
         self.augment = augment
         self.num_workers = num_workers
         self.mode = mode
-        self.p_frame_rgb = p_frame_rgb
-        self.p_frame_flow = p_frame_flow
+        self.p_frame = p_frame
         self.method = method
         self.freeze_cnn = freeze_cnn
 
@@ -95,12 +89,10 @@ class CnnLearner(BaseLearner):
         text += "  batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"
         text += "  max_steps: " + str(self.max_steps) + "\n"
         text += "  num_steps_per_update: " + str(self.num_steps_per_update) + "\n"
-        text += "  init_lr_rgb: " + str(self.init_lr_rgb) + "\n"
-        text += "  init_lr_flow: " + str(self.init_lr_flow) + "\n"
+        text += "  init_lr: " + str(self.init_lr) + "\n"
         text += "  weight_decay: " + str(self.weight_decay) + "\n"
         text += "  momentum: " + str(self.momentum) + "\n"
-        text += "  milestones_rgb: " + str(self.milestones_rgb) + "\n"
-        text += "  milestones_flow: " + str(self.milestones_flow) + "\n"
+        text += "  milestones: " + str(self.milestones) + "\n"
         text += "  gamma: " + str(self.gamma) + "\n"
         text += "  num_of_action_classes: " + str(self.num_of_action_classes) + "\n"
         text += "  num_steps_per_check: " + str(self.num_steps_per_check) + "\n"
@@ -108,8 +100,7 @@ class CnnLearner(BaseLearner):
         text += "  augment: " + str(self.augment) + "\n"
         text += "  num_workers: " + str(self.num_workers) + "\n"
         text += "  mode: " + self.mode + "\n"
-        text += "  p_frame_rgb: " + self.p_frame_rgb + "\n"
-        text += "  p_frame_flow: " + self.p_frame_flow + "\n"
+        text += "  p_frame: " + self.p_frame + "\n"
         text += "  method: " + self.method + "\n"
         text += "  freeze_cnn: " + str(self.freeze_cnn) + "\n"
         self.log(text)
@@ -218,7 +209,6 @@ class CnnLearner(BaseLearner):
         save_tensorboard_path = save_tensorboard_path.replace("[model_id]", model_id)
         save_log_path = save_log_path.replace("[model_id]", model_id)
         save_metadata_path = save_metadata_path.replace("[model_id]", model_id)
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Copy training, validation, and testing metadata
         check_and_create_dir(save_metadata_path)
@@ -232,10 +222,10 @@ class CnnLearner(BaseLearner):
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.fit_worker, nprocs=n_gpu,
-                    args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame,
+                    args=(n_gpu, p_model, save_model_path, save_tensorboard_path, save_log_path, self.p_frame,
                         p_metadata_train, p_metadata_validation, p_metadata_test), join=True)
         else:
-            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, p_frame,
+            self.fit_worker(0, 1, p_model, save_model_path, save_tensorboard_path, save_log_path, self.p_frame,
                     p_metadata_train, p_metadata_validation, p_metadata_test)
 
     def fit_worker(self, rank, world_size, p_model, save_model_path, save_tensorboard_path, save_log_path,
@@ -272,10 +262,8 @@ class CnnLearner(BaseLearner):
         writer_v = SummaryWriter(save_tensorboard_path + "/validation/")
 
         # Set optimizer
-        init_lr = self.init_lr_rgb if self.mode == "rgb" else self.init_lr_flow
-        optimizer = optim.SGD(model.parameters(), lr=init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
-        milestones = self.milestones_rgb if self.mode == "rgb" else self.milestones_flow
-        lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=self.gamma)
+        optimizer = optim.SGD(model.parameters(), lr=self.init_lr, momentum=self.momentum, weight_decay=self.weight_decay)
+        lr_sche= optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.gamma)
 
         # Set logging format
         log_fm = "%s step: %d lr: %r loc_loss: %.4f cls_loss: %.4f loss: %.4f"
@@ -430,7 +418,6 @@ class CnnLearner(BaseLearner):
         p_metadata_test = p_root + "metadata/metadata_test.json" # metadata path (test)
         save_log_path = p_root + "log/test.log" # path to save log files
         save_viz_path = p_root + "viz/" # path to save visualizations
-        p_frame = self.p_frame_rgb if self.mode == "rgb" else self.p_frame_flow
 
         # Spawn processes
         n_gpu = torch.cuda.device_count()
@@ -439,9 +426,9 @@ class CnnLearner(BaseLearner):
             self.can_parallel = True
             self.log("Let's use " + str(n_gpu) + " GPUs!")
             mp.spawn(self.test_worker, nprocs=n_gpu,
-                    args=(n_gpu, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test), join=True)
+                    args=(n_gpu, p_model, save_log_path, self.p_frame, save_viz_path, p_metadata_test), join=True)
         else:
-            self.test_worker(0, 1, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test)
+            self.test_worker(0, 1, p_model, save_log_path, self.p_frame, save_viz_path, p_metadata_test)
 
     def test_worker(self, rank, world_size, p_model, save_log_path, p_frame, save_viz_path, p_metadata_test):
         # Set logger

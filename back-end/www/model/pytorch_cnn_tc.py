@@ -7,6 +7,8 @@ from model.timeception.nets import timeception_pytorch
 
 
 # 2D CNN + Timeception
+# Timeception for Complex Action Recognition
+# https://arxiv.org/abs/1812.01289
 class CnnTc(nn.Module):
 
     def __init__(self, input_size, num_classes=2, num_tc_layers=1, dropout_keep_prob=0.5, freeze_cnn=False):

@@ -6,6 +6,8 @@ from base_learner import Reshape
 
 
 # I3D + LSTM
+# Long Short-Term Memory
+# https://www.mitpressjournals.org/doi/pdfplus/10.1162/neco.1997.9.8.1735
 class InceptionI3dLstm(nn.Module):
 
     def __init__(self, input_size, num_classes=2, in_channels=3, dropout_keep_prob=0.5, freeze_i3d=False):

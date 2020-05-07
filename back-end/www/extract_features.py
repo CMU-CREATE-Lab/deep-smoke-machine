@@ -2,7 +2,7 @@ import sys
 from i3d_learner import I3dLearner
 
 
-# Extract features
+# The script for extracting features
 def main(argv):
     if len(argv) < 2:
         print("Usage: python extract_features.py [method]")
@@ -24,12 +24,12 @@ def extract_features(method=None, model_path=None):
         model = I3dLearner(mode="rgb")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
-        model.extract_features(p_model=model_path)
+        model.extract_features(p_model=model_path, p_feat="../data/i3d_features_rgb/")
     elif method == "i3d-flow":
         model = I3dLearner(mode="flow")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
-        model.extract_features(p_model=model_path)
+        model.extract_features(p_model=model_path, p_feat="../data/i3d_features_flow/")
     else:
         print("Method not allowed")
         return
