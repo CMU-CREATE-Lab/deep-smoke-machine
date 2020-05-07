@@ -16,33 +16,23 @@ else
   sh bg.sh python perturb_frames.py\n\
   sh bg.sh python extract_features.py i3d-rgb\n\
   sh bg.sh python extract_features.py i3d-flow\n\
-  sh bg.sh python train.py i3d-rgb\n\
   sh bg.sh python train.py i3d-rgb-cv-1\n\
   sh bg.sh python train.py i3d-ft-tc-rgb-cv-1\n\
-  sh bg.sh python train.py i3d-tc-rgb-cv-1\n\
   sh bg.sh python train.py i3d-tsm-rgb-cv-1\n\
   sh bg.sh python train.py i3d-nl-rgb-cv-1\n\
   sh bg.sh python train.py i3d-ft-lstm-rgb-cv-1\n\
-  sh bg.sh python train.py i3d-flow\n\
   sh bg.sh python train.py i3d-flow-cv-1\n\
-  sh bg.sh python train.py i3d-rgbd\n\
   sh bg.sh python train.py i3d-rgbd-cv-1\n\
   sh bg.sh python train.py cnn-rgb-cv-1\n\
   sh bg.sh python train.py cnn-ft-tc-rgb-cv-1\n\
-  sh bg.sh python train.py svm-rgb\n\
   sh bg.sh python train.py svm-rgb-cv-1\n\
-  sh bg.sh python train.py svm-flow\n\
   sh bg.sh python train.py svm-flow-cv-1\n\
-  sh bg.sh python test.py i3d-rgb [model_path]\n\
   sh bg.sh python test.py i3d-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-ft-tc-rgb-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-tsm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-nl-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py i3d-ft-lstm-rgb-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-flow [model_path]\n\
   sh bg.sh python test.py i3d-flow-cv-1 [model_path]\n\
-  sh bg.sh python test.py i3d-rgbd [model_path]\n\
   sh bg.sh python test.py i3d-rgbd-cv-1 [model_path]\n\
   sh bg.sh python test.py cnn-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py cnn-ft-tc-rgb-cv-1 [model_path]\n\
