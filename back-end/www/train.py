@@ -110,7 +110,7 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
         p_feat = "../data/i3d_features_rgb/"
     elif mode == "flow":
         p_feat = "../data/i3d_features_flow/"
-    elif mode == "rgbd"
+    elif mode == "rgbd":
         p_feat = "../data/i3d_features_rgbd/"
     if perturb:
         # Use frame perturbation, where video frames are randomly shuffled

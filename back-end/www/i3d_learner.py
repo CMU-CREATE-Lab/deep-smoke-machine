@@ -62,6 +62,7 @@ class I3dLearner(BaseLearner):
             num_workers=12, # number of workers for the dataloader
             mode="rgb", # can be "rgb" or "flow" or "rgbd"
             p_frame="../data/rgb/", # path to load video frames
+            code_testing=False # a special flag for testing if the code works
             ):
         super().__init__(use_cuda=use_cuda)
 
@@ -91,6 +92,11 @@ class I3dLearner(BaseLearner):
         # Internal parameters
         self.image_size = 224 # 224 is the input for the i3d network structure
         self.can_parallel = False
+
+        # Code testing mode
+        self.code_testing = code_testing
+        if code_testing:
+            self.max_steps = 10
 
     def log_parameters(self):
         text = "\nParameters:\n"
@@ -373,6 +379,9 @@ class I3dLearner(BaseLearner):
                 optimizer.zero_grad()
                 # Iterate over batch data
                 for d in tqdm.tqdm(dataloader[phase]):
+                    if self.code_testing:
+                        if phase == "train" and steps >= self.max_steps: break
+                        if phase == "validation" and accum[phase] >= self.max_steps: break
                     accum[phase] += 1
                     # Get prediction
                     frames = self.to_variable(d["frames"])
