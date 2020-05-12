@@ -149,12 +149,10 @@ Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gal
 ```sh
 python get_metadata.py confirm
 ```
-For others who wish to use the publicly released dataset (a snapshot of the system on 2/24/2020), please go to the [smoke recognition dataset page](https://github.com/CMU-CREATE-Lab/smoke-recognition-dataset) to download the metadata.json file. You need to create a data folder under deep-smoke-machine/back-end/, and then place the metadata.json file inside this folder.
+For others who wish to use the publicly released dataset (a snapshot of the system on 2/24/2020), we aleady include metadata_02242020.json file under the deep-smoke-machine/back-end/data/ folder. You need to rename this file to metadata.json.
 ```sh
-cd deep-smoke-machine/back-end/
-mkdir data
-cd data/
-mv [path_where_you_download_metadata] .
+cd deep-smoke-machine/back-end/data/
+mv metadata_02242020.json metadata.json
 ```
 Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our paper.
 ```sh
