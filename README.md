@@ -144,17 +144,6 @@ sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
 
-# <a name="use-tensorboard"></a>Use Tensorboard
-Create a logging directory
-```
-mkdir run
-```
-Write data to the model_runs directory while running the model. After writing model data to the directory, launch tensorboard.
-```
-tensorboard --logdir=run
-```
-After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
-
 # <a name="use-this-tool"></a>Use this tool
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file under deep-smoke-machine/back-end/data/.
 ```sh
@@ -223,6 +212,22 @@ python test.py svm-rgb-cv-1 ../data/saved_svm/445cc62-svm-rgb/model/model.pkl
 
 # Use Two-Stream Inflated 3D ConvNet
 python test.py i3d-rgb-cv-1 ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
+```
+After model training and testing, the folder structure will look like the following:
+```
+└── saved_i3d                            # this corresponds to deep-smoke-machine/back-end/data/saved_i3d/
+    └── 549f8df-i3d-rgb-s1               # the name of the model, s1 means split 1
+        ├── cam                          # the visualization using Grad-CAM
+        ├── log                          # the log when training models
+        ├── metadata                     # the metadata of the dataset split
+        ├── model                        # the saved models
+        ├── run                          # the saved information for Tensorboard
+        └── viz                          # the sampled videos for each cell in the confusion matrix
+```
+If you want to see the training and testing results on [TensorBoard](https://pytorch.org/docs/stable/tensorboard.html), run the following and go to the stated URL in your browser.
+```
+cd deep-smoke-machine/back-end/data/
+tensorboard --logdir=saved_i3d
 ```
 Recommended training strategy:
 1. Set an initial learning rate (e.g., 0.1)
