@@ -151,7 +151,7 @@ tensorboard --logdir=run
 After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
 
 # Use this tool
-Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file uder deep-smoke-machine/back-end/data/.
+Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file under deep-smoke-machine/back-end/data/.
 ```sh
 python get_metadata.py confirm
 ```
