@@ -203,7 +203,7 @@ python train.py i3d-rgb-cv-1
 # Background script (on the background using the "screen" command)
 sh bg.sh python train.py i3d-rgb-cv-1
 ```
-Test the performance of a model on the test set.
+Test the performance of a model on the test set. This step will also generate summary videos for each cell in the confusion matrix (true positive, true negative, false positive, and false negative).
 ```sh
 python test.py [method] [model_path]
 
@@ -221,7 +221,7 @@ After model training and testing, the folder structure will look like the follow
         ├── log                          # the log when training models
         ├── metadata                     # the metadata of the dataset split
         ├── model                        # the saved models
-        ├── run                          # the saved information for Tensorboard
+        ├── run                          # the saved information for TensorBoard
         └── viz                          # the sampled videos for each cell in the confusion matrix
 ```
 If you want to see the training and testing results on [TensorBoard](https://pytorch.org/docs/stable/tensorboard.html), run the following and go to the stated URL in your browser.
