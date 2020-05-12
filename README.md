@@ -213,6 +213,13 @@ python test.py svm-rgb-cv-1 ../data/saved_svm/445cc62-svm-rgb/model/model.pkl
 # Use Two-Stream Inflated 3D ConvNet
 python test.py i3d-rgb-cv-1 ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
 ```
+Run [Grad-CAM](https://arxiv.org/abs/1610.02391) to visualize the areas in the videos that the model is looking at.
+```sh
+python grad_cam_viz.py i3d-rgb [model_path]
+
+# Background script (on the background using the "screen" command)
+sh bg.sh python grad_cam_viz.py i3d-rgb [model_path]
+```
 After model training and testing, the folder structure will look like the following:
 ```
 └── saved_i3d                            # this corresponds to deep-smoke-machine/back-end/data/saved_i3d/
