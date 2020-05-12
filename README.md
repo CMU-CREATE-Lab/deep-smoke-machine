@@ -1,7 +1,13 @@
 # deep-smoke-machine
 Deep learning for smoke detection. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed.
 
-# Install Nvidia drivers, cuda, and cuDNN
+### Table of Content
+- [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
+- [Setup this tool](#setup-tool)
+- [Use Tensorboard](#use-tensorboard)
+- [Use this tool](#use-this-tool)
+
+# <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
 Disable the nouveau driver.
 ```sh
 sudo vim /etc/modprobe.d/blacklist.conf
@@ -72,7 +78,7 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda/lib64
 sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
 ```
  
-# Setup this tool
+# <a name="setup-tool"></a>Setup this tool
 Install conda. This assumes that Ubuntu is installed. A detailed documentation is [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). First visit [here](https://conda.io/miniconda.html) to obtain the downloading path. The following script install conda for all users:
 ```sh
 wget https://repo.continuum.io/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh
@@ -139,7 +145,7 @@ sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
 
-# Using Tensorboard
+# <a name="use-tensorboard"></a>Use Tensorboard
 Create a logging directory
 ```
 mkdir run
@@ -150,7 +156,7 @@ tensorboard --logdir=run
 ```
 After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
 
-# Use this tool
+# <a name="use-this-tool"></a>Use this tool
 Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file under deep-smoke-machine/back-end/data/.
 ```sh
 python get_metadata.py confirm
