@@ -151,29 +151,36 @@ tensorboard --logdir=run
 After launching, tensorboard will start a server. To view, navigate to the stated URL in your browser. For more information about data input types, refer to [the official documentation](https://pytorch.org/docs/stable/tensorboard.html)
 
 # Use this tool
-Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata.
+Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file uder deep-smoke-machine/back-end/data/.
 ```sh
 python get_metadata.py confirm
 ```
-Split the metadata into three sets: train, validation, and test.
+For others who wish to use the publicly released dataset (a snapshot of the system on 2/24/2020), please go to the [smoke recognition dataset page](https://github.com/CMU-CREATE-Lab/smoke-recognition-dataset) to download the metadata.json file. You need to create a data folder under deep-smoke-machine/back-end/, and then place the metadata.json file inside this folder.
+```sh
+cd deep-smoke-machine/back-end/
+mkdir data
+cd data/
+mv [path_where_you_download_metadata] .
+```
+Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our paper.
 ```sh
 python split_metadata.py confirm
 ```
-Download all videos in the metadata file.
+Download all videos in the metadata file to deep-smoke-machine/back-end/data/videos/.
 ```sh
 python download_videos.py
 
 # Background script (on the background using the "screen" command)
 sh bg.sh python download_videos.py
 ```
-Process all videos into rgb frames and optical flows, then save all data to the disk. Note that this step will take a very long time. If you only need the rgb frames, change the flow_type to None in the script.
+Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flows (under deep-smoke-machine/back-end/data/flow/). Note that this step will take a very long time. If you only need the rgb frames, change the flow_type to None in the process_videos.py script.
 ```sh
 python process_videos.py
 
 # Background script (on the background using the "screen" command)
 sh bg.sh python process_videos.py
 ```
-Extract [I3D features](https://github.com/piergiaj/pytorch-i3d).
+Extract [I3D features](https://github.com/piergiaj/pytorch-i3d) under deep-smoke-machine/back-end/data/i3d_features_rgb/ and deep-smoke-machine/back-end/data/i3d_features_flow/.
 ```sh
 python extract_features.py [method] [optional_model_path]
 
@@ -189,7 +196,7 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d).
+Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder.
 - [Two-Stream Inflated 3D ConvNet](https://arxiv.org/abs/1705.07750)
 - [Two-Stream ConvNet](http://papers.nips.cc/paper/5353-two-stream-convolutional)
 ```sh
