@@ -4,7 +4,6 @@ Deep learning for smoke detection. The videos are from the [smoke labeling tool]
 ### Table of Content
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
 - [Setup this tool](#setup-tool)
-- [Use Tensorboard](#use-tensorboard)
 - [Use this tool](#use-this-tool)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
