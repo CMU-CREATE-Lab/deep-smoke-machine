@@ -150,7 +150,7 @@ Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gal
 ```sh
 python get_metadata.py confirm
 ```
-For others who wish to use the publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we will include metadata_02242020.json file under the deep-smoke-machine/back-end/data/dataset/ folder later. You need to copy, move, and rename this file to deep-smoke-machine/back-end/data/metadata.json.
+For others who wish to use the publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we include metadata_02242020.json file under the deep-smoke-machine/back-end/data/dataset/ folder. You need to copy, move, and rename this file to deep-smoke-machine/back-end/data/metadata.json.
 ```sh
 cd deep-smoke-machine/back-end/data/
 cp dataset/metadata_02242020.json metadata.json
@@ -262,4 +262,43 @@ Recommended training strategy:
 5. Repeat step 2, 3, and 4 until convergence
 
 # <a name="dataset"></a>Dataset
-We will explain the format of the dataset in this section.
+We include our publicly released dataset (a snapshot of the smoke labeling tool on 2/24/2020) metadata_02242020.json file under the deep-smoke-machine/back-end/data/dataset/ folder. The json file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
+- camera_id
+  - ID of the camera (0 means [clairton1](http://mon.createlab.org/#v=3703.5,970,0.61,pts&t=456.42&ps=25&d=2020-04-06&s=clairton1&bt=20200406&et=20200407), 1 means [braddock1](http://mon.createlab.org/#v=2868.5,740.5,0.61,pts&t=540.67&ps=25&d=2020-04-07&s=braddock1&bt=20200407&et=20200408), and 2 means [westmifflin1](http://mon.createlab.org/#v=1722.89321,1348.42994,0.806,pts&t=704.33&ps=25&d=2020-04-07&s=westmifflin1&bt=20200407&et=20200408))
+- view_id
+  - ID of the cropped view from the camera (each camera produces a panarama, and each view is cropped from this panarama)
+- id
+  - Unique ID of the video clip
+- label_state
+  - State of the video label produced by the citizen science volunteers (will be explained in the next paragraph)
+- label_state_admin
+  - State of the video label produced by the researchers (will be explained in the next paragraph)
+- start_time
+  - Starting epoch time (in seconds) when capturing the video, corresponding to the real-world time
+- url_root
+  - URL root of the video, need to combine with url_part to get the full URL (url_root + url_part)
+- url_part
+  - URL part of the video, need to combine with url_root to get the full URL (url_root + url_part)
+- file_name
+  - File name of the video, for example 0-1-2018-12-13-6007-928-6509-1430-180-180-6614-1544720610-1544720785
+  - The format of the file_name is [camera_id]-[view_id]-[year]-[month]-[day]-[bound_left]-[bound_top]-[bound_right]-[bound_bottom]-[video_height]-[video_width]-[start_frame_number]-[start_epoch_time]-[end_epoch_time]
+
+The state of the label (label_state and label_state_admin) in the metadata_02242020.json is explained below.
+- 23 : strong positive
+  - Two volunteers both agree (or one researcher says) that the video has smoke.
+- 16 : strong negative
+  - Two volunteers both agree (or one researcher says) that the video does not have smoke.
+- 19 : weak positive
+  - Two volunteers have different answers, and the third volunteer says that the video has smoke.
+- 20 : weak negative
+  - Two volunteers have different answers, and the third volunteer says that the video does not have smoke.
+- 5 : maybe positive
+  - One volunteers says that the video has smoke.
+- 4 : maybe negative
+  - One volunteers says that the video does not have smoke.
+- 3 : has discord
+  - Two volunteers have different answers (one says yes, and another one says no).
+- -1 : no data, no discord
+  - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our technical report about these three cases.
+
+After running the split_metadata.py script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the json files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
