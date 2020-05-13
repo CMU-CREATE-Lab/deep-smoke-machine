@@ -168,11 +168,11 @@ sh bg.sh python download_videos.py
 ```
 Here are some tips for the screen command:
 ```sh
-# List currently running screens
+# List currently running screen names
 sudo screen -ls
 
 # Go into a screen
-sudo screen -x NAME_FROM_ABOVE_COMMAND (e.g. sudo screen -x 33186.download_videos)
+sudo screen -x [NAME_FROM_ABOVE_COMMAND] (e.g. sudo screen -x 33186.download_videos)
 # Inside the screen, use CTRL+C to terminate the screen
 # Or use CTRL+A+D to detach the screen and send it to the background
 
