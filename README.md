@@ -154,7 +154,7 @@ For others who wish to use the publicly released dataset (a snapshot of the syst
 cd deep-smoke-machine/back-end/data/
 mv metadata_02242020.json metadata.json
 ```
-Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our paper.
+Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our technical report.
 ```sh
 python split_metadata.py confirm
 ```
@@ -188,7 +188,7 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our paper.
+Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report.
 ```sh
 python train.py [method] [optional_model_path]
 
