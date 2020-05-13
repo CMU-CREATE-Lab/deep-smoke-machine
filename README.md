@@ -5,6 +5,7 @@ Deep learning models and dataset for recognizing industrial smoke emissions. The
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
 - [Setup this tool](#setup-tool)
 - [Use this tool](#use-this-tool)
+- [Dataset](#dataset)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
 Disable the nouveau driver.
@@ -240,3 +241,6 @@ Recommended training strategy:
 3. Decrease the learning rate (e.g., by a factor of 10)
 4. Load the best model weight from the ones that were trained using the previous learning rate
 5. Repeat step 2, 3, and 4 until convergence
+
+# <a name="dataset"></a>Dataset
+We will explain the format of the dataset in this section.
