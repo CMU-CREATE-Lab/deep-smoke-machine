@@ -1,5 +1,7 @@
 # deep-smoke-machine
-Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. We will post our technical report here.
+Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our technical report below:
+
+Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Randy Sargent, and Illah Nourbakhsh. 2019. RISE Video Dataset: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:xxxx.xxxxx.
 
 ### Table of Content
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
@@ -304,3 +306,11 @@ Each video is reviewed by at lease two citizen science volunteers (or one resear
   - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our technical report about these three cases.
 
 After running the split_metadata.py script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the json files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
+
+The dataset contains 12,567 clips with 19 distinct views from cameras on three sites that monitored three different industrial facilities. The clips are from 30 days that spans four seasons in two years in the daytime. The following provide examples and the distribution of labels for each camera view, with the format [camera_id]-[view_id]:
+
+![dataset_example_1](back-end/data/dataset/2020-02-24/dataset_1.png)
+![dataset_example_2](back-end/data/dataset/2020-02-24/dataset_2.png)
+![dataset_example_3](back-end/data/dataset/2020-02-24/dataset_3.png)
+![dataset_example_4](back-end/data/dataset/2020-02-24/dataset_4.png)
+
