@@ -205,7 +205,7 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report.
+Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report. Notice that by default the pytorch DistributedDataParallel is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py))
 ```sh
 python train.py [method] [optional_model_path]
 
