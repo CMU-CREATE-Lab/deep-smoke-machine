@@ -166,7 +166,7 @@ python download_videos.py
 # Background script (on the background using the "screen" command)
 sh bg.sh python download_videos.py
 ```
-Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flows (under deep-smoke-machine/back-end/data/flow/). Because computing opticl flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the process_videos.py script.
+Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flow frames (under deep-smoke-machine/back-end/data/flow/). Because computing optical flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the process_videos.py script.
 ```sh
 python process_videos.py
 
