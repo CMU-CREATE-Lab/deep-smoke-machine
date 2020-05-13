@@ -283,6 +283,7 @@ We include our publicly released dataset (a snapshot of the [smoke labeling tool
 - file_name
   - File name of the video, for example 0-1-2018-12-13-6007-928-6509-1430-180-180-6614-1544720610-1544720785
   - The format of the file_name is [camera_id]-[view_id]-[year]-[month]-[day]-[bound_left]-[bound_top]-[bound_right]-[bound_bottom]-[video_height]-[video_width]-[start_frame_number]-[start_epoch_time]-[end_epoch_time]
+  - bound_left, bound_top, bound_right, and bound_bottom mean the bounding box of the video clip in the panarama
 
 The state of the label (label_state and label_state_admin) in the metadata_02242020.json is explained below.
 - 23 : strong positive
