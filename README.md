@@ -150,7 +150,7 @@ Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gal
 ```sh
 python get_metadata.py confirm
 ```
-For others who wish to use the publicly released dataset (a snapshot of the system on 2/24/2020), we will include metadata_02242020.json file under the deep-smoke-machine/back-end/data/ folder later. You need to rename this file to metadata.json.
+For others who wish to use the publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we will include metadata_02242020.json file under the deep-smoke-machine/back-end/data/ folder later. You need to rename this file to metadata.json.
 ```sh
 cd deep-smoke-machine/back-end/data/
 mv metadata_02242020.json metadata.json
