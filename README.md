@@ -285,7 +285,7 @@ We include our publicly released dataset (a snapshot of the [smoke labeling tool
   - The format of the file_name is [camera_id]-[view_id]-[year]-[month]-[day]-[bound_left]-[bound_top]-[bound_right]-[bound_bottom]-[video_height]-[video_width]-[start_frame_number]-[start_epoch_time]-[end_epoch_time]
   - bound_left, bound_top, bound_right, and bound_bottom mean the bounding box of the video clip in the panarama
 
-Our technical report describes the details of the labeling mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
+Each video is reviewed by at lease two citizen science volunteers (or one researcher). Our technical report describes the details of the labeling mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
 - 23 : strong positive
   - Two volunteers both agree (or one researcher says) that the video has smoke.
 - 16 : strong negative
