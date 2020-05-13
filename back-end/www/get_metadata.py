@@ -3,6 +3,17 @@ import requests
 from util import *
 
 
+# Read the user token, obtained from https://smoke.createlab.org/gallery.html in dashboard mode
+# Downloading the user token requires permission from the labeling tool's administrator
+user_token = load_json("../data/user_token.json")["user_token"]
+#user_token = load_json("../data/user_token_staging.json")["user_token"]
+
+
+# Request metadata
+url_root = "https://api.smoke.createlab.org/api/v1/"
+#url_root = "https://staging.api.smoke.createlab.org/api/v1/"
+
+
 # Get video metadata and save to a file
 def main(argv):
     # Check
@@ -15,7 +26,7 @@ def main(argv):
         return
 
     # Get metadata
-    print("Get video metadata...")
+    print("Get video metadata from %s" % url_root)
     vm = get_video_metadata()
 
     # Save and return dataset
@@ -28,13 +39,6 @@ def main(argv):
 
 # Get video metadata from the video-labeling-tool
 def get_video_metadata():
-    # Read the user token, obtained from https://smoke.createlab.org/gallery.html in dashboard mode
-    user_token = load_json("../data/user_token.json")["user_token"]
-    #user_token = load_json("../data/user_token_staging.json")["user_token"]
-
-    # Request metadata
-    url_root = "https://api.smoke.createlab.org/api/v1/"
-    #url_root = "https://staging.api.smoke.createlab.org/api/v1/"
     vm = iterative_query(url_root+"get_pos_labels", user_token)
     vm += iterative_query(url_root+"get_neg_labels", user_token)
 

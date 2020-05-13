@@ -138,7 +138,7 @@ def to_key(v, target_key_type):
 # Aggregate labels from citizens (label_state) and researchers (label_state_admin)
 # "label" means the final aggregated label
 # "weight" means the confidence of the aggregated label
-def aggregate_label(vm):
+def aggregate_label(vm, add_weight=True):
     vm = copy.deepcopy(vm)
     vm_new = []
     for i in range(len(vm)):
@@ -148,52 +148,54 @@ def aggregate_label(vm):
         label_state = v["label_state"]
         if label_state_admin == 47: # pos (gold standard)
             v["label"] = 1
-            v["weight"] = 1
+            if add_weight: v["weight"] = 1
             print("Warning: found gold standards")
         elif label_state_admin == 32: # neg (gold standard)
             v["label"] = 0
-            v["weight"] = 1
+            if add_weight: v["weight"] = 1
             print("Warning: found gold standards")
         elif label_state_admin == 23: # strong pos
             v["label"] = 1
-            if label_state == 23: # strong pos
-                v["weight"] = 1 # (1+1)/2
-            elif label_state == 16: # strong neg
-                v["weight"] = 0.5 # (1+0)/2
-            elif label_state == 20: # weak neg
-                v["weight"] = 0.66 # (1+0.33)/2
-            elif label_state == 19: # weak pos
-                v["weight"] = 0.83 # (1+0.66)/2
-            else: # not determined by citizens
-                v["weight"] = 0.75
+            if add_weight:
+                if label_state == 23: # strong pos
+                    v["weight"] = 1 # (1+1)/2
+                elif label_state == 16: # strong neg
+                    v["weight"] = 0.5 # (1+0)/2
+                elif label_state == 20: # weak neg
+                    v["weight"] = 0.66 # (1+0.33)/2
+                elif label_state == 19: # weak pos
+                    v["weight"] = 0.83 # (1+0.66)/2
+                else: # not determined by citizens
+                    v["weight"] = 0.75
         elif label_state_admin == 16: # strong neg
             v["label"] = 0
-            if label_state == 23: # strong pos
-                v["weight"] = 0.5 # (1+0)/2
-            elif label_state == 16: # strong neg
-                v["weight"] = 1 # (1+1)/2
-            elif label_state == 20: # weak neg
-                v["weight"] = 0.83 # (1+0.66)/2
-            elif label_state == 19: # weak pos
-                v["weight"] = 0.66 # (1+0.33)/2
-            else: # not determined by citizens
-                v["weight"] = 0.75
+            if add_weight:
+                if label_state == 23: # strong pos
+                    v["weight"] = 0.5 # (1+0)/2
+                elif label_state == 16: # strong neg
+                    v["weight"] = 1 # (1+1)/2
+                elif label_state == 20: # weak neg
+                    v["weight"] = 0.83 # (1+0.66)/2
+                elif label_state == 19: # weak pos
+                    v["weight"] = 0.66 # (1+0.33)/2
+                else: # not determined by citizens
+                    v["weight"] = 0.75
         else: # not determined by researchers
             if label_state == 23: # strong pos
                 v["label"] = 1
-                v["weight"] = 1
+                if add_weight: v["weight"] = 1
             elif label_state == 16: # strong neg
                 v["label"] = 0
-                v["weight"] = 1
+                if add_weight: v["weight"] = 1
             elif label_state == 20: # weak neg
                 v["label"] = 0
-                v["weight"] = 0.66
+                if add_weight: v["weight"] = 0.66
             elif label_state == 19: # weak pos
                 v["label"] = 1
-                v["weight"] = 0.66
+                if add_weight: v["weight"] = 0.66
             else:
                 has_error = True
-        if has_error or "label" not in v or "weight" not in v:
+        if has_error or "label" not in v:
             print("Error when aggregating label:")
             print(v)
         else:
