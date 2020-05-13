@@ -289,6 +289,10 @@ We include our publicly released dataset (a snapshot of the [smoke labeling tool
   - The format of the file_name is [camera_id]-[view_id]-[year]-[month]-[day]-[bound_left]-[bound_top]-[bound_right]-[bound_bottom]-[video_height]-[video_width]-[start_frame_number]-[start_epoch_time]-[end_epoch_time]
   - bound_left, bound_top, bound_right, and bound_bottom mean the bounding box of the video clip in the panarama
 
+Note that the url_root and url_part point to videos with 180 by 180 resolutions. We also provide a higher resolution (320 by 320) version of the videos. Simply replace the "/180/" with "/320/" in the url_root, and also replace the "-180-180-" with "-320-320-" in the url_part. For example, see the following:
+- URL for the 180 by 180 version: https://smoke.createlab.org/videos/180/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-180-180-9722-1561410615-1561410790.mp4
+- URL for the 320 by 320 version: https://smoke.createlab.org/videos/320/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-320-320-9722-1561410615-1561410790.mp4
+
 Each video is reviewed by at lease two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our technical report describes the details of the labeling mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
 - 23 : strong positive
   - Two volunteers both agree (or one researcher says) that the video has smoke.
@@ -318,4 +322,3 @@ The dataset contains 12,567 clips with 19 distinct views from cameras on three s
 ![dataset_example_3](back-end/data/dataset/2020-02-24/dataset_3.png)
 
 ![dataset_example_4](back-end/data/dataset/2020-02-24/dataset_4.png)
-
