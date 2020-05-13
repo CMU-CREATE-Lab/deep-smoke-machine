@@ -159,7 +159,7 @@ Split the metadata into three sets: train, validation, and test. This will creat
 ```sh
 python split_metadata.py confirm
 ```
-Download all videos in the metadata file to deep-smoke-machine/back-end/data/videos/.
+Download all videos in the metadata file to deep-smoke-machine/back-end/data/videos/. We provide a shell script bg.sh to run the python script on the background using the [screen command](https://www.gnu.org/software/screen/manual/html_node/index.html).
 ```sh
 python download_videos.py
 
