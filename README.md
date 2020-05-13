@@ -266,13 +266,14 @@ We include our publicly released dataset (a snapshot of the [smoke labeling tool
 - camera_id
   - ID of the camera (0 means [clairton1](http://mon.createlab.org/#v=3703.5,970,0.61,pts&t=456.42&ps=25&d=2020-04-06&s=clairton1&bt=20200406&et=20200407), 1 means [braddock1](http://mon.createlab.org/#v=2868.5,740.5,0.61,pts&t=540.67&ps=25&d=2020-04-07&s=braddock1&bt=20200407&et=20200408), and 2 means [westmifflin1](http://mon.createlab.org/#v=1722.89321,1348.42994,0.806,pts&t=704.33&ps=25&d=2020-04-07&s=westmifflin1&bt=20200407&et=20200408))
 - view_id
-  - ID of the cropped view from the camera (each camera produces a panarama, and each view is cropped from this panarama)
+  - ID of the cropped view from the camera
+  - Each camera produces a panarama, and each view is cropped from this panarama (will be explained later in this section)
 - id
   - Unique ID of the video clip
 - label_state
-  - State of the video label produced by the citizen science volunteers (will be explained in the next paragraph)
+  - State of the video label produced by the citizen science volunteers (will be explained later in this section)
 - label_state_admin
-  - State of the video label produced by the researchers (will be explained in the next paragraph)
+  - State of the video label produced by the researchers (will be explained later in this section)
 - start_time
   - Starting epoch time (in seconds) when capturing the video, corresponding to the real-world time
 - url_root
