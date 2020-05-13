@@ -166,6 +166,22 @@ python download_videos.py
 # Background script (on the background using the "screen" command)
 sh bg.sh python download_videos.py
 ```
+Here are some tips for the screen command:
+```sh
+# List currently running screens
+sudo screen -ls
+
+# Go into a screen
+sudo screen -x NAME_FROM_ABOVE_COMMAND (e.g. sudo screen -x 33186.download_videos)
+# Inside the screen, use CTRL+C to terminate the screen
+# Or use CTRL+A+D to detach the screen and send it to the background
+
+# Terminate all screens
+sudo screen -X quit
+
+# Keep looking at the screen log
+tail -f screenlog.0
+```
 Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flow frames (under deep-smoke-machine/back-end/data/flow/). Because computing optical flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the process_videos.py script.
 ```sh
 python process_videos.py
