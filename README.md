@@ -166,14 +166,14 @@ python download_videos.py
 # Background script (on the background using the "screen" command)
 sh bg.sh python download_videos.py
 ```
-Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flows (under deep-smoke-machine/back-end/data/flow/). Note that this step will take a very long time. If you only need the rgb frames, change the flow_type to None in the process_videos.py script.
+Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flows (under deep-smoke-machine/back-end/data/flow/). Because computing opticl flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the process_videos.py script.
 ```sh
 python process_videos.py
 
 # Background script (on the background using the "screen" command)
 sh bg.sh python process_videos.py
 ```
-Extract [I3D features](https://github.com/piergiaj/pytorch-i3d) under deep-smoke-machine/back-end/data/i3d_features_rgb/ and deep-smoke-machine/back-end/data/i3d_features_flow/.
+Extract [I3D features](https://github.com/piergiaj/pytorch-i3d) under deep-smoke-machine/back-end/data/i3d_features_rgb/ and deep-smoke-machine/back-end/data/i3d_features_flow/. Notice that you need to process the optical flow frames in the previous step to run the i3d-flow model.
 ```sh
 python extract_features.py [method] [optional_model_path]
 
