@@ -1,5 +1,5 @@
 # deep-smoke-machine
-Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed.
+Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. We will post our technical report here.
 
 ### Table of Content
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
