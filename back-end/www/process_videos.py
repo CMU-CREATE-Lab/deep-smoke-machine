@@ -49,8 +49,8 @@ def compute_and_save_flow(video_data):
     if rgb_4d_out_p is None and flow_4d_out_p is None:
         return
     # Saves files to disk in format (time, height, width, channel) as numpy array
-    flow_type = 1 # TVL1 optical flow
-    #flow_type = None # will not process optical flow
+    #flow_type = 1 # TVL1 optical flow
+    flow_type = None # will not process optical flow
     op = OpticalFlow(rgb_vid_in_p=rgb_vid_in_p, rgb_4d_out_p=rgb_4d_out_p,
             flow_4d_out_p=flow_4d_out_p, clip_flow_bound=20, flow_type=flow_type) # TVL1 optical flow
     op.process()
