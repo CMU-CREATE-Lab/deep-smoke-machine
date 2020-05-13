@@ -312,7 +312,10 @@ After running the split_metadata.py script, the "label_state" and "label_state_a
 The dataset contains 12,567 clips with 19 distinct views from cameras on three sites that monitored three different industrial facilities. The clips are from 30 days that spans four seasons in two years in the daytime. The following provide examples and the distribution of labels for each camera view, with the format [camera_id]-[view_id]:
 
 ![dataset_example_1](back-end/data/dataset/2020-02-24/dataset_1.png)
+
 ![dataset_example_2](back-end/data/dataset/2020-02-24/dataset_2.png)
+
 ![dataset_example_3](back-end/data/dataset/2020-02-24/dataset_3.png)
+
 ![dataset_example_4](back-end/data/dataset/2020-02-24/dataset_4.png)
 
