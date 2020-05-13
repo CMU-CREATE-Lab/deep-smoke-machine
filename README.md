@@ -293,7 +293,7 @@ Note that the url_root and url_part point to videos with 180 by 180 resolutions.
 - URL for the 180 by 180 version: https://smoke.createlab.org/videos/180/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-180-180-9722-1561410615-1561410790.mp4
 - URL for the 320 by 320 version: https://smoke.createlab.org/videos/320/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-320-320-9722-1561410615-1561410790.mp4
 
-Each video is reviewed by at lease two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our technical report describes the details of the labeling mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
+Each video is reviewed by at lease two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our technical report describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
 - 23 : strong positive
   - Two volunteers both agree (or one researcher says) that the video has smoke.
 - 16 : strong negative
