@@ -274,7 +274,7 @@ Recommended training strategy:
 5. Repeat step 2, 3, and 4 until convergence
 
 # <a name="dataset"></a>Dataset
-We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) metadata_02242020.json file under the deep-smoke-machine/back-end/data/dataset/ folder. The json file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
+We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. The json file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
 - camera_id
   - ID of the camera (0 means [clairton1](http://mon.createlab.org/#v=3703.5,970,0.61,pts&t=456.42&ps=25&d=2020-04-06&s=clairton1&bt=20200406&et=20200407), 1 means [braddock1](http://mon.createlab.org/#v=2868.5,740.5,0.61,pts&t=540.67&ps=25&d=2020-04-07&s=braddock1&bt=20200407&et=20200408), and 2 means [westmifflin1](http://mon.createlab.org/#v=1722.89321,1348.42994,0.806,pts&t=704.33&ps=25&d=2020-04-07&s=westmifflin1&bt=20200407&et=20200408))
 - view_id
