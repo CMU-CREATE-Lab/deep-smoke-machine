@@ -167,7 +167,7 @@ For others who wish to use the publicly released dataset (a snapshot of the [smo
 cd deep-smoke-machine/back-end/data/
 cp dataset/2020-02-24/metadata_02242020.json metadata.json
 ```
-Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our technical report.
+Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our technical report. The method for splitting the dataset will be explained in the next "Dataset" section.
 ```sh
 python split_metadata.py confirm
 ```
@@ -194,7 +194,7 @@ sudo screen -X quit
 # Keep looking at the screen log
 tail -f screenlog.0
 ```
-Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flow frames (under deep-smoke-machine/back-end/data/flow/). Because computing optical flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the process_videos.py script.
+Process and save all videos into rgb frames (under deep-smoke-machine/back-end/data/rgb/) and optical flow frames (under deep-smoke-machine/back-end/data/flow/). Because computing optical flow takes a very long time, by default this script will only process rgb frames. If you need the optical flow frames, change the flow_type to 1 in the [process_videos.py](back-end/www/process_videos.py) script.
 ```sh
 python process_videos.py
 
@@ -319,7 +319,16 @@ Each video is reviewed by at lease two citizen science volunteers (or one resear
 - -1 : no data, no discord
   - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our technical report about these three cases.
 
-After running the split_metadata.py script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the json files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
+After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the json files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively. Also, after running this script, the dataset will be divided into several splits, based on camera views or dates, explained below. The Split S<sub>0</sub> to S<sub>5</sub> correspond to the ones indicated in the technical report.
+
+| Split | Training | Validation | Testing |
+| --- | --- | --- | --- |
+| S<sub>0</sub> | metadata_train_split_0_by_camera.json | metadata_validation_split_0_by_camera.json | metadata_test_split_0_by_camera.json |
+| S<sub>1</sub> | metadata_train_split_1_by_camera.json | metadata_validation_split_1_by_camera.json | metadata_test_split_1_by_camera.json |
+| S<sub>2</sub> | metadata_train_split_2_by_camera.json | metadata_validation_split_2_by_camera.json | metadata_test_split_2_by_camera.json |
+| S<sub>3</sub> | metadata_train_split_by_date.json | metadata_validation_split_by_date.json | metadata_test_split_by_date.json |
+| S<sub>4</sub> | metadata_train_split_3_by_camera.json | metadata_validation_split_3_by_camera.json | metadata_test_split_3_by_camera.json |
+| S<sub>5</sub> | metadata_train_split_4_by_camera.json | metadata_validation_split_4_by_camera.json | metadata_test_split_4_by_camera.json |
 
 The dataset contains 12,567 clips with 19 distinct views from cameras on three sites that monitored three different industrial facilities. The clips are from 30 days that spans four seasons in two years in the daytime. The following provide examples and the distribution of labels for each camera view, with the format [camera_id]-[view_id]:
 
