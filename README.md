@@ -332,7 +332,7 @@ After running this script, the dataset will be divided into several splits, base
 | S<sub>4</sub> | metadata_train_split_3_by_camera | metadata_validation_split_3_by_camera | metadata_test_split_3_by_camera |
 | S<sub>5</sub> | metadata_train_split_4_by_camera | metadata_validation_split_4_by_camera | metadata_test_split_4_by_camera |
 
-The following table shows the content in each split. The splitting strategy is that each view will be present in the testing set at least once, and the camera views that monitor different facilities (1-0, 2-0, 2-1, 2-2) are always on the test set.
+The following table shows the content in each split, except S<sub>3</sub>. The splitting strategy is that each view will be present in the testing set at least once, and the camera views that monitor different facilities (1-0, 2-0, 2-1, 2-2) are always on the test set.
 
 | View | S<sub>0</sub> | S<sub>1</sub> | S<sub>2</sub> | S<sub>4</sub> | S<sub>5</sub> |
 | --- | --- | --- | --- | --- | --- |
@@ -355,6 +355,14 @@ The following table shows the content in each split. The splitting strategy is t
 | 2-0 | Test | Test | Test | Test | Test |
 | 2-1 | Test | Test | Test | Test | Test |
 | 2-2 | Test | Test | Test | Test | Test |
+
+The following shows the split of S<sub>3</sub> by time sequence, where the farthermost 18 days are used for training, the middle 2 days are used for validation, and the nearest 10 days are used for testing. You can find our camera data by date on [our air pollution monitoring network](http://mon.createlab.org/).
+- Training set of S<sub>3</sub>
+  - 2018-05-11, 2018-06-11, 2018-06-12, 2018-06-14, 2018-07-07, 2018-08-06, 2018-08-24, 2018-09-03, 2018-09-19, 2018-10-07, 2018-11-10, 2018-11-12, 2018-12-11, 2018-12-13, 2018-12-28, 2019-01-11, 2019-01-17, 2019-01-18
+- Validation set of S<sub>3</sub>
+  - 2019-01-22, 2019-02-02
+- Testing set of S<sub>3</sub>
+  - 2019-02-03, 2019-02-04, 2019-03-14, 2019-04-01, 2019-04-07, 2019-04-09, 2019-05-15, 2019-06-24, 2019-07-26, 2019-08-11
 
 The dataset contains 12,567 clips with 19 distinct views from cameras on three sites that monitored three different industrial facilities. The clips are from 30 days that spans four seasons in two years in the daytime. The following provide examples and the distribution of labels for each camera view, with the format [camera_id]-[view_id]:
 
