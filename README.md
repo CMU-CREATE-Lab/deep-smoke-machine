@@ -321,7 +321,7 @@ Each video is reviewed by at lease two citizen science volunteers (or one resear
 
 After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the json files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively. 
 
-After running this script, the dataset will be divided into several splits, based on camera views or dates. The files names (without .json file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the technical report.
+Also, the dataset will be divided into several splits, based on camera views or dates. The files names (without .json file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the technical report.
 
 | Split | Train | Validate | Test |
 | --- | --- | --- | --- |
