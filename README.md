@@ -332,7 +332,7 @@ Also, the dataset will be divided into several splits, based on camera views or 
 | S<sub>4</sub> | metadata_train_split_3_by_camera | metadata_validation_split_3_by_camera | metadata_test_split_3_by_camera |
 | S<sub>5</sub> | metadata_train_split_4_by_camera | metadata_validation_split_4_by_camera | metadata_test_split_4_by_camera |
 
-The following table shows the content in each split, except S<sub>3</sub>. The splitting strategy is that each view will be present in the testing set at least once. Also, the camera views that monitor different industrial facilities (1-0, 2-0, 2-1, 2-2) are always on the testing set.
+The following table shows the content in each split, except S<sub>3</sub>. The splitting strategy is that each view will be present in the testing set at least once. Also, the camera views that monitor different industrial facilities (view 1-0, 2-0, 2-1, and 2-2) are always on the testing set. Examples of the camera views will be provided later in this section.
 
 | View | S<sub>0</sub> | S<sub>1</sub> | S<sub>2</sub> | S<sub>4</sub> | S<sub>5</sub> |
 | --- | --- | --- | --- | --- | --- |
