@@ -219,7 +219,7 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with cross-validation on all dataset splits. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report. Note that by default the pytorch [DistributedDataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html) GPU parallel computing is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py)).
+Train the model with cross-validation on all dataset splits, using different hyper-parameters. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report. Note that by default the pytorch [DistributedDataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html) GPU parallel computing is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py)).
 ```sh
 python train.py [method] [optional_model_path]
 
@@ -281,14 +281,14 @@ This section explains the code infrastructure related to the I3D model training 
   - The abstract class for creating model learners. You will need to implement the fit and test function. This script provides shared functions, such as model loading, model saving, data augmentation, and progress logging.
 - [i3d_learner.py](back-end/www/i3d_learner.py)
   - This script inherits the base_learner.py script for training the I3D models. This script contains code for back-propagation (e.g., loss function, learning rate scheduler, video batch loading) and GPU parallel computing (pytorch DistributedDataParallel).
-- [train.py](back-end/www/train.py)
-  - Train different models using cross validation. This script specifies the hyper-parameters and file paths for each model.
-- [test.py](back-end/www/test.py)
-  - Test different models using trained models. This script specifies the mode and file paths for each model.
 - [check_models.py](back-end/www/check_models.py)
   - Check if a developed model runs in simple cases. This script is used for debugging when developing new models.
 - [smoke_video_dataset.py](back-end/www/smoke_video_dataset.py)
   - Definition of the dataset. This script inherits the pytorch Dataset class for creating the DataLoader, which can be used to provide batches iteratively when training the models.
+- [opencv_functional.py](back-end/www/opencv_functional.py)
+  - A special utility function that mimics [torchvision.transforms.functional](https://pytorch.org/docs/stable/_modules/torchvision/transforms/functional.html), designed for processing video frames and augmenting video data.
+- [video_transforms.py](back-end/www/video_transforms.py)
+  - A special utility function that mimics [torchvision.transforms.transforms](https://pytorch.org/docs/stable/_modules/torchvision/transforms/transforms.html), designed for processing video frames and augmenting video data.
 - [deep-smoke-machine/back-end/www/model/](back-end/www/model/)
   - The place to put all models (e.g., I3D, Non-Local modules, Timeception modules, Temporal Shift modules, LSTM).
 
