@@ -276,7 +276,7 @@ Recommended training strategy:
 5. Repeat step 2, 3, and 4 until convergence
 
 # <a name="code-structure"></a>Code infrastructure
-This section explains the code infrastructure related to the I3D model training and testing in the [deep-smoke-machine/back-end/www/](back-end/www/) folder. Later in this section, I will describe how to build your own model and integrate it with the current pipeline.
+This section explains the code infrastructure related to the I3D model training and testing in the [deep-smoke-machine/back-end/www/](back-end/www/) folder. Later in this section, I will describe how to build your own model and integrate it with the current pipeline. This code assumes that you are familiar with the [pytorch deep learning framework](https://pytorch.org/). If you do not know pytorch, I recommend checking [their tutorial page](https://pytorch.org/tutorials/) first.
 - [base_learner.py](back-end/www/base_learner.py)
   - The abstract class for creating model learners. You will need to implement the fit and test function. This script provides shared functions, such as model loading, model saving, data augmentation, and progress logging.
 - [i3d_learner.py](back-end/www/i3d_learner.py)
