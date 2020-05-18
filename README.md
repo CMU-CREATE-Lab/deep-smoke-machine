@@ -17,7 +17,7 @@ The following figures show some examples of how the [I3D model](https://arxiv.or
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
 - [Setup this tool](#setup-tool)
 - [Use this tool](#use-this-tool)
-- [Code structure](#code-structure)
+- [Code infrastructure](#code-infrastructure)
 - [Pretrained models](#pretrained-models)
 - [Dataset](#dataset)
 
@@ -275,8 +275,22 @@ Recommended training strategy:
 4. Load the best model weight from the ones that were trained using the previous learning rate
 5. Repeat step 2, 3, and 4 until convergence
 
-# <a name="code-structure"></a>Code Structure
-We will explain the code structure, how to develop your own model, and how to add your model to the pipeline here. 
+# <a name="code-structure"></a>Code Infrastructure
+This section explains the code infrastructure related to the I3D model training and testing in the [deep-smoke-machine/back-end/www/](back-end/www/) folder. Later in this section, I will describe how to build your own model and integrate it with the current pipeline.
+- [base_learner.py](back-end/www/base_learner.py)
+  - The abstract class for creating model learners. You will need to implement the fit and test function. This script provides shared functions, such as model loading, model saving, data augmentation, and progress logging.
+- [i3d_learner.py](back-end/www/i3d_learner.py)
+  - This script inherits the base_learner.py script for training the I3D models. This script contains code for back-propagation (e.g., loss function, learning rate scheduler, video batch loading) and GPU parallel computing (pytorch DistributedDataParallel).
+- [train.py](back-end/www/train.py)
+  - Train different models using cross validation. This script specifies the hyper-parameters and file paths for each model.
+- [test.py](back-end/www/test.py)
+  - Test different models using trained models. This script specifies the mode and file paths for each model.
+- [check_models.py](back-end/www/check_models.py)
+  - Check if a developed model runs in simple cases. This script is used for debugging when developing new models.
+- [smoke_video_dataset.py](back-end/www/smoke_video_dataset.py)
+  - Definition of the dataset. This script inherits the pytorch Dataset class for creating the DataLoader, which can be used to provide batches iteratively when training the models.
+- [deep-smoke-machine/back-end/www/model/](back-end/www/model/)
+  - The place to put all models (e.g., I3D, Non-Local modules, Timeception modules, Temporal Shift modules, LSTM).
 
 # <a name="pretrained-models"></a>Pretrained Models
 We will release our best pre-trained models for the baseline here.
