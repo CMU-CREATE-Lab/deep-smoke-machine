@@ -300,7 +300,7 @@ If you want to develop your own model, here are the steps that I recommend.
 5. Copy the i3d_learner.py file, import your model, and modify the code to suit your needs. Make sure that you import your customized learner class in the train.py and test.py files.
 
 # <a name="pretrained-models"></a>Pretrained models
-We will release our best pre-trained models for the baseline here.
+We are working on a pipeline for recognizing smoke emissions using existing camera data, and we will release our best pre-trained models here.
 
 # <a name="dataset"></a>Dataset
 We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. The json file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
