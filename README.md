@@ -18,7 +18,7 @@ The following figures show some examples of how the [I3D model](https://arxiv.or
 - [Setup this tool](#setup-tool)
 - [Use this tool](#use-this-tool)
 - [Code infrastructure](#code-infrastructure)
-- [Pretrained models](#pretrained-models)
+- [Pretrained models (will be released in the future)](#pretrained-models)
 - [Dataset](#dataset)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
