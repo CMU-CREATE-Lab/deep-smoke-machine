@@ -275,7 +275,7 @@ Recommended training strategy:
 4. Load the best model weight from the ones that were trained using the previous learning rate
 5. Repeat step 2, 3, and 4 until convergence
 
-# <a name="code-structure"></a>Code Infrastructure
+# <a name="code-structure"></a>Code infrastructure
 This section explains the code infrastructure related to the I3D model training and testing in the [deep-smoke-machine/back-end/www/](back-end/www/) folder. Later in this section, I will describe how to build your own model and integrate it with the current pipeline.
 - [base_learner.py](back-end/www/base_learner.py)
   - The abstract class for creating model learners. You will need to implement the fit and test function. This script provides shared functions, such as model loading, model saving, data augmentation, and progress logging.
@@ -292,7 +292,7 @@ This section explains the code infrastructure related to the I3D model training 
 - [deep-smoke-machine/back-end/www/model/](back-end/www/model/)
   - The place to put all models (e.g., I3D, Non-Local modules, Timeception modules, Temporal Shift modules, LSTM).
 
-# <a name="pretrained-models"></a>Pretrained Models
+# <a name="pretrained-models"></a>Pretrained models
 We will release our best pre-trained models for the baseline here.
 
 # <a name="dataset"></a>Dataset
