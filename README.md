@@ -17,6 +17,8 @@ The following figures show some examples of how the [I3D model](https://arxiv.or
 - [Install Nvidia drivers, cuda, and cuDNN](#install-nvidia)
 - [Setup this tool](#setup-tool)
 - [Use this tool](#use-this-tool)
+- [Code structure](#code-structure)
+- [Pretrained models](#pretrained-models)
 - [Dataset](#dataset)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
@@ -272,6 +274,12 @@ Recommended training strategy:
 3. Decrease the learning rate (e.g., by a factor of 10)
 4. Load the best model weight from the ones that were trained using the previous learning rate
 5. Repeat step 2, 3, and 4 until convergence
+
+# <a name="code-structure"></a>Code Structure
+We will explain the code structure, how to develop your own model, and how to add your model to the pipeline here. 
+
+# <a name="pretrained-models"></a>Pretrained Models
+We will release our best pre-trained models for the baseline here.
 
 # <a name="dataset"></a>Dataset
 We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. The json file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
