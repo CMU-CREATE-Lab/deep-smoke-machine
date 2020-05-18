@@ -292,6 +292,13 @@ This section explains the code infrastructure related to the I3D model training 
 - [deep-smoke-machine/back-end/www/model/](back-end/www/model/)
   - The place to put all models (e.g., I3D, Non-Local modules, Timeception modules, Temporal Shift modules, LSTM).
 
+If you want to develop your own model, here are the steps that I recommend.
+1. Play with the check_models.py script to understand the input and output dimensions.
+2. Create your own model and place it in the deep-smoke-machine/back-end/www/model/ folder. You can take a look at other models to get an idea about how to write the code.
+3. Import your model to the check_models.py script, then run the script to debug your model.
+4. If you need a specific data augmentation pipeline, edit the get_transform function in the base_learner.py file. Depending on your needs, you may also need to edit the opencv_functional.py and video_transforms.py files.
+5. Copy the i3d_learner.py file, import your model, and modify the code to suit your needs. Make sure that you import your customized learner class in the train.py and test.py files.
+
 # <a name="pretrained-models"></a>Pretrained models
 We will release our best pre-trained models for the baseline here.
 
