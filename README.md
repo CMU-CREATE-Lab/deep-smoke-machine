@@ -20,6 +20,7 @@ The following figures show how the [I3D model](https://arxiv.org/abs/1705.07750)
 - [Code infrastructure](#code-infrastructure)
 - [Pretrained models (will be released in the future)](#pretrained-models)
 - [Dataset](#dataset)
+- [Acknowledgements](#acknowledgements)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
 Disable the nouveau driver.
@@ -402,3 +403,6 @@ The dataset contains 12,567 clips with 19 distinct views from cameras on three s
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_3.png)
 
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_4.png)
+
+# <a name="acknowledgements"></a>Acknowledgements
+We thank [GASP](https://gasp-pgh.org/) (Group Against Smog and Pollution), [Clean Air Council](https://cleanair.org/), [ACCAN](https://accan.org/) (Allegheny County Clean Air Now), [Breathe Project](https://breatheproject.org/), [NVIDIA](https://developer.nvidia.com/academic_gpu_seeding), and the [Heinz Endowments](http://www.heinz.org/) for the support of this research. We also greatly appreciate the help of our volunteers, which includes labeling videos and providing feedback in system development.
