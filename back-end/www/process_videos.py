@@ -52,7 +52,7 @@ def compute_and_save_flow(video_data):
     #flow_type = 1 # TVL1 optical flow
     flow_type = None # will not process optical flow
     op = OpticalFlow(rgb_vid_in_p=rgb_vid_in_p, rgb_4d_out_p=rgb_4d_out_p,
-            flow_4d_out_p=flow_4d_out_p, clip_flow_bound=20, flow_type=flow_type) # TVL1 optical flow
+            flow_4d_out_p=flow_4d_out_p, clip_flow_bound=20, flow_type=flow_type)
     op.process()
 
 
