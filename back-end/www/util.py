@@ -19,6 +19,7 @@ import numpy as np
 from moviepy.editor import ImageSequenceClip, clips_array
 from os import listdir
 from os.path import isfile, join, isdir
+import requests
 
 
 # Check if a file exists
@@ -57,6 +58,15 @@ def load_json(fpath):
 def save_json(content, fpath):
     with open(fpath, "w") as f:
         json.dump(content, f)
+
+
+# Request json from url
+def request_json(url):
+    r = requests.get(url)
+    if r.status_code == 200:
+        return r.json()
+    else:
+        return None
 
 
 # Convert a defaultdict to dict

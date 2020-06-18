@@ -50,10 +50,11 @@ class GradCam():
     """
         Produces class activation map
     """
-    def __init__(self, model):
+    def __init__(self, model, use_cuda=False):
         self.model = model
         self.model.eval()
         self.extractor = CamExtractor(self.model) # Define extractor
+        self.use_cuda = use_cuda
 
     def generate_cam(self, input_tensor, target_class=None):
         # Full forward pass
@@ -70,9 +71,15 @@ class GradCam():
         # Backward pass with specified target
         model_output.backward(gradient=one_hot_output, retain_graph=True)
         # Get hooked gradients
-        guided_gradients = self.extractor.gradients.data.numpy()[0]
+        guided_gradients = self.extractor.gradients
+        if self.use_cuda and torch.cuda.is_available:
+            guided_gradients = guided_gradients.cpu()
+        guided_gradients = guided_gradients.data.numpy()[0]
         # Get convolution outputs
-        target = conv_output.data.numpy()[0]
+        target = conv_output
+        if self.use_cuda and torch.cuda.is_available:
+            target = target.cpu()
+        target = target.data.numpy()[0]
         # Get weights from gradients
         weights = np.mean(guided_gradients, axis=(1, 2, 3)) # Take averages for each gradient
         # Create empty numpy array for cam
@@ -155,6 +162,7 @@ def grad_cam(p_model):
     mode = "rgb"
     p_frame = "../data/rgb/"
     n = 128 # number of videos per set (TP, TN, FP, FN)
+    use_cuda = False
 
     # Check
     if p_model is None or not is_file_here(p_model):
@@ -172,7 +180,7 @@ def grad_cam(p_model):
     save_viz_path = p_root + "viz/" # path to save visualizations
 
     # Set model
-    learner = I3dLearner(mode=mode, use_cuda=False)
+    learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=False)
     pretrained_model = learner.set_model(0, 1, mode, p_model, False)
 
     # Select samples and generate class activation maps
@@ -192,7 +200,7 @@ def grad_cam(p_model):
                 prep_input = transform(prep_input)
                 prep_input = torch.unsqueeze(prep_input, 0)
                 target_class = 1 # has smoke
-                grad_cam = GradCam(pretrained_model)
+                grad_cam = GradCam(pretrained_model, use_cuda=use_cuda)
                 cam = grad_cam.generate_cam(prep_input, target_class)
                 save_class_activation_videos(prep_input, cam, file_name, root_dir=p_cam)
     print('Grad cam completed')
