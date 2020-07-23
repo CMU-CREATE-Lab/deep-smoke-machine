@@ -12,40 +12,108 @@ import re
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import pandas as pd
+from multiprocessing.dummy import Pool
+import time
 
 
-# This is the production code for smoke recognition
 def main(argv):
-    vid_p = "../data/production/video/"
-    rgb_p = "../data/production/rgb/"
-    check_and_create_dir(rgb_p)
-    check_and_create_dir(vid_p)
-    url = "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-03.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=360"
-    url_part_list, file_name_list, ct_sub_list = gen_url_parts(url)
-    if url_part_list is None or file_name_list is None:
-        print("Error generating url parts...END")
+    if len(argv) < 2:
+        print("Usage:")
+        print("python recognize_smoke.py process_all_urls")
+        print("python recognize_smoke.py init_esdr")
+        print("python recognize_smoke.py upload_to_esdr")
+        return
+
+    if argv[1] == "process_all_urls":
+        process_all_urls()
+    elif argv[1] == "init_esdr":
+        init_esdr()
+    elif argv[1] == "upload_to_esdr":
+        upload_to_esdr()
+    else:
+        print("Wrong usage. Run 'python recognize_smoke.py' for details.")
+    print("END")
+
+
+# Initialize the ESDR system setup
+def init_esdr():
+    pass
+
+
+# Upload smoke recognition results to ESDR system
+def upload_to_esdr():
+    pass
+
+
+# Process all thumbnail server urls
+def process_all_urls():
+    url = "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-03.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36"
+    cam_id = 0 # the camera ID
+    view_id = 3 # the view ID
+    process_url(url, cam_id, view_id)
+
+
+# Process each url and predict the probability of having smoke for that date and view
+# Input:
+#   url: the thumbnail server url that we want to process
+#   cam_id: camera ID
+#   view_id: view ID
+def process_url(url, cam_id, view_id):
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
-    url_part_list = url_part_list[:1] # this is for testing
-    file_name_list = file_name_list[:1] # this is for testing
-    ct_sub_list = ct_sub_list[:1] # this is for testing
+    # Divide the video into several small parts
+    url_part_list, file_name_list, ct_sub_list, unique_p, uuid = gen_url_parts(url, cam_id, view_id, nf=36, overlap=18)
+    if url_part_list is None or file_name_list is None:
+        print("Error generating url parts...")
+        return
+    url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
+    # The directory for saving the files
+    p_root = "../data/production/" + unique_p
+    vid_p = p_root + "video/"
+    rgb_p = p_root + "rgb/"
+    check_and_create_dir(rgb_p)
+    check_and_create_dir(vid_p)
+
+    # Skip if the json file exists
+    if is_file_here(p_root + uuid + ".json"):
+        print("File %s exists...skip..." % (uuid + ".json"))
+        return
+
+    # Download the videos
+    download_video(url_part_list, file_name_list, url_root, vid_p)
+
+    # Extract video frames
     for i in range(len(url_part_list)):
         fn = file_name_list[i]
         url = url_root + url_part_list[i]
         if is_file_here(rgb_p + fn + ".npy"):
-            print("File exists...skip downloading...")
+            print("Frame file exists...skip...")
         else:
-            if download_video(url, vid_p, fn):
-                video_to_numpy(url, vid_p, rgb_p, fn)
-            else:
-                print("Error downloading video...END")
-                return
-    smoke_pb_list, smoke_px_list = recognize_smoke(rgb_p, file_name_list)
-    print(smoke_pb_list[0])
-    print(smoke_px_list[0])
-    print(ct_sub_list[0])
-    print("END")
+            video_to_numpy(url, vid_p, rgb_p, fn)
+
+    # Apply the smoke recognition model on the video frames
+    smoke_pb_list = recognize_smoke(rgb_p, file_name_list)
+
+    # Put data together for uploading to the ESDR system
+    # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
+    # The reason is because we want consistent timestamps when doing real-time predictions
+    data_json = {
+        "channel_names": ["max_smoke_probability", "mean_smoke_probability", "std_smoke_probability"],
+        "data": []
+    }
+    for i in range(len(smoke_pb_list)):
+        smoke_pb = smoke_pb_list[i]
+        ct_sub = ct_sub_list[i]
+        v0 = int(np.max(ct_sub))
+        v1 = round(float(np.max(smoke_pb)), 3)
+        v2 = round(float(np.mean(smoke_pb)), 3)
+        v3 = round(float(np.std(smoke_pb)), 3)
+        data_item = [v0, v1, v2, v3]
+        data_json["data"].append(data_item)
+    save_json(data_json, p_root + uuid + ".json")
+
+    print("DONE process_url")
 
 
 # Parse the datetime string from the thumbnail server url
@@ -80,14 +148,15 @@ def str_to_time(ds):
 # Given a frame captured time array (from time machine)
 # Divide it into a set of starting frames
 # Input:
-# - ct_list: the captured time list
-# - nf: number of frames of each divided video
+#   ct_list: the captured time list
+#   nf: number of frames of each divided video
+#   overlap: the number of overlapping frames for each split
 # Output:
-# - sf_list: the starting frame number
-# - sf_dt_list: the starting datetime
-# - ef_dt_list: the ending datetime
-# - ct_sub_list: the captured time array for each frame (in epochtime format)
-def divide_start_frame(ct_list, nf=360):
+#   sf_list: the starting frame number
+#   sf_dt_list: the starting datetime
+#   ef_dt_list: the ending datetime
+#   ct_sub_list: the captured time array for each frame (in epochtime format)
+def divide_start_frame(ct_list, nf=36, overlap=0):
     # The sun set and rise time in Pittsburgh
     # Format: [[Jan_sunrise, Jan_sunset], [Feb_sunrise, Feb_sunset], ...]
     pittsburgh_sun_table = [(8,16), (8,17), (8,18), (7,19), (6,19), (6,20), (6,19), (7,19), (7,18), (8,17), (8,16), (8,16)]
@@ -111,7 +180,7 @@ def divide_start_frame(ct_list, nf=360):
         return (None, None, None)
     if frame_max is None:
         frame_max = len(ct_list)
-    r = range(frame_min, frame_max, nf)
+    r = range(frame_min, frame_max, nf - overlap)
     if len(r) == 0:
         return (None, None, None)
 
@@ -136,31 +205,32 @@ def divide_start_frame(ct_list, nf=360):
 
 # Return a thumbnail server url part
 # Input:
-# - cam_name: camera name (str), e.g., "clairton1"
-# - ds: datetime string (str), "2015-05-22"
-# - b: bounding box (dictionary with Left Top Right Bottom), e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
-# - w: width (int)
-# - h: height (int)
-# - sf: starting frame number (int)
-# - fmt: format (str), "gif" or "mp4" or "png"
-# - fps: frames per second (int)
-# - nf: number of frames (int)
-def get_url_part(cam_name=None, ds=None, b=None, w=180, h=180, sf=None, fmt="mp4", fps=12, nf=360):
+#   cam_name: camera name (str), e.g., "clairton1"
+#   ds: datetime string (str), "2015-05-22"
+#   b: bounding box (dictionary with Left Top Right Bottom), e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
+#   w: width (int)
+#   h: height (int)
+#   sf: starting frame number (int)
+#   fmt: format (str), "gif" or "mp4" or "png"
+#   fps: frames per second (int)
+#   nf: number of frames (int)
+def get_url_part(cam_name=None, ds=None, b=None, w=180, h=180, sf=None, fmt="mp4", fps=12, nf=36):
     return "?root=http://tiles.cmucreatelab.org/ecam/timemachines/%s/%s.timemachine/&boundsLTRB=%r,%r,%r,%r&width=%r&height=%r&startFrame=%r&format=%s&fps=%r&tileFormat=mp4&nframes=%r" % (cam_name, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, fmt, fps, nf)
 
 
 # Return a file name
 # Input:
-# - cam_id: camera id (int)
-# - ds: datetime string (str), "2015-05-22"
-# - b: bounding box (dictionary with Left Top Right Bottom), e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
-# - w: width (int)
-# - h: height (int)
-# - sf: starting frame number (int)
-# - st: starting epochtime in seconds (int)
-# - et: ending epochtime in seconds (int)
-def get_file_name(cam_id, ds, b, w, h, sf, st, et):
-    return "%d-%s-%r-%r-%r-%r-%r-%r-%r-%r-%r" % (cam_id, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, st, et)
+#   cam_id: camera id (int)
+#   view_id: view id (int)
+#   ds: datetime string (str), "2015-05-22"
+#   b: bounding box (dictionary with Left Top Right Bottom), e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
+#   w: width (int)
+#   h: height (int)
+#   sf: starting frame number (int)
+#   st: starting epochtime in seconds (int)
+#   et: ending epochtime in seconds (int)
+def get_file_name(cam_id, view_id, ds, b, w, h, sf, st, et):
+    return "%d-%d-%s-%r-%r-%r-%r-%r-%r-%r-%r-%r" % (cam_id, view_id, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, st, et)
 
 
 # Convert the camera name to camera id
@@ -178,13 +248,19 @@ def cam_name_to_id(name):
 # Given a thumbnail url (having the date, camera, and bounding box information)
 # Generate all urls that represents the same day
 # Input:
-# - url: any thumbnail server url
-# - video_size: the desired output video size
+#   url: any thumbnail server url
+#   cam_id: the id of the camera (int)
+#   view_id: the id of the view (int)
+#   video_size: the desired output video size
+#   nf: number of frames of each divided video
+#   overlap: the number of overlapping frames for each split
 # Output:
-# - url_part_list: a list of thumbnail url parts for that date, camera, and bounding box
-# - file_name_list: a list of file names, corresponding to the url parts
-# - ct_sub_list: a list of camera captured times
-def gen_url_parts(url, video_size=180):
+#   url_part_list: a list of thumbnail url parts for that date, camera, and bounding box
+#   file_name_list: a list of file names, corresponding to the url parts
+#   ct_sub_list: a list of camera captured times
+#   unique_p: an unique path for storing the results
+#   uuid: an unique ID for the url
+def gen_url_parts(url, cam_id, view_id, video_size=180, nf=36, overlap=18):
     # Get frame captured times
     ds = get_datetime_str_from_url(url)
     cam_name = get_camera_name_from_url(url)
@@ -194,42 +270,81 @@ def gen_url_parts(url, video_size=180):
         return None
 
     # Divide the large video into small ones
-    sf_list, sf_dt_list, ef_dt_list, ct_sub_list = divide_start_frame(tm_json["capture-times"], nf=360)
+    sf_list, sf_dt_list, ef_dt_list, ct_sub_list = divide_start_frame(tm_json["capture-times"], nf=nf, overlap=overlap)
     if sf_list is None:
         print("Error dividing videos")
         return (None, None)
 
     # Generate the url parts and file names
-    cam_id = cam_name_to_id(cam_name)
-    if cam_id is None:
-        print("Error finding camera id for camera name:", cam_name)
-        return (None, None)
     b = get_bound_from_url(url)
     url_part_list = []
     file_name_list = []
     for i in range(len(sf_list)):
         sf = sf_list[i]
-        url_part_list.append(get_url_part(cam_name=cam_name, ds=ds, b=b, sf=sf, w=video_size, h=video_size))
+        url_part_list.append(get_url_part(cam_name=cam_name, ds=ds, b=b, sf=sf, w=video_size, h=video_size, nf=nf))
         st = int(sf_dt_list[i].timestamp())
         et = int(ef_dt_list[i].timestamp())
-        file_name_list.append(get_file_name(cam_id, ds, b, video_size, video_size, sf, st, et))
-    return (url_part_list, file_name_list, ct_sub_list)
+        file_name_list.append(get_file_name(cam_id, view_id, ds, b, video_size, video_size, sf, st, et))
+    unique_p = "%s/%d-%d/" % (ds, cam_id, view_id)
+    uuid = "-".join(file_name_list[0].split("-")[:11])
+    return (url_part_list, file_name_list, ct_sub_list, unique_p, uuid)
 
 
-# Given a video url (the thumbnail server)
-# Download and save the video to a local file
+# Call the thumbnail server to generate and get videos
+# Then save the videos
 # Input:
-# - url: the thumbnail server url
-# - vid_p: the path of a folder for saving videos
-# - file_name: the desired file name for the video (without file extension)
-def download_video(url, vid_p, file_name):
+#   url_part_list: a list of thumbnail url parts for that date, camera, and bounding box
+#   file_name_list: a list of file names, corresponding to the url parts
+#   url_root: the root of the thumbnail server url
+#   vid_p: the folder path to save the videos
+#   num_try: the number of times that the function has been called
+#   num_workers: the number of workers to download the frames
+def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, num_workers=8):
+    print("="*100)
+    print("="*100)
+    print("This function has been called for %d times." % num_try)
+    if num_try > 30:
+        print("Terminate the recursive call due to many errors. Please check manually.")
+        return
+    num_errors = 0
+
+    # Construct the lists of urls and file paths
+    arg_list = []
+    for i in range(len(url_part_list)):
+        file_p = vid_p + file_name_list[i] + ".mp4"
+        url = url_root + url_part_list[i]
+        arg_list.append((url, file_p))
+
+    # Download the files in parallel
+    result = Pool(num_workers).starmap(urlretrieve_worker, arg_list)
+    for r in result:
+        if r: num_errors += 1
+    if num_errors > 0:
+        print("="*60)
+        print("Has %d errors. Need to do again." % num_errors)
+        num_try += 1
+        download_video(url_part_list, file_name_list, url_root, vid_p, num_try=num_try)
+    else:
+        print("DONE download_video")
+
+
+# The worker for getting the videos
+# Input:
+#   url: the url for getting the frames
+#   file_p: the path for saving the file
+def urlretrieve_worker(url, file_p):
+    error = False
+    if os.path.isfile(file_p): # skip if the file exists
+        print("\t{File exists} %s\n" % file_p)
+        return error
     try:
-        print("Downloading video:", url)
-        urllib.request.urlretrieve(url, vid_p + file_name + ".mp4")
-    except:
-        print("Error downloading:", url)
-        return False
-    return True
+        print("\t{Request} %s\n" % url)
+        urllib.request.urlretrieve(url, file_p)
+        print("\t{Done} %s\n" % url)
+    except Exception as ex:
+        print("\t{%s} %s\n" % (ex, url))
+        error = True
+    return error
 
 
 # Load the video and convert it to numpy.array
@@ -263,6 +378,7 @@ def recognize_smoke(rgb_p, file_name_list):
     learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=False)
     p_model = "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt"
     model = learner.set_model(0, 1, mode, p_model, False)
+    model.train(False) # set model to evaluate mode (IMPORTANT)
     transform = learner.get_transform(mode, image_size=224)
 
     # Iterate
@@ -277,7 +393,7 @@ def recognize_smoke(rgb_p, file_name_list):
         v = torch.unsqueeze(v, 0)
         if use_cuda and torch.cuda.is_available:
             v = v.cuda()
-        pred = learner.make_pred(model, v).squeeze().transpose(0, 1)
+        pred = learner.make_pred(model, v, upsample=False).squeeze().transpose(0, 1)
         pred = F.softmax(pred).cpu().detach().numpy()[:, 1]
         smoke_pb_list.append(list(pred.round(3)))
         # GradCAM
@@ -285,16 +401,16 @@ def recognize_smoke(rgb_p, file_name_list):
         # Using this output to estimate the number of smoke pixels can be problematic
         # And may require some strong assumptions
         # Need to check more papers about weakly supervised learning
-        print("Estimate the number of smoke pixels...")
-        grad_cam = GradCam(model, use_cuda=use_cuda)
-        target_class = 1 # has smoke
-        cam = grad_cam.generate_cam(v, target_class)
-        cam = cam.reshape((cam.shape[0], -1))
-        n_smoke_px = np.minimum(np.maximum(cam*2 - 1, 0), 1)
-        print(pd.DataFrame(data={"cam": cam.flatten()}).describe().applymap(lambda x: "%.4f" % x))
-        n_smoke_px[n_smoke_px>0] = 1
-        smoke_px_list.append(list(np.sum(n_smoke_px, axis=1, dtype=np.uint32)))
-    return (smoke_pb_list, smoke_px_list)
+        #print("Estimate the number of smoke pixels...")
+        #grad_cam = GradCam(model, use_cuda=use_cuda)
+        #target_class = 1 # has smoke
+        #cam = grad_cam.generate_cam(v, target_class)
+        #cam = cam.reshape((cam.shape[0], -1))
+        #n_smoke_px = np.minimum(np.maximum(cam*2 - 1, 0), 1)
+        #print(pd.DataFrame(data={"cam": cam.flatten()}).describe().applymap(lambda x: "%.4f" % x))
+        #n_smoke_px[n_smoke_px>0] = 1
+        #smoke_px_list.append(list(np.sum(n_smoke_px, axis=1, dtype=np.uint32)))
+    return smoke_pb_list
 
 
 if __name__ == "__main__":

@@ -252,9 +252,12 @@ class I3dLearner(BaseLearner):
             v = v.cuda() # move to gpu
         return v
 
-    def make_pred(self, model, frames):
-        # Upsample prediction to frame length (because we want prediction for each frame)
-        return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
+    def make_pred(self, model, frames, upsample=True):
+        if upsample:
+            # Upsample prediction to frame length (because we want prediction for each frame)
+            return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
+        else:
+            return model(frames)
 
     def flatten_tensor(self, t):
         t = t.reshape(1, -1)
