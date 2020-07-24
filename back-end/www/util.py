@@ -111,7 +111,7 @@ def register_esdr_product(product_json, access_token):
     headers = {"Authorization": "Bearer " + access_token, "Content-Type": "application/json"}
     url = esdr_root_url() + "api/v1/products"
     r = requests.post(url, data=json.dumps(product_json), headers=headers)
-    print("ESDR returns: " + r.content)
+    print("ESDR returns: %r" % r.content)
 
 
 # Compute a confusion matrix of samples

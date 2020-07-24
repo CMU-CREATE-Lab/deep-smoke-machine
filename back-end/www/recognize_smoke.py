@@ -39,7 +39,7 @@ def main(argv):
 def init_data_upload():
     # Specify the data format (the definition of "product" on ESDR)
     product_json = {
-      "name": "smoke_recognition",
+      "name": "RISE_smoke_recognition",
       "prettyName": "Recognizing Industrial Smoke Emissions",
       "vendor": "CMU CREATE Lab",
       "description": "Recognizing Industrial Smoke Emissions",
@@ -72,7 +72,7 @@ def init_data_upload():
           }}}}
 
     # Get the ESDR access token
-    access_token, _ = get_esdr_access_token(load_json("data/auth.json"))
+    access_token, _ = get_esdr_access_token(load_json("../data/auth.json"))
 
     # Register the product on ESDR
     register_esdr_product(product_json, access_token)
