@@ -77,6 +77,43 @@ def ddict_to_dict(d):
     return dict(d)
 
 
+# Return the root url for ESDR
+def esdr_root_url():
+    return "https://esdr.cmucreatelab.org/"
+
+
+# Get the access token from ESDR
+# For details, see https://github.com/CMU-CREATE-Lab/esdr/blob/master/HOW_TO.md
+# Input:
+#   auth_json: a dictionary for authentication
+def get_esdr_access_token(auth_json):
+    url = esdr_root_url() + "oauth/token"
+    headers = {"Authorization": "", "Content-Type": "application/json"}
+    r = requests.post(url, data=json.dumps(auth_json), headers=headers)
+    r_json = r.json()
+    if r.status_code is not 200:
+        print("ERROR! ESDR returns:" + json.dumps(r_json))
+        return None, None
+    else:
+        access_token = r_json["access_token"]
+        user_id = r_json["userId"]
+        print("Receive access token " + access_token)
+        print("Receive user ID " + str(user_id))
+        return access_token, user_id
+
+
+# Register a product on ESDR
+# For details, see https://github.com/CMU-CREATE-Lab/esdr/blob/master/HOW_TO.md
+# Input:
+#   product_json: a dictionary that specifies the product (i.e., the data format)
+#   access_token: the access token, obtained by calling the get_esdr_access_token() function
+def register_esdr_product(product_json, access_token):
+    headers = {"Authorization": "Bearer " + access_token, "Content-Type": "application/json"}
+    url = esdr_root_url() + "api/v1/products"
+    r = requests.post(url, data=json.dumps(product_json), headers=headers)
+    print("ESDR returns: " + r.content)
+
+
 # Compute a confusion matrix of samples
 # The first key is the true label
 # The second key is the predicted label

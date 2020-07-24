@@ -20,28 +20,66 @@ def main(argv):
     if len(argv) < 2:
         print("Usage:")
         print("python recognize_smoke.py process_all_urls")
-        print("python recognize_smoke.py init_esdr")
-        print("python recognize_smoke.py upload_to_esdr")
+        print("python recognize_smoke.py init_data_upload")
+        print("python recognize_smoke.py upload_data")
         return
 
     if argv[1] == "process_all_urls":
         process_all_urls()
-    elif argv[1] == "init_esdr":
-        init_esdr()
-    elif argv[1] == "upload_to_esdr":
-        upload_to_esdr()
+    elif argv[1] == "init_data_upload":
+        init_data_upload()
+    elif argv[1] == "upload_data":
+        upload_data()
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
     print("END")
 
 
-# Initialize the ESDR system setup
-def init_esdr():
-    pass
+# Register the product on the ESDR system
+def init_data_upload():
+    # Specify the data format (the definition of "product" on ESDR)
+    product_json = {
+      "name": "smoke_recognition",
+      "prettyName": "Recognizing Industrial Smoke Emissions",
+      "vendor": "CMU CREATE Lab",
+      "description": "Recognizing Industrial Smoke Emissions",
+      "defaultChannelSpecs": {
+        "version": 1,
+        "channels": {
+          "max_smoke_probability": {
+            "prettyName": "max of the probability of having smoke",
+            "units": "probability",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          },
+          "mean_smoke_probability": {
+            "prettyName": "mean of the probability of having smoke",
+            "units": "probability",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          },
+          "std_smoke_probability": {
+            "prettyName": "std of the probability of having smoke",
+            "units": "probability",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          }}}}
+
+    # Get the ESDR access token
+    access_token, _ = get_esdr_access_token(load_json("data/auth.json"))
+
+    # Register the product on ESDR
+    register_esdr_product(product_json, access_token)
 
 
 # Upload smoke recognition results to ESDR system
-def upload_to_esdr():
+def upload_data():
     pass
 
 
