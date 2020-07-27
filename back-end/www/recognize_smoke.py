@@ -108,8 +108,7 @@ def init_data_upload():
 # Upload smoke recognition results to ESDR system
 def upload_data():
     # Set product ID, obtained from the esdr response when calling register_esdr_product()
-    product_id = 89 # this ID is for testing
-    #product_id = 91 # this ID is for production
+    product_id = 94 # this ID is for production
 
     # Get the access token
     access_token, _ = get_esdr_access_token(load_json("../data/auth.json"))
@@ -127,7 +126,7 @@ def upload_data():
                     if "channel_names" in data and "data" in data:
                         s = vn.split("-")
                         lat, lng = get_cam_location_by_id(int(s[0]))
-                        name = "smoke_recognition_camera_%s_view_%s" % (s[0], s[1])
+                        name = "RISE_smoke_recognition_v1_camera_%s_view_%s" % (s[0], s[1])
                         upload_data_to_esdr(name, data, product_id, access_token, isPublic=1, latitude=lat, longitude=lng)
 
 
