@@ -14,5 +14,6 @@ schema.sql
 **/data/*
 !**/data/pretrained_models/
 !**/data/dataset/
+!**/data/production_url_list/
 back-end/www/**/*.pt
 back-end/www/**/*.pkl

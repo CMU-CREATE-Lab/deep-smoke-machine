@@ -121,23 +121,24 @@ def upload_data():
     for dn in get_all_dir_names_in_folder(p): # date string
         for vn in get_all_dir_names_in_folder(p + dn + "/"): # camera view ID
             for fn in get_all_file_names_in_folder(p + dn + "/" + vn + "/"): # json file
-                if ".json" in fn:
-                    data = load_json(p + dn + "/" + vn + "/" + fn)
-                    if "channel_names" in data and "data" in data:
-                        s = vn.split("-")
-                        lat, lng = get_cam_location_by_id(int(s[0]))
-                        name = "RISE_smoke_recognition_v1_camera_%s_view_%s" % (s[0], s[1])
-                        upload_data_to_esdr(name, data, product_id, access_token, isPublic=1, latitude=lat, longitude=lng)
+                if ".json" not in fn: continue
+                data = load_json(p + dn + "/" + vn + "/" + fn)
+                if "channel_names" not in data or "data" not in data: continue
+                s = vn.split("-")
+                lat, lng = get_cam_location_by_id(int(s[0]))
+                name = "RISE_smoke_recognition_v1_camera_%s_view_%s" % (s[0], s[1])
+                upload_data_to_esdr(name, data, product_id, access_token, isPublic=1, latitude=lat, longitude=lng)
 
 
 # Process all thumbnail server urls
 def process_all_urls():
-    metadata = [
-            {"url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-03.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36", "cam_id": 0, "view_id": 3},
-            {"url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-04.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36", "cam_id": 0, "view_id": 3},
-    ]
-    for m in metadata:
-        process_url(m["url"], m["cam_id"], m["view_id"])
+    p = "../data/production_url_list/"
+    for fn in get_all_file_names_in_folder(p):
+        if ".json" not in fn: continue
+        m = load_json(p + fn)
+        for m in load_json(p + fn):
+            if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
+            process_url(m["url"], m["cam_id"], m["view_id"])
 
 
 # Process each url and predict the probability of having smoke for that date and view
