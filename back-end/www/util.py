@@ -20,6 +20,7 @@ from moviepy.editor import ImageSequenceClip, clips_array
 from os import listdir
 from os.path import isfile, join, isdir
 import requests
+import uuid
 
 
 # Check if a file exists
@@ -112,6 +113,102 @@ def register_esdr_product(product_json, access_token):
     url = esdr_root_url() + "api/v1/products"
     r = requests.post(url, data=json.dumps(product_json), headers=headers)
     print("ESDR returns: %r" % r.content)
+
+
+# Upload data to ESDR
+# data_json = {
+#   "channel_names": ["particle_concentration", "particle_count", "raw_particles", "temperature"],
+#   "data": [[1449776044, 0.3, 8.0, 6.0, 2.3], [1449776104, 0.1, 3.0, 0.0, 4.9]]
+# }
+def upload_data_to_esdr(device_name, data_json, product_id, access_token, **options):
+    # Set the header for http request
+    headers = {"Authorization": "Bearer " + access_token, "Content-Type": "application/json"}
+
+    # Check if the device exists
+    print("\tTry getting the device ID of device name '" + device_name + "'")
+    url = esdr_root_url() + "api/v1/devices?where=name=" + device_name + ",productId=" + str(product_id)
+    r = requests.get(url, headers=headers)
+    r_json = r.json()
+    device_id = None
+    print("\tESDR returns: " + json.dumps(r_json) + " when getting the device ID for '" + device_name + "'")
+    if r.status_code is 200:
+        if r_json["data"]["totalCount"] < 1:
+            print("\t'" + device_name + "' did not exist")
+        else:
+            device_id = r_json["data"]["rows"][0]["id"]
+            print("\tReceive existing device ID " + str(device_id))
+
+    # Create a device if it does not exist
+    if device_id is None:
+        print("\tCreate a device for '" + device_name + "'")
+        url = esdr_root_url() + "api/v1/products/" + str(product_id) + "/devices"
+        device_json = {
+            "name": device_name,
+            "serialNumber": options["serialNumber"] if "serialNumber" in options else str(uuid.uuid4())
+        }
+        r = requests.post(url, data=json.dumps(device_json), headers=headers)
+        r_json = r.json()
+        print("\tESDR returns: " + json.dumps(r_json) + " when creating a device for '" + device_name + "'")
+        if r.status_code is 201:
+            device_id = r_json["data"]["id"]
+            print("\tCreate new device ID " + str(device_id))
+        else:
+            return None
+
+    # Check if a feed exists for the device
+    print("\tGet feed ID for '" + device_name + "'")
+    url = esdr_root_url() + "api/v1/feeds?where=deviceId=" + str(device_id)
+    r = requests.get(url, headers=headers)
+    r_json = r.json()
+    feed_id = None
+    api_key = None
+    api_key_read_only = None
+    print("\tESDR returns: " + json.dumps(r_json) + " when getting the feed ID")
+    if r.status_code is 200:
+        if r_json["data"]["totalCount"] < 1:
+            print("\tNo feed ID exists for device " + str(device_id))
+        else:
+            row = r_json["data"]["rows"][0]
+            feed_id = row["id"]
+            api_key = row["apiKey"]
+            api_key_read_only = row["apiKeyReadOnly"]
+            print("\tReceive existing feed ID " + str(feed_id))
+
+    # Create a feed if no feed ID exists
+    if feed_id is None:
+        print("\tCreate a feed for '" + device_name + "'")
+        url = esdr_root_url() + "api/v1/devices/" + str(device_id) + "/feeds"
+        feed_json = {
+            "name": device_name,
+            "exposure": options["exposure"] if "exposure" in options else "virtual",
+            "isPublic": options["isPublic"] if "isPublic" in options else 0,
+            "isMobile": options["isMobile"] if "isMobile" in options else 0,
+            "latitude": options["latitude"] if "latitude" in options else None,
+            "longitude": options["longitude"] if "longitude" in options else None
+        }
+        r = requests.post(url, data=json.dumps(feed_json), headers=headers)
+        r_json = r.json()
+        print("\tESDR returns: " + json.dumps(r_json) + " when creating a feed")
+        if r.status_code is 201:
+            feed_id = r_json["data"]["id"]
+            api_key = r_json["data"]["apiKey"]
+            api_key_read_only = r_json["data"]["apiKeyReadOnly"]
+            print("\tCreate new feed ID " + str(feed_id))
+        else:
+            return None
+
+    # Upload Speck data to ESDR
+    print("\tUpload sensor data for '" + device_name + "'")
+    url = esdr_root_url() + "api/v1/feeds/" + str(feed_id)
+    r = requests.put(url, data=json.dumps(data_json), headers=headers)
+    r_json = r.json()
+    print("\tESDR returns: " + json.dumps(r_json) + " when uploading data")
+    if r.status_code is not 200:
+        return None
+
+    # Return a list of information for getting data from ESDR
+    print("\tData uploaded")
+    return (device_id, feed_id, api_key, api_key_read_only)
 
 
 # Compute a confusion matrix of samples

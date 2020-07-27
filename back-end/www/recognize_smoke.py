@@ -75,20 +75,46 @@ def init_data_upload():
     access_token, _ = get_esdr_access_token(load_json("../data/auth.json"))
 
     # Register the product on ESDR
-    register_esdr_product(product_json, access_token)
+    if access_token is not None:
+        register_esdr_product(product_json, access_token)
+    else:
+        print("ERROR! No access token.")
 
 
 # Upload smoke recognition results to ESDR system
 def upload_data():
-    pass
+    # Set product ID, obtained from the esdr response when calling register_esdr_product()
+    product_id = 89 # this ID is for testing
+    #product_id = 91 # this ID is for production
+
+    # Get the access token
+    access_token, _ = get_esdr_access_token(load_json("../data/auth.json"))
+    if access_token is None:
+        print("ERROR! No access token.")
+        return
+
+    # Upload all data
+    p = "../data/production/"
+    for dn in get_all_dir_names_in_folder(p): # date string
+        for vn in get_all_dir_names_in_folder(p + dn + "/"): # camera view ID
+            for fn in get_all_file_names_in_folder(p + dn + "/" + vn + "/"): # json file
+                if ".json" in fn:
+                    data = load_json(p + dn + "/" + vn + "/" + fn)
+                    if "channel_names" in data and "data" in data:
+                        s = vn.split("-")
+                        lat, lng = get_cam_location_by_id(int(s[0]))
+                        name = "smoke_recognition_camera_%s_view_%s" % (s[0], s[1])
+                        upload_data_to_esdr(name, data, product_id, access_token, isPublic=1, latitude=lat, longitude=lng)
 
 
 # Process all thumbnail server urls
 def process_all_urls():
-    url = "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-03.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36"
-    cam_id = 0 # the camera ID
-    view_id = 3 # the view ID
-    process_url(url, cam_id, view_id)
+    metadata = [
+            {"url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-03.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36", "cam_id": 0, "view_id": 3},
+            {"url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-02-04.timemachine/&boundsLTRB=5329,953,5831,1455&width=180&height=180&startFrame=7748&format=mp4&fps=12&tileFormat=mp4&nframes=36", "cam_id": 0, "view_id": 3},
+    ]
+    for m in metadata:
+        process_url(m["url"], m["cam_id"], m["view_id"])
 
 
 # Process each url and predict the probability of having smoke for that date and view
@@ -97,6 +123,7 @@ def process_all_urls():
 #   cam_id: camera ID
 #   view_id: view ID
 def process_url(url, cam_id, view_id):
+    print("Process %s" % url)
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
     # Divide the video into several small parts
@@ -271,7 +298,7 @@ def get_file_name(cam_id, view_id, ds, b, w, h, sf, st, et):
     return "%d-%d-%s-%r-%r-%r-%r-%r-%r-%r-%r-%r" % (cam_id, view_id, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, st, et)
 
 
-# Convert the camera name to camera id
+# Convert the camera name to camera ID
 def cam_name_to_id(name):
     if name == "clairton1":
         return 0
@@ -281,6 +308,22 @@ def cam_name_to_id(name):
         return 2
     else:
         return None
+
+
+# Get the location of the camera by its ID
+def get_cam_location_by_id(cam_id):
+    lat = None # latitude
+    lng = None # longitude
+    if cam_id == 0: # clairton1
+        lat = 40.305062
+        lng = -79.876692
+    elif cam_id == 1: # braddock1
+        lat = 40.392967
+        lng = -79.855709
+    elif cam_id == 2: # westmifflin1
+        lat = 40.392967
+        lng = -79.855709
+    return (lat, lng)
 
 
 # Given a thumbnail url (having the date, camera, and bounding box information)
