@@ -39,7 +39,7 @@ def main(argv):
 def init_data_upload():
     # Specify the data format (the definition of "product" on ESDR)
     product_json = {
-      "name": "RISE_smoke_recognition",
+      "name": "RISE_smoke_recognition_v1",
       "prettyName": "Recognizing Industrial Smoke Emissions",
       "vendor": "CMU CREATE Lab",
       "description": "Recognizing Industrial Smoke Emissions",
@@ -65,6 +65,30 @@ def init_data_upload():
           "std_smoke_probability": {
             "prettyName": "std of the probability of having smoke",
             "units": "probability",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          },
+          "max_activation_ratio": {
+            "prettyName": "max of the ratio of activation region",
+            "units": "ratio",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          },
+          "mean_activation_ratio": {
+            "prettyName": "mean of the ratio of activation region",
+            "units": "ratio",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
+          },
+          "std_activation_ratio": {
+            "prettyName": "std of the ratio of activation region",
+            "units": "ratio",
             "range": {
               "min": 0,
               "max": 1
@@ -158,23 +182,34 @@ def process_url(url, cam_id, view_id):
             video_to_numpy(url, vid_p, rgb_p, fn)
 
     # Apply the smoke recognition model on the video frames
-    smoke_pb_list = recognize_smoke(rgb_p, file_name_list)
+    smoke_pb_list, activation_ratio_list = recognize_smoke(rgb_p, file_name_list)
 
     # Put data together for uploading to the ESDR system
     # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
     # The reason is because we want consistent timestamps when doing real-time predictions
     data_json = {
-        "channel_names": ["max_smoke_probability", "mean_smoke_probability", "std_smoke_probability"],
+        "channel_names": [
+            "max_smoke_probability",
+            "mean_smoke_probability",
+            "std_smoke_probability",
+            "max_activation_ratio",
+            "mean_activation_ratio",
+            "std_activation_ratio"
+            ],
         "data": []
     }
     for i in range(len(smoke_pb_list)):
         smoke_pb = smoke_pb_list[i]
+        activation_ratio = activation_ratio_list[i]
         ct_sub = ct_sub_list[i]
         v0 = int(np.max(ct_sub))
         v1 = round(float(np.max(smoke_pb)), 3)
         v2 = round(float(np.mean(smoke_pb)), 3)
         v3 = round(float(np.std(smoke_pb)), 3)
-        data_item = [v0, v1, v2, v3]
+        v4 = round(float(np.max(activation_ratio)), 3)
+        v5 = round(float(np.mean(activation_ratio)), 3)
+        v6 = round(float(np.std(activation_ratio)), 3)
+        data_item = [v0, v1, v2, v3, v4, v5, v6]
         data_json["data"].append(data_item)
     save_json(data_json, p_root + uuid + ".json")
 
@@ -460,11 +495,12 @@ def recognize_smoke(rgb_p, file_name_list):
     p_model = "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt"
     model = learner.set_model(0, 1, mode, p_model, False)
     model.train(False) # set model to evaluate mode (IMPORTANT)
-    transform = learner.get_transform(mode, image_size=224)
+    image_size = 224
+    transform = learner.get_transform(mode, image_size=image_size)
 
     # Iterate
     smoke_pb_list = []
-    smoke_px_list = []
+    activation_ratio_list = []
     for fn in file_name_list:
         print("Process file:", fn)
         # Compute probability of having smoke
@@ -477,21 +513,21 @@ def recognize_smoke(rgb_p, file_name_list):
         pred = learner.make_pred(model, v, upsample=False).squeeze().transpose(0, 1)
         pred = F.softmax(pred).cpu().detach().numpy()[:, 1]
         smoke_pb_list.append(list(pred.round(3)))
-        # GradCAM
-        # Warning: GradCAM is used for showing the activated region that will affect the probability
-        # Using this output to estimate the number of smoke pixels can be problematic
-        # And may require some strong assumptions
+        # GradCAM (class activation mapping)
+        # Compute the ratio of the activated region that will affect the probability
+        # This can potentially be used to estimate the number of smoke pixels
         # Need to check more papers about weakly supervised learning
-        #print("Estimate the number of smoke pixels...")
-        #grad_cam = GradCam(model, use_cuda=use_cuda)
-        #target_class = 1 # has smoke
-        #cam = grad_cam.generate_cam(v, target_class)
-        #cam = cam.reshape((cam.shape[0], -1))
-        #n_smoke_px = np.minimum(np.maximum(cam*2 - 1, 0), 1)
+        print("Run GradCAM...")
+        grad_cam = GradCam(model, use_cuda=use_cuda)
+        target_class = 1 # has smoke
+        cam = grad_cam.generate_cam(v, target_class)
+        cam = cam.reshape((cam.shape[0], -1))
         #print(pd.DataFrame(data={"cam": cam.flatten()}).describe().applymap(lambda x: "%.4f" % x))
-        #n_smoke_px[n_smoke_px>0] = 1
-        #smoke_px_list.append(list(np.sum(n_smoke_px, axis=1, dtype=np.uint32)))
-    return smoke_pb_list
+        n_activation_px = np.minimum(np.maximum(cam*2 - 1, 0), 1)
+        n_activation_px[n_activation_px>0] = 1
+        activation_ratio = list(np.sum(n_activation_px, axis=1, dtype=np.uint32) / (image_size**2))
+        activation_ratio_list.append(activation_ratio)
+    return (smoke_pb_list, activation_ratio_list)
 
 
 if __name__ == "__main__":
