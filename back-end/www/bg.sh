@@ -38,7 +38,8 @@ else
   sh bg.sh python test.py cnn-ft-tc-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py svm-rgb-cv-1 [model_path]\n\
   sh bg.sh python test.py svm-flow-cv-1 [model_path]\n\
-  sh bg.sh python grad_cam_viz.py i3d-rgb [model_path]"
+  sh bg.sh python grad_cam_viz.py i3d-rgb [model_path]\n\
+  sh bg.sh python recognize_smoke.py process_all_urls"
   exit 1
 fi
 

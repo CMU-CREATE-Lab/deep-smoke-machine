@@ -50,11 +50,12 @@ class GradCam():
     """
         Produces class activation map
     """
-    def __init__(self, model, use_cuda=False):
+    def __init__(self, model, use_cuda=False, normalize=True):
         self.model = model
         self.model.eval()
         self.extractor = CamExtractor(self.model) # Define extractor
         self.use_cuda = use_cuda
+        self.normalize = normalize
 
     def generate_cam(self, input_tensor, target_class=None):
         # Full forward pass
@@ -88,7 +89,10 @@ class GradCam():
         for i, w in enumerate(weights):
             cam += w * target[i, ...]
         cam = np.maximum(cam, 0)
-        cam = (cam - np.min(cam)) / (np.max(cam) - np.min(cam))  # Normalize between 0-1
+        if self.normalize:
+            cam = (cam - np.min(cam)) / (np.max(cam) - np.min(cam))  # Normalize between 0-1
+        else:
+            cam = cam / np.max(cam)
         cam = np.uint8(cam * 255)  # Scale between 0-255 to visualize
         i_sp = input_tensor.shape
         c_sp = cam.shape

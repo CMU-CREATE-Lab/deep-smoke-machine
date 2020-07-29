@@ -39,55 +39,23 @@ def main(argv):
 def init_data_upload():
     # Specify the data format (the definition of "product" on ESDR)
     product_json = {
-      "name": "RISE_smoke_recognition_v1",
+      "name": "RISE_smoke_recognition_v2",
       "prettyName": "Recognizing Industrial Smoke Emissions",
       "vendor": "CMU CREATE Lab",
       "description": "Recognizing Industrial Smoke Emissions",
       "defaultChannelSpecs": {
         "version": 1,
         "channels": {
-          "max_smoke_probability": {
-            "prettyName": "max of the probability of having smoke",
+          "smoke_probability": {
+            "prettyName": "the probability of having smoke",
             "units": "probability",
             "range": {
               "min": 0,
               "max": 1
             }
           },
-          "mean_smoke_probability": {
-            "prettyName": "mean of the probability of having smoke",
-            "units": "probability",
-            "range": {
-              "min": 0,
-              "max": 1
-            }
-          },
-          "std_smoke_probability": {
-            "prettyName": "std of the probability of having smoke",
-            "units": "probability",
-            "range": {
-              "min": 0,
-              "max": 1
-            }
-          },
-          "max_activation_ratio": {
-            "prettyName": "max of the ratio of activation region",
-            "units": "ratio",
-            "range": {
-              "min": 0,
-              "max": 1
-            }
-          },
-          "mean_activation_ratio": {
-            "prettyName": "mean of the ratio of activation region",
-            "units": "ratio",
-            "range": {
-              "min": 0,
-              "max": 1
-            }
-          },
-          "std_activation_ratio": {
-            "prettyName": "std of the ratio of activation region",
+          "activation_ratio": {
+            "prettyName": "the ratio of activation region",
             "units": "ratio",
             "range": {
               "min": 0,
@@ -126,19 +94,20 @@ def upload_data():
                 if "channel_names" not in data or "data" not in data: continue
                 s = vn.split("-")
                 lat, lng = get_cam_location_by_id(int(s[0]))
-                name = "RISE_smoke_recognition_v1_camera_%s_view_%s" % (s[0], s[1])
+                name = "RISE_smoke_recognition_v2_camera_%s_view_%s" % (s[0], s[1])
                 upload_data_to_esdr(name, data, product_id, access_token, isPublic=1, latitude=lat, longitude=lng)
 
 
 # Process all thumbnail server urls
-def process_all_urls():
+def process_all_urls(test_mode=False):
     p = "../data/production_url_list/"
     for fn in get_all_file_names_in_folder(p):
         if ".json" not in fn: continue
+        if test_mode and "test" not in fn: continue
         m = load_json(p + fn)
         for m in load_json(p + fn):
             if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
-            process_url(m["url"], m["cam_id"], m["view_id"])
+            process_url(m["url"], m["cam_id"], m["view_id"], test_mode=test_mode)
 
 
 # Process each url and predict the probability of having smoke for that date and view
@@ -146,7 +115,7 @@ def process_all_urls():
 #   url: the thumbnail server url that we want to process
 #   cam_id: camera ID
 #   view_id: view ID
-def process_url(url, cam_id, view_id):
+def process_url(url, cam_id, view_id, test_mode=False):
     print("Process %s" % url)
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
@@ -156,6 +125,11 @@ def process_url(url, cam_id, view_id):
         print("Error generating url parts...")
         return
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
+
+    # For testing only
+    #url_part_list = url_part_list[:10]
+    #file_name_list = file_name_list[:10]
+    #ct_sub_list = ct_sub_list[:10]
 
     # The directory for saving the files
     p_root = "../data/production/" + unique_p
@@ -182,19 +156,18 @@ def process_url(url, cam_id, view_id):
             video_to_numpy(url, vid_p, rgb_p, fn)
 
     # Apply the smoke recognition model on the video frames
-    smoke_pb_list, activation_ratio_list = recognize_smoke(rgb_p, file_name_list)
+    smoke_pb_list, activation_ratio_list = recognize_smoke(rgb_p, file_name_list, test_mode=test_mode)
+    if test_mode:
+        print(smoke_pb_list)
+        print(activation_ratio_list)
 
     # Put data together for uploading to the ESDR system
     # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
     # The reason is because we want consistent timestamps when doing real-time predictions
     data_json = {
         "channel_names": [
-            "max_smoke_probability",
-            "mean_smoke_probability",
-            "std_smoke_probability",
-            "max_activation_ratio",
-            "mean_activation_ratio",
-            "std_activation_ratio"
+            "smoke_probability",
+            "activation_ratio",
             ],
         "data": []
     }
@@ -202,15 +175,11 @@ def process_url(url, cam_id, view_id):
         smoke_pb = smoke_pb_list[i]
         activation_ratio = activation_ratio_list[i]
         ct_sub = ct_sub_list[i]
-        v0 = int(np.max(ct_sub))
-        v1 = round(float(np.max(smoke_pb)), 3)
-        v2 = round(float(np.mean(smoke_pb)), 3)
-        v3 = round(float(np.std(smoke_pb)), 3)
-        v4 = round(float(np.max(activation_ratio)), 3)
-        v5 = round(float(np.mean(activation_ratio)), 3)
-        v6 = round(float(np.std(activation_ratio)), 3)
-        data_item = [v0, v1, v2, v3, v4, v5, v6]
+        epochtime = int(np.max(ct_sub)) # use the largest timestamp
+        data_item = [epochtime, smoke_pb, activation_ratio]
         data_json["data"].append(data_item)
+    if test_mode:
+        print(data_json)
     save_json(data_json, p_root + uuid + ".json")
 
     print("DONE process_url")
@@ -466,10 +435,10 @@ def urlretrieve_worker(url, file_p):
 # Load the video and convert it to numpy.array
 # Then save the numpy.array to a local file
 # Input:
-# - url: the thumbnail server url
-# - vid_p: the path of a folder for loading the video file
-# - rgb_p: the path of a folder for saving the rgb frames
-# - file_name: the desired file name for the rgb frames (without file extension)
+#   url: the thumbnail server url
+#   vid_p: the path of a folder for loading the video file
+#   rgb_p: the path of a folder for saving the rgb frames
+#   file_name: the desired file name for the rgb frames (without file extension)
 def video_to_numpy(url, vid_p, rgb_p, file_name):
     rgb_vid_in_p = vid_p + file_name + ".mp4"
     rgb_4d_out_p = rgb_p + file_name + ".npy"
@@ -480,12 +449,14 @@ def video_to_numpy(url, vid_p, rgb_p, file_name):
 # The core function for smoke recognition
 # Notice that the input rgb frames has shape (time, height, width, channel) = (n, 180, 180, 3)
 # Input:
-# - rgb_p: file path that points to the numpy.array file that stores rgb frames
-# - file_name_list: list of file names of the numpy.array file
+#   rgb_p: file path that points to the numpy.array file that stores rgb frames
+#   file_name_list: list of file names of the numpy.array file
+#   smoke_thr: the threshold (probability between 0 and 1) to determine if smoke exists (e.g., 0.6)
+#   activation_thr: the threshold (ratio between 0 and 1) to determine if a pixel is activated by GradCAM (e.g., 0.85)
 # Output:
-# - smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, probability)
-# - smoke_px_list: list of the estimated number of smoke pixels, with shape (time, num_of_smoke_pixels)
-def recognize_smoke(rgb_p, file_name_list):
+#   smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, probability)
+#   smoke_px_list: list of the estimated number of smoke pixels, with shape (time, num_of_smoke_pixels)
+def recognize_smoke(rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activation_thr=0.85):
     # Prepare model
     mode = "rgb"
     use_cuda = True
@@ -510,23 +481,30 @@ def recognize_smoke(rgb_p, file_name_list):
         v = torch.unsqueeze(v, 0)
         if use_cuda and torch.cuda.is_available:
             v = v.cuda()
-        pred = learner.make_pred(model, v, upsample=False).squeeze().transpose(0, 1)
-        pred = F.softmax(pred).cpu().detach().numpy()[:, 1]
-        smoke_pb_list.append(list(pred.round(3)))
+        pred, pred_upsample = learner.make_pred(model, v, upsample=None)
+        pred = F.softmax(pred.squeeze().transpose(0, 1)).cpu().detach().numpy()[:, 1]
+        pred_upsample = F.softmax(pred_upsample.squeeze().transpose(0, 1)).cpu().detach().numpy()[:, 1]
+        smoke_pb = np.median(pred) # use the median as the probability
+        smoke_pb_list.append(round(float(smoke_pb), 3))
         # GradCAM (class activation mapping)
         # Compute the ratio of the activated region that will affect the probability
         # This can potentially be used to estimate the number of smoke pixels
         # Need to check more papers about weakly supervised learning
         print("Run GradCAM...")
-        grad_cam = GradCam(model, use_cuda=use_cuda)
+        grad_cam = GradCam(model, use_cuda=use_cuda, normalize=False)
         target_class = 1 # has smoke
-        cam = grad_cam.generate_cam(v, target_class)
-        cam = cam.reshape((cam.shape[0], -1))
-        #print(pd.DataFrame(data={"cam": cam.flatten()}).describe().applymap(lambda x: "%.4f" % x))
-        n_activation_px = np.minimum(np.maximum(cam*2 - 1, 0), 1)
-        n_activation_px[n_activation_px>0] = 1
-        activation_ratio = list(np.sum(n_activation_px, axis=1, dtype=np.uint32) / (image_size**2))
-        activation_ratio_list.append(activation_ratio)
+        C = grad_cam.generate_cam(v, target_class)
+        C = C.reshape((C.shape[0], -1))
+        if test_mode:
+            print(pd.DataFrame(data={"GradCAM": C.flatten()}).describe().applymap(lambda x: "%.3f" % x))
+        if smoke_pb > smoke_thr: # only compute the activation ratio when smoke is predicted
+            C = np.multiply(C > activation_thr, 1) # make the binary mask
+            activation_ratio = np.sum(C, axis=1, dtype=np.uint32) / (image_size**2)
+            activation_ratio[pred_upsample < smoke_thr] = 0
+            activation_ratio = np.mean(activation_ratio) # use the mean as the activation ratio
+            activation_ratio_list.append(round(float(activation_ratio), 3))
+        else:
+            activation_ratio_list.append(0.0)
     return (smoke_pb_list, activation_ratio_list)
 
 

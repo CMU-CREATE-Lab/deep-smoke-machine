@@ -253,11 +253,15 @@ class I3dLearner(BaseLearner):
         return v
 
     def make_pred(self, model, frames, upsample=True):
-        if upsample:
+        m = model(frames)
+        if upsample == True:
             # Upsample prediction to frame length (because we want prediction for each frame)
-            return F.interpolate(model(frames), frames.size(2), mode="linear", align_corners=True)
+            return F.interpolate(m, frames.size(2), mode="linear", align_corners=True)
+        elif upsample == False:
+            return m
         else:
-            return model(frames)
+            # Return both results
+            return (m, F.interpolate(m, frames.size(2), mode="linear", align_corners=True))
 
     def flatten_tensor(self, t):
         t = t.reshape(1, -1)
