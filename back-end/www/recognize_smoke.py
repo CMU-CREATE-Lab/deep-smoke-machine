@@ -169,16 +169,26 @@ def process_url(url, cam_id, view_id, test_mode=False):
         print(smoke_pb_list)
         print(activation_ratio_list)
 
+
     # Put data together for uploading to the ESDR system
     # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
     # The reason is because we want consistent timestamps when doing real-time predictions
     data_json = {"channel_names": ["smoke_probability", "activation_ratio", "event"], "data": []}
+    max_event_gap_count = 2 # the max number of the gaps to merge events
+    idx_to_fill = None # the index list to fill the event gaps
     for i in range(len(smoke_pb_list)):
         smoke_pb = smoke_pb_list[i]
         activation_ratio = activation_ratio_list[i]
-        event = 0
-        if smoke_pb > 0.6 and activation_ratio > 0.5:
-            event = 1
+        event = 1 if smoke_pb > 0.6 and activation_ratio > 0.5 else 0
+        # Fill the event gap
+        if event == 1:
+            if idx_to_fill is not None and len(idx_to_fill) <= max_event_gap_count:
+                for j in idx_to_fill:
+                    data_json["data"][j][3] = 1 # fill the gaps
+            idx_to_fill = []
+        else:
+            if idx_to_fill is not None:
+                idx_to_fill.append(i)
         ct_sub = ct_sub_list[i]
         epochtime = int(np.max(ct_sub)) # use the largest timestamp
         data_item = [epochtime, smoke_pb, activation_ratio, event]
