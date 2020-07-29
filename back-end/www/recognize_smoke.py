@@ -76,7 +76,7 @@ def init_data_upload():
 # Upload smoke recognition results to ESDR system
 def upload_data():
     # Set product ID, obtained from the esdr response when calling register_esdr_product()
-    product_id = 94 # this ID is for production
+    product_id = 95 # this ID is for production
 
     # Get the access token
     access_token, _ = get_esdr_access_token(load_json("../data/auth.json"))
