@@ -61,6 +61,14 @@ def init_data_upload():
               "min": 0,
               "max": 1
             }
+          },
+          "event": {
+            "prettyName": "the smoke event",
+            "units": "no/yes",
+            "range": {
+              "min": 0,
+              "max": 1
+            }
           }}}}
 
     # Get the ESDR access token
@@ -164,19 +172,16 @@ def process_url(url, cam_id, view_id, test_mode=False):
     # Put data together for uploading to the ESDR system
     # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
     # The reason is because we want consistent timestamps when doing real-time predictions
-    data_json = {
-        "channel_names": [
-            "smoke_probability",
-            "activation_ratio",
-            ],
-        "data": []
-    }
+    data_json = {"channel_names": ["smoke_probability", "activation_ratio", "event"], "data": []}
     for i in range(len(smoke_pb_list)):
         smoke_pb = smoke_pb_list[i]
         activation_ratio = activation_ratio_list[i]
+        event = 0
+        if smoke_pb > 0.6 and activation_ratio > 0.5:
+            event = 1
         ct_sub = ct_sub_list[i]
         epochtime = int(np.max(ct_sub)) # use the largest timestamp
-        data_item = [epochtime, smoke_pb, activation_ratio]
+        data_item = [epochtime, smoke_pb, activation_ratio, event]
         data_json["data"].append(data_item)
     if test_mode:
         print(data_json)
