@@ -22,17 +22,86 @@ def main(argv):
         print("python recognize_smoke.py process_all_urls")
         print("python recognize_smoke.py init_data_upload")
         print("python recognize_smoke.py upload_data")
+        print("python recognize_smoke.py create_gallery")
         return
 
+    # Parameters
+    nf = 36 # number of frames of each divided video
+
     if argv[1] == "process_all_urls":
-        process_all_urls()
+        process_all_urls(nf=nf)
     elif argv[1] == "init_data_upload":
         init_data_upload()
     elif argv[1] == "upload_data":
         upload_data()
+    elif argv[1] == "create_gallery":
+        create_gallery(nf=nf)
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
     print("END")
+
+
+# Create the gallery of smoke videos based on the processed events
+# Input:
+#   nf: number of frames of each divided video
+def create_gallery(nf=36):
+    p = "../data/production/"
+    gallery_json = {}
+    for ds in get_all_dir_names_in_folder(p): # date string
+        gallery_json[ds] = {}
+        epochtime_to_frame_num = {}
+        for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
+            gallery_json[ds][vn] = []
+            cam_id = int(vn.split("-")[0])
+            cam_name = cam_id_to_name(cam_id)
+            # Construct the dictionary that maps epochtime to frame number
+            if cam_id not in epochtime_to_frame_num:
+                epochtime_to_frame_num[cam_id] = {}
+                tm_json = request_json(get_tm_json_url(cam_name=cam_name, ds=ds))
+                ct = tm_json["capture-times"]
+                for i in range(len(ct)):
+                    epochtime_to_frame_num[int(str_to_time(ct[i]).timestamp())] = i
+            # Parse the ESDR json file
+            for fn in get_all_file_names_in_folder(p + ds + "/" + vn + "/"): # json file
+                if ".json" not in fn: continue
+                esdr_json = load_json(p + ds + "/" + vn + "/" + fn)
+                event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds)
+                gallery_json[ds][vn] += event_urls
+                return
+
+
+# Given an esdr json, compute the list of thumbnail server urls for each smoke event
+# Input:
+#   esdr_json: the json file for the ESDR system
+#   epochtime_to_frame_num: a dictionary that maps epochtime to frame number
+#   nf: number of frames of each divided video
+#   cam_name: name of the camera
+#   ds: date string
+# Output:
+#   event_urls: the list of thumbnail server urls for each smoke event
+def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds):
+    url_root = "https://thumbnails-v2.createlab.org/thumbnail"
+    event_urls = []
+    start = None # the starting frame number
+    end = None # the ending frame number
+    df = pd.DataFrame(data=esdr_json["data"], columns=["epochtime"]+esdr_json["channel_names"])
+    df = df.sort_values(by=["epoch_time"]).reset_index(drop=True)
+    for row in df.iterrows():
+        f = epochtime_to_frame_num[row["epochtime"]]
+        if row["event"] == 1:
+            if start is None and end is None:
+                start = f - nf
+                end = f
+            if start is not None and end is not None:
+                end = f
+        else:
+            if start is not None and end is not None:
+                #TODO: construct url and push it to event_urls (need b)
+                url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=sf, w=180, h=180, nf=nf)
+                event_urls.append(url_root + url_part)
+                start = None
+                end = None
+    return event_urls
 
 
 # Register the product on the ESDR system
@@ -94,11 +163,11 @@ def upload_data():
 
     # Upload all data
     p = "../data/production/"
-    for dn in get_all_dir_names_in_folder(p): # date string
-        for vn in get_all_dir_names_in_folder(p + dn + "/"): # camera view ID
-            for fn in get_all_file_names_in_folder(p + dn + "/" + vn + "/"): # json file
+    for ds in get_all_dir_names_in_folder(p): # date string
+        for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
+            for fn in get_all_file_names_in_folder(p + ds + "/" + vn + "/"): # json file
                 if ".json" not in fn: continue
-                data = load_json(p + dn + "/" + vn + "/" + fn)
+                data = load_json(p + ds + "/" + vn + "/" + fn)
                 if "channel_names" not in data or "data" not in data: continue
                 s = vn.split("-")
                 lat, lng = get_cam_location_by_id(int(s[0]))
@@ -107,7 +176,9 @@ def upload_data():
 
 
 # Process all thumbnail server urls
-def process_all_urls(test_mode=False):
+# Input:
+#   nf: number of frames of each divided video
+def process_all_urls(nf=36, test_mode=False):
     p = "../data/production_url_list/"
     for fn in get_all_file_names_in_folder(p):
         if ".json" not in fn: continue
@@ -115,7 +186,7 @@ def process_all_urls(test_mode=False):
         m = load_json(p + fn)
         for m in load_json(p + fn):
             if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
-            process_url(m["url"], m["cam_id"], m["view_id"], test_mode=test_mode)
+            process_url(m["url"], m["cam_id"], m["view_id"], nf=nf, test_mode=test_mode)
 
 
 # Process each url and predict the probability of having smoke for that date and view
@@ -123,16 +194,16 @@ def process_all_urls(test_mode=False):
 #   url: the thumbnail server url that we want to process
 #   cam_id: camera ID
 #   view_id: view ID
-def process_url(url, cam_id, view_id, test_mode=False):
+#   nf: number of frames of each divided video
+def process_url(url, cam_id, view_id, nf=36, test_mode=False):
     print("Process %s" % url)
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
     # Divide the video into several small parts
-    url_part_list, file_name_list, ct_sub_list, unique_p, uuid = gen_url_parts(url, cam_id, view_id, nf=36, overlap=18)
+    url_part_list, file_name_list, ct_sub_list, unique_p, uuid = gen_url_parts(url, cam_id, view_id, nf=nf, overlap=18)
     if url_part_list is None or file_name_list is None:
         print("Error generating url parts...")
         return
-    url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
     # For testing only
     #url_part_list = url_part_list[:10]
@@ -315,6 +386,18 @@ def get_url_part(cam_name=None, ds=None, b=None, w=180, h=180, sf=None, fmt="mp4
 #   et: ending epochtime in seconds (int)
 def get_file_name(cam_id, view_id, ds, b, w, h, sf, st, et):
     return "%d-%d-%s-%r-%r-%r-%r-%r-%r-%r-%r-%r" % (cam_id, view_id, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, st, et)
+
+
+# Convert the camera ID to camera name
+def cam_id_to_name(cam_id):
+    if cam_id == 0:
+        return "clairton1"
+    elif cam_id == 1:
+        return "braddock1"
+    elif cam_id == 2:
+        return "westmifflin1"
+    else:
+        return None
 
 
 # Convert the camera name to camera ID
