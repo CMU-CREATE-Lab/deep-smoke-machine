@@ -22,7 +22,7 @@ def main(argv):
         print("python recognize_smoke.py process_all_urls")
         print("python recognize_smoke.py init_data_upload")
         print("python recognize_smoke.py upload_data")
-        print("python recognize_smoke.py create_gallery")
+        print("python recognize_smoke.py process_events")
         return
 
     # Parameters
@@ -34,19 +34,19 @@ def main(argv):
         init_data_upload()
     elif argv[1] == "upload_data":
         upload_data()
-    elif argv[1] == "create_gallery":
-        create_gallery(nf=nf)
+    elif argv[1] == "process_events":
+        process_events(nf=nf)
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
     print("END")
 
 
-# Create the gallery of smoke videos based on the processed events
+# Process smoke events and save them (in thumbnail server urls)
 # Input:
 #   nf: number of frames of each divided video
-def create_gallery(nf=36):
+def process_events(nf=36):
     p = "../data/production/"
-    p_out = "../data/smoke_gallery/"
+    p_out = "../data/event/"
     check_and_create_dir(p_out)
     for ds in get_all_dir_names_in_folder(p): # date string
         print("Process date %s" % ds)
