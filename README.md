@@ -1,7 +1,7 @@
 # deep-smoke-machine
 Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our technical report below:
 
-Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Randy Sargent, and Illah Nourbakhsh. 2020. RISE Video Dataset: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:2005.06111. https://arxiv.org/abs/2005.06111
+Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Randy Sargent, and Illah Nourbakhsh. 2020. Project RISE: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:2005.06111. https://arxiv.org/abs/2005.06111
 
 ![This figure shows different types of videos (high-opacity smoke, low-opacity smoke, steam, and steam with smoke).](back-end/data/dataset/2020-02-24/smoke-type.gif)
 
