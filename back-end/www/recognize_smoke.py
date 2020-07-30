@@ -46,12 +46,15 @@ def main(argv):
 #   nf: number of frames of each divided video
 def create_gallery(nf=36):
     p = "../data/production/"
-    gallery_json = {}
+    p_out = "../data/smoke_gallery/"
+    check_and_create_dir(p_out)
     for ds in get_all_dir_names_in_folder(p): # date string
-        gallery_json[ds] = {}
+        print("Process date %s" % ds)
+        gallery_json = {}
         epochtime_to_frame_num = {}
         for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
-            gallery_json[ds][vn] = []
+            print("\tProcess view %s" % vn)
+            gallery_json[vn] = []
             cam_id = int(vn.split("-")[0])
             cam_name = cam_id_to_name(cam_id)
             # Construct the dictionary that maps epochtime to frame number
@@ -64,29 +67,33 @@ def create_gallery(nf=36):
             # Parse the ESDR json file
             for fn in get_all_file_names_in_folder(p + ds + "/" + vn + "/"): # json file
                 if ".json" not in fn: continue
+                print("\t\tProcess file %s" % fn)
+                s = fn.split("-")
+                b = {"L": int(s[5]), "T": int(s[6]), "R": int(s[7]), "B": int(s[8])}
                 esdr_json = load_json(p + ds + "/" + vn + "/" + fn)
-                event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds)
-                gallery_json[ds][vn] += event_urls
-                return
+                event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b)
+                gallery_json[vn] += event_urls
+        save_json(gallery_json, p_out + ds + ".json")
 
 
 # Given an esdr json, compute the list of thumbnail server urls for each smoke event
 # Input:
 #   esdr_json: the json file for the ESDR system
 #   epochtime_to_frame_num: a dictionary that maps epochtime to frame number
-#   nf: number of frames of each divided video
-#   cam_name: name of the camera
-#   ds: date string
+#   nf: number of frames of each divided video, e.g., 36
+#   cam_name: name of the camera, e.g., "clairton1"
+#   ds: date string, e.g., "2019-04-02"
+#   b: bounding box, e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
 # Output:
 #   event_urls: the list of thumbnail server urls for each smoke event
-def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds):
+def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b):
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
     event_urls = []
     start = None # the starting frame number
     end = None # the ending frame number
     df = pd.DataFrame(data=esdr_json["data"], columns=["epochtime"]+esdr_json["channel_names"])
-    df = df.sort_values(by=["epoch_time"]).reset_index(drop=True)
-    for row in df.iterrows():
+    df = df.sort_values(by=["epochtime"]).reset_index(drop=True)
+    for idx, row in df.iterrows():
         f = epochtime_to_frame_num[row["epochtime"]]
         if row["event"] == 1:
             if start is None and end is None:
@@ -96,8 +103,7 @@ def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds):
                 end = f
         else:
             if start is not None and end is not None:
-                #TODO: construct url and push it to event_urls (need b)
-                url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=sf, w=180, h=180, nf=nf)
+                url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=start, w=180, h=180, nf=end-start+1, label=True)
                 event_urls.append(url_root + url_part)
                 start = None
                 end = None
@@ -369,8 +375,12 @@ def divide_start_frame(ct_list, nf=36, overlap=0):
 #   fmt: format (str), "gif" or "mp4" or "png"
 #   fps: frames per second (int)
 #   nf: number of frames (int)
-def get_url_part(cam_name=None, ds=None, b=None, w=180, h=180, sf=None, fmt="mp4", fps=12, nf=36):
-    return "?root=http://tiles.cmucreatelab.org/ecam/timemachines/%s/%s.timemachine/&boundsLTRB=%r,%r,%r,%r&width=%r&height=%r&startFrame=%r&format=%s&fps=%r&tileFormat=mp4&nframes=%r" % (cam_name, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, fmt, fps, nf)
+#   label: add timestamp label on the video or not
+def get_url_part(cam_name=None, ds=None, b=None, w=180, h=180, sf=None, fmt="mp4", fps=12, nf=36, label=False):
+    url_part = "?root=http://tiles.cmucreatelab.org/ecam/timemachines/%s/%s.timemachine/&boundsLTRB=%r,%r,%r,%r&width=%r&height=%r&startFrame=%r&format=%s&fps=%r&tileFormat=mp4&nframes=%r" % (cam_name, ds, b["L"], b["T"], b["R"], b["B"], w, h, sf, fmt, fps, nf)
+    if label:
+        url_part += "&labelsFromDataset"
+    return url_part
 
 
 # Return a file name
