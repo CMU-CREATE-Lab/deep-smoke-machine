@@ -20,9 +20,9 @@ def main(argv):
     if len(argv) < 2:
         print("Usage:")
         print("python recognize_smoke.py process_all_urls")
+        print("python recognize_smoke.py process_events")
         print("python recognize_smoke.py init_data_upload")
         print("python recognize_smoke.py upload_data")
-        print("python recognize_smoke.py process_events")
         return
 
     # Parameters
@@ -70,10 +70,35 @@ def process_events(nf=36):
                 print("\t\tProcess file %s" % fn)
                 s = fn.split("-")
                 b = {"L": int(s[5]), "T": int(s[6]), "R": int(s[7]), "B": int(s[8])}
-                esdr_json = load_json(p + ds + "/" + vn + "/" + fn)
+                fp = p + ds + "/" + vn + "/" + fn
+                esdr_json = load_json(fp)
+                esdr_json = add_smoke_events(esdr_json)
                 event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b)
                 gallery_json[vn] += event_urls
+                save_json(esdr_json, fp)
         save_json(gallery_json, p_out + ds + ".json")
+
+
+# Given an esdr json, compute and add the smoke events
+def add_smoke_events(esdr_json):
+    data = esdr_json["data"]
+    max_event_gap_count = 2 # the max number of the gaps to merge events
+    idx_to_fill = None # the index list to fill the event gaps
+    for i in range(len(data)):
+        smoke_pb = data[i][1]
+        activation_ratio = data[i][2]
+        event = 1 if smoke_pb > 0.65 and activation_ratio > 0.65 else 0
+        esdr_json["data"][i][3] = event
+        # Fill the event gap
+        if event == 1:
+            if idx_to_fill is not None and len(idx_to_fill) <= max_event_gap_count:
+                for j in idx_to_fill:
+                    esdr_json["data"][j][3] = 1 # fill the gaps
+            idx_to_fill = []
+        else:
+            if idx_to_fill is not None:
+                idx_to_fill.append(i)
+    return esdr_json
 
 
 # Given an esdr json, compute the list of thumbnail server urls for each smoke event
@@ -246,28 +271,16 @@ def process_url(url, cam_id, view_id, nf=36, test_mode=False):
         print(smoke_pb_list)
         print(activation_ratio_list)
 
-
     # Put data together for uploading to the ESDR system
     # Notice that for the epochtime, we use the ending time of the video (NOT starting time)
     # The reason is because we want consistent timestamps when doing real-time predictions
     data_json = {"channel_names": ["smoke_probability", "activation_ratio", "event"], "data": []}
-    max_event_gap_count = 2 # the max number of the gaps to merge events
-    idx_to_fill = None # the index list to fill the event gaps
     for i in range(len(smoke_pb_list)):
         smoke_pb = smoke_pb_list[i]
         activation_ratio = activation_ratio_list[i]
-        event = 1 if smoke_pb > 0.6 and activation_ratio > 0.5 else 0
-        # Fill the event gap
-        if event == 1:
-            if idx_to_fill is not None and len(idx_to_fill) <= max_event_gap_count:
-                for j in idx_to_fill:
-                    data_json["data"][j][3] = 1 # fill the gaps
-            idx_to_fill = []
-        else:
-            if idx_to_fill is not None:
-                idx_to_fill.append(i)
         ct_sub = ct_sub_list[i]
         epochtime = int(np.max(ct_sub)) # use the largest timestamp
+        event = -1 # this will be computed later in the add_smoke_events() function
         data_item = [epochtime, smoke_pb, activation_ratio, event]
         data_json["data"].append(data_item)
     if test_mode:
