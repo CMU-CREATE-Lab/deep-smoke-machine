@@ -48,13 +48,15 @@ def process_events(nf=36):
     p = "../data/production/"
     p_out = "../data/event/"
     check_and_create_dir(p_out)
+    date_list = []
     for ds in get_all_dir_names_in_folder(p): # date string
         print("Process date %s" % ds)
-        gallery_json = {}
+        event_json = {}
         epochtime_to_frame_num = {}
+        date_list.append(ds)
         for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
             print("\tProcess view %s" % vn)
-            gallery_json[vn] = []
+            event_json[vn] = []
             cam_id = int(vn.split("-")[0])
             cam_name = cam_id_to_name(cam_id)
             # Construct the dictionary that maps epochtime to frame number
@@ -74,9 +76,12 @@ def process_events(nf=36):
                 esdr_json = load_json(fp)
                 esdr_json = add_smoke_events(esdr_json)
                 event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b)
-                gallery_json[vn] += event_urls
+                event_json[vn] += event_urls
                 save_json(esdr_json, fp)
-        save_json(gallery_json, p_out + ds + ".json")
+        # Save the events for each date
+        save_json(event_json, p_out + ds + ".json")
+    # Save the date list
+    save_json(date_list, p_out + "date_list.json")
 
 
 # Given an esdr json, compute and add the smoke events
