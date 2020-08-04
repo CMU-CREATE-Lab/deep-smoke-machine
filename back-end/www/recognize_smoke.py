@@ -81,7 +81,7 @@ def process_events(nf=36):
         # Save the events for each date
         save_json(event_json, p_out + ds + ".json")
     # Save the date list
-    save_json(date_list, p_out + "date_list.json")
+    save_json(sorted(date_list), p_out + "date_list.json")
 
 
 # Given an esdr json, compute and add the smoke events
