@@ -87,12 +87,14 @@ def process_events(nf=36):
 # Given an esdr json, compute and add the smoke events
 def add_smoke_events(esdr_json):
     data = esdr_json["data"]
-    max_event_gap_count = 2 # the max number of the gaps to merge events
+    max_event_gap_count = 1 # the max number of the gaps to merge events
+    smoke_pb_thr = 0.8 # the probability threshold to define a smoke event
+    activation_ratio_thr = 0.4 # the activation ratio threshold to define a smoke event
     idx_to_fill = None # the index list to fill the event gaps
     for i in range(len(data)):
         smoke_pb = data[i][1]
         activation_ratio = data[i][2]
-        event = 1 if smoke_pb > 0.65 and activation_ratio > 0.65 else 0
+        event = 1 if smoke_pb > smoke_pb_thr and activation_ratio > activation_ratio_thr else 0
         esdr_json["data"][i][3] = event
         # Fill the event gap
         if event == 1:
