@@ -14,6 +14,7 @@ from urllib.parse import urlparse, parse_qs
 import pandas as pd
 from multiprocessing.dummy import Pool
 import time
+from collections import OrderedDict
 
 
 def main(argv):
@@ -79,6 +80,8 @@ def process_events(nf=36):
                 event_json[vn] += event_urls
                 save_json(esdr_json, fp)
         # Save the events for each date
+        event_json = OrderedDict(sorted(event_json.items(),
+            key=lambda t: int(t[0].split("-")[0])*1000+int(t[0].split("-")[1])))
         save_json(event_json, p_out + ds + ".json")
     # Save the date list
     save_json(sorted(date_list), p_out + "date_list.json")
