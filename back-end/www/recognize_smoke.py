@@ -49,24 +49,28 @@ def process_events(nf=36):
     p = "../data/production/"
     p_out = "../data/event/"
     check_and_create_dir(p_out)
-    date_list = []
+    event_metadata_json = {}
     for ds in get_all_dir_names_in_folder(p): # date string
         print("Process date %s" % ds)
         event_json = {}
         epochtime_to_frame_num = {}
-        date_list.append(ds)
+        frame_num_to_epochtime = {}
+        event_metadata_json[ds] = {}
         for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
             print("\tProcess view %s" % vn)
-            event_json[vn] = []
+            event_json[vn] = {"url": [], "event": []}
             cam_id = int(vn.split("-")[0])
             cam_name = cam_id_to_name(cam_id)
-            # Construct the dictionary that maps epochtime to frame number
+            # Construct the dictionary that maps epochtime to frame number, and also the reverse mapping
             if cam_id not in epochtime_to_frame_num:
                 epochtime_to_frame_num[cam_id] = {}
+                frame_num_to_epochtime[cam_id] = {}
                 tm_json = request_json(get_tm_json_url(cam_name=cam_name, ds=ds))
                 ct = tm_json["capture-times"]
                 for i in range(len(ct)):
-                    epochtime_to_frame_num[int(str_to_time(ct[i]).timestamp())] = i
+                    t = int(str_to_time(ct[i]).timestamp())
+                    epochtime_to_frame_num[t] = i
+                    frame_num_to_epochtime[i] = t
             # Parse the ESDR json file
             for fn in get_all_file_names_in_folder(p + ds + "/" + vn + "/"): # json file
                 if ".json" not in fn: continue
@@ -76,15 +80,26 @@ def process_events(nf=36):
                 fp = p + ds + "/" + vn + "/" + fn
                 esdr_json = load_json(fp)
                 esdr_json = add_smoke_events(esdr_json)
-                event_urls = get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b)
-                event_json[vn] += event_urls
+                event_urls, event_list, event_metadata = get_smoke_event_urls(esdr_json,
+                        epochtime_to_frame_num, frame_num_to_epochtime, nf, cam_name, ds, b)
+                event_json[vn]["url"] += event_urls
+                event_json[vn]["event"] += event_list
+                event_metadata_json[ds][vn] = event_metadata
                 save_json(esdr_json, fp)
         # Save the events for each date
-        event_json = OrderedDict(sorted(event_json.items(),
-            key=lambda t: int(t[0].split("-")[0])*1000+int(t[0].split("-")[1])))
+        event_json = sort_camera_view_json(event_json)
         save_json(event_json, p_out + ds + ".json")
     # Save the date list
-    save_json(sorted(date_list), p_out + "date_list.json")
+    event_metadata_json = OrderedDict(sorted(event_metadata_json.items()))
+    for k in event_metadata_json:
+        event_metadata_json[k] = sort_camera_view_json(event_metadata_json[k])
+    save_json(event_metadata_json, p_out + "event_metadata.json")
+
+
+# Give a dictionary with the key being the camera view ID (e.g., "0-0", "0-1")
+# Sort the key and return the sorted dictionary
+def sort_camera_view_json(d):
+    return OrderedDict(sorted(d.items(), key=lambda t: int(t[0].split("-")[0])*1000+int(t[0].split("-")[1])))
 
 
 # Given an esdr json, compute and add the smoke events
@@ -115,19 +130,25 @@ def add_smoke_events(esdr_json):
 # Input:
 #   esdr_json: the json file for the ESDR system
 #   epochtime_to_frame_num: a dictionary that maps epochtime to frame number
+#   frame_num_to_epochtime: a dictionary that maps frame number to epochtime
 #   nf: number of frames of each divided video, e.g., 36
 #   cam_name: name of the camera, e.g., "clairton1"
 #   ds: date string, e.g., "2019-04-02"
 #   b: bounding box, e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
 # Output:
 #   event_urls: the list of thumbnail server urls for each smoke event
-def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b):
+#   event_list: a list of starting and ending time for each event
+#   metadata: some information about the events (e.g., number of events, total event duration)
+def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, frame_num_to_epochtime, nf, cam_name, ds, b):
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
     event_urls = []
+    event_list = []
     start = None # the starting frame number
     end = None # the ending frame number
     df = pd.DataFrame(data=esdr_json["data"], columns=["epochtime"]+esdr_json["channel_names"])
     df = df.sort_values(by=["epochtime"]).reset_index(drop=True)
+    metadata = {}
+    event_duration_in_secs = 0
     for idx, row in df.iterrows():
         f = epochtime_to_frame_num[row["epochtime"]]
         if row["event"] == 1:
@@ -140,9 +161,15 @@ def get_smoke_event_urls(esdr_json, epochtime_to_frame_num, nf, cam_name, ds, b)
             if start is not None and end is not None:
                 url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=start, w=180, h=180, nf=end-start+1, label=True)
                 event_urls.append(url_root + url_part)
+                start_t = frame_num_to_epochtime[start]
+                end_t = frame_num_to_epochtime[end]
+                event_list.append([start_t, end_t])
+                event_duration_in_secs += end_t - start_t
                 start = None
                 end = None
-    return event_urls
+    metadata["num_events"] = len(event_urls)
+    metadata["event_duration_in_secs"] = event_duration_in_secs
+    return (event_urls, event_list, metadata)
 
 
 # Register the product on the ESDR system
