@@ -17,6 +17,7 @@ import time
 from collections import OrderedDict
 
 
+# The main function for smoke recognition (using the trained model)
 def main(argv):
     if len(argv) < 2:
         print("Usage:")
@@ -250,7 +251,7 @@ def process_all_urls(nf=36, test_mode=False):
     p = "../data/production_url_list/"
     for fn in get_all_file_names_in_folder(p):
         if ".json" not in fn: continue
-        if test_mode and "test" not in fn: continue
+        if test_mode and "2019-02-03" not in fn: continue
         m = load_json(p + fn)
         for m in load_json(p + fn):
             if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
@@ -342,7 +343,7 @@ def get_camera_name_from_url(url):
 # Parse the bounding box from the thumbnail server url
 def get_bound_from_url(url):
     b_str = parse_qs(urlparse(url).query)["boundsLTRB"][0]
-    b_str_split = list(map(int, b_str.split(",")))
+    b_str_split = list(map(int, map(float, b_str.split(","))))
     return {"L": b_str_split[0], "T": b_str_split[1], "R": b_str_split[2], "B": b_str_split[3]}
 
 
