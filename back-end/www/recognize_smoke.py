@@ -248,14 +248,31 @@ def upload_data():
 # Input:
 #   nf: number of frames of each divided video
 def process_all_urls(nf=36, test_mode=False):
+    # Read processed dates
+    p_dates = "../data/production/processed_dates.json"
+    if is_file_here(p_dates):
+        processed_dates = load_json(p_dates)
+    else:
+        processed_dates = []
+
+    # Process dates
     p = "../data/production_url_list/"
     for fn in get_all_file_names_in_folder(p):
         if ".json" not in fn: continue
+        date_tr = fn.split(".json")[0]
+        if date_tr in processed_dates:
+            print("Date %s is already processed...skip..." % date_tr)
+            continue
         if test_mode and "2019-02-03" not in fn: continue
         m = load_json(p + fn)
         for m in load_json(p + fn):
             if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
-            process_url(m["url"], m["cam_id"], m["view_id"], nf=nf, test_mode=test_mode)
+            flag = process_url(m["url"], m["cam_id"], m["view_id"], nf=nf, test_mode=test_mode)
+            if flag is True and fn not in processed_dates:
+                processed_dates.append(date_tr)
+
+    # Save processed dates
+    save_json(processed_dates, p_dates)
 
 
 # Process each url and predict the probability of having smoke for that date and view
@@ -272,7 +289,7 @@ def process_url(url, cam_id, view_id, nf=36, test_mode=False):
     url_part_list, file_name_list, ct_sub_list, unique_p, uuid = gen_url_parts(url, cam_id, view_id, nf=nf, overlap=18)
     if url_part_list is None or file_name_list is None:
         print("Error generating url parts...")
-        return
+        return False
 
     # For testing only
     #url_part_list = url_part_list[:10]
@@ -289,7 +306,7 @@ def process_url(url, cam_id, view_id, nf=36, test_mode=False):
     # Skip if the json file exists
     if is_file_here(p_root + uuid + ".json"):
         print("File %s exists...skip..." % (uuid + ".json"))
-        return
+        return True
 
     # Download the videos
     download_video(url_part_list, file_name_list, url_root, vid_p)
@@ -326,6 +343,7 @@ def process_url(url, cam_id, view_id, nf=36, test_mode=False):
     save_json(data_json, p_root + uuid + ".json")
 
     print("DONE process_url")
+    return True
 
 
 # Parse the datetime string from the thumbnail server url
@@ -561,6 +579,8 @@ def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, nu
 
     # Download the files in parallel
     result = Pool(num_workers).starmap(urlretrieve_worker, arg_list)
+    Pool.close()
+    Pool.join()
     for r in result:
         if r: num_errors += 1
     if num_errors > 0:
