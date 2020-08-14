@@ -613,8 +613,6 @@ def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, nu
 
     # Download the files in parallel
     result = Pool(num_workers).starmap(urlretrieve_worker, arg_list)
-    Pool.close()
-    Pool.join()
     for r in result:
         if r: num_errors += 1
     if num_errors > 0:
