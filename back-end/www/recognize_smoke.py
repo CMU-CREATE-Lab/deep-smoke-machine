@@ -21,6 +21,7 @@ from collections import OrderedDict
 def main(argv):
     if len(argv) < 2:
         print("Usage:")
+        print("python recognize_smoke.py check_and_fix_urls")
         print("python recognize_smoke.py process_all_urls")
         print("python recognize_smoke.py process_events")
         print("python recognize_smoke.py init_data_upload")
@@ -30,7 +31,9 @@ def main(argv):
     # Parameters
     nf = 36 # number of frames of each divided video
 
-    if argv[1] == "process_all_urls":
+    if argv[1] == "check_and_fix_urls":
+        check_and_fix_urls()
+    elif argv[1] == "process_all_urls":
         process_all_urls(nf=nf)
     elif argv[1] == "init_data_upload":
         init_data_upload()
@@ -41,6 +44,33 @@ def main(argv):
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
     print("END")
+
+
+# Check urls in the json files in a folder
+# Identify the files that are not named using dates
+# Identify the urls that do not have the same date as the file name
+# Fix the urls problems automatically and raise issues for the file name problem
+def check_and_fix_urls():
+    p = "../data/production_url_list/"
+    for fn in get_all_file_names_in_folder(p):
+        if ".json" not in fn: continue
+        date_in_fn = re.findall(r"[\d]{4}-[\d]{2}-[\d]{2}", fn)
+        if len(date_in_fn) != 1:
+            print("ERROR: file name is not a date, need to fix '%s' manually" % fn)
+            continue
+        date_in_fn = date_in_fn[0]
+        urls = load_json(p + fn)
+        has_problem = False
+        for i in range(len(urls)):
+            date_in_url = get_datetime_str_from_url(urls[i]["url"])
+            if date_in_fn != date_in_url:
+                print("PROBLEM: date mismatch (file name has %s but url has %s)" % (date_in_fn, date_in_url))
+                has_problem = True
+                print("Fix the date mismatch problem automatically...")
+                urls[i]["url"] = urls[i]["url"].replace(date_in_url, date_in_fn)
+        if has_problem:
+            print("Replace file with the fixed version: %s" % fn)
+            save_json(urls, p + fn)
 
 
 # Process smoke events and save them (in thumbnail server urls)
