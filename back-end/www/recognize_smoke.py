@@ -28,6 +28,8 @@ def main(argv):
         print("python recognize_smoke.py upload_data")
         return
 
+    program_start_time = time.time()
+
     # Parameters
     nf = 36 # number of frames of each divided video
 
@@ -43,6 +45,9 @@ def main(argv):
         process_events(nf=nf)
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
+
+    program_run_time = (time.time()-program_start_time)/60
+    print("Took %.2f minutes to run the program" % program_run_time)
     print("END")
 
 
