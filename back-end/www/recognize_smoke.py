@@ -67,6 +67,7 @@ def scan_urls(num_workers=8):
 
 
 def url_open_worker(url, *args):
+    url = url.replace("width=180", "width=320").replace("height=180", "height=320")
     try:
         response = urllib.request.urlopen(url)
         print("Response %d for %s" % (response.getcode(), url))
