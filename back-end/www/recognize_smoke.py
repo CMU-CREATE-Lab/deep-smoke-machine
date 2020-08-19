@@ -66,15 +66,15 @@ def scan_urls(num_workers=8):
     pool.join()
 
 
-def url_open_worker(u):
+def url_open_worker(url, *args):
     try:
         response = urllib.request.urlopen(url)
-        print("Response %d for %s" % (response.getcode(), u[0]))
+        print("Response %d for %s" % (response.getcode(), url))
     except urllib.error.HTTPError as e:
-        print("ERROR when opening url ---- %s" % u[0])
+        print("ERROR when opening url ---- %s" % url)
         print("Cannot fulfill the request with error code: ", e.code)
     except urllib.error.URLError as e:
-        print("ERROR when opening url ---- %s" % u[0])
+        print("ERROR when opening url ---- %s" % url)
         print("Failed to reach a server with reason: ", e.reason)
 
 
