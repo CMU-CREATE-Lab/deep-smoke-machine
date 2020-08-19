@@ -1,0 +1,33 @@
+[{
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=6190,1311,6700,1821&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 0
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=5841,1316,6351,1826&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 1
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=5431,1294,5942,1805&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 2
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=5069,1290,5592,1813&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 3
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=4665,1296,5189,1820&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 4
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=4122,1339,4645,1862&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 5
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=3775,1360,4298,1883&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 6
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-02-02.timemachine/&boundsLTRB=3356,1217,3879,1740&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 7
+}]

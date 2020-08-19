@@ -1,0 +1,29 @@
+[{
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=6251,1434,6803,1986&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 0
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=5913,1440,6465,1992&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 1
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=5501,1473,6011,1984&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 2
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=5178,1459,5710,1990&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 3
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=4738,1458,5263,1983&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 4
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=4213,1494,4738,2019&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 5
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-01-30.timemachine/&boundsLTRB=3877,1521,4383,2027&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 6
+}]
