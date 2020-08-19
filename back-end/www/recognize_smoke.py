@@ -21,6 +21,7 @@ from collections import OrderedDict
 def main(argv):
     if len(argv) < 2:
         print("Usage:")
+        print("python recognize_smoke.py scan_urls")
         print("python recognize_smoke.py check_and_fix_urls")
         print("python recognize_smoke.py process_all_urls")
         print("python recognize_smoke.py process_events")
@@ -33,7 +34,9 @@ def main(argv):
     # Parameters
     nf = 36 # number of frames of each divided video
 
-    if argv[1] == "check_and_fix_urls":
+    if argv[1] == "scan_urls":
+        scan_urls()
+    elif argv[1] == "check_and_fix_urls":
         check_and_fix_urls()
     elif argv[1] == "process_all_urls":
         process_all_urls(nf=nf)
@@ -49,6 +52,30 @@ def main(argv):
     program_run_time = (time.time()-program_start_time)/60
     print("Took %.2f minutes to run the program" % program_run_time)
     print("END")
+
+
+# Scan and request all thumbnail server urls
+# So that the front-end users do not need to wait for generating the videos
+def scan_urls(num_workers=8):
+    p = "../data/event/"
+    event_metadata = load_json(p + "event_metadata.json")
+    pool = Pool(num_workers)
+    for date_str in event_metadata:
+        pool.starmap(url_open_worker, load_json(p + date_str + ".json")["url"])
+    pool.close()
+    pool.join()
+
+
+def url_open_worker(u):
+    try:
+        response = urllib.request.urlopen(url)
+        print("Response %d for %s" % (response.getcode(), u[0]))
+    except urllib.error.HTTPError as e:
+        print("ERROR when opening url ---- %s" % u[0])
+        print("Cannot fulfill the request with error code: ", e.code)
+    except urllib.error.URLError as e:
+        print("ERROR when opening url ---- %s" % u[0])
+        print("Failed to reach a server with reason: ", e.reason)
 
 
 # Check urls in the json files in a folder
@@ -647,7 +674,10 @@ def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, nu
         arg_list.append((url, file_p))
 
     # Download the files in parallel
-    result = Pool(num_workers).starmap(urlretrieve_worker, arg_list)
+    pool = Pool(num_workers)
+    result = pool.starmap(urlretrieve_worker, arg_list)
+    pool.close()
+    pool.join()
     for r in result:
         if r: num_errors += 1
     if num_errors > 0:
