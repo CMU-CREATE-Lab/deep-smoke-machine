@@ -113,6 +113,7 @@ def process_events(nf=36):
     p = "../data/production/"
     p_out = "../data/event/"
     check_and_create_dir(p_out)
+    #TODO: ignore dates that are processed
     event_metadata_json = {}
     for ds in get_all_dir_names_in_folder(p): # date string
         print("Process date %s" % ds)
