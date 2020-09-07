@@ -370,7 +370,7 @@ def process_all_urls(nf=36, test_mode=False):
                 processed_dates.append(date_tr)
 
     # Save processed dates
-    save_json(processed_dates, p_dates)
+    save_json(list(np.unique(processed_dates)), p_dates)
 
 
 # Process each url and predict the probability of having smoke for that date and view
