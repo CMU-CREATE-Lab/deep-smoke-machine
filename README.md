@@ -18,8 +18,8 @@ The following figures show how the [I3D model](https://arxiv.org/abs/1705.07750)
 - [Setup this tool](#setup-tool)
 - [Use this tool](#use-this-tool)
 - [Code infrastructure](#code-infrastructure)
-- [Pretrained models (will be released in the future)](#pretrained-models)
 - [Dataset](#dataset)
+- [Pretrained models](#pretrained-models)
 - [Acknowledgements](#acknowledgements)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
@@ -300,9 +300,6 @@ If you want to develop your own model, here are the steps that I recommend.
 4. If you need a specific data augmentation pipeline, edit the get_transform function in the base_learner.py file. Depending on your needs, you may also need to edit the opencv_functional.py and video_transforms.py files.
 5. Copy the i3d_learner.py file, import your model, and modify the code to suit your needs. Make sure that you import your customized learner class in the train.py and test.py files.
 
-# <a name="pretrained-models"></a>Pretrained models
-We are working on a pipeline for recognizing smoke emissions using existing camera data, and we will release our best pre-trained models here.
-
 # <a name="dataset"></a>Dataset
 We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. The JSON file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
 - camera_id
@@ -403,6 +400,32 @@ The dataset contains 12,567 clips with 19 distinct views from cameras on three s
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_3.png)
 
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_4.png)
+
+# <a name="pretrained-models"></a>Pretrained models
+We release two of our best baseline models: [RGB-I3D](back-end/data/pretrained_models/RGB-I3D-S3.pt) and [RGB-TC](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/master/back-end/data/pretrained_models/RGB-TC-S3.pt), both trained and tested on split S<sub>3</sub>. Please feel free to finetune your models based on our baseline. Our technical report describes the details of these models. RGB-I3D uses [I3D ConvNet architecture with Inception-v1 layers](https://arxiv.org/pdf/1705.07750.pdf) and RGB frame input. RGB-TC is finetuned from RGB-I3D, with additional [Timeception](https://arxiv.org/pdf/1812.01289.pdf) layers. Below shows an example usage:
+```python
+# Import I3D
+from i3d_learner import I3dLearner
+
+# Initialize the model
+model = I3dLearner(
+    mode="rgb",
+    augment=True,
+    p_frame="../data/rgb/",
+    use_tc=True,
+    freeze_i3d=True,
+    batch_size_train=8,
+    milestones=[1000, 2000],
+    num_steps_per_update=1)
+
+# Finetune the RGB-TC model from the RGB-I3D model
+model.fit(
+    p_model="../data/pretrained_models/RGB-I3D-S3.pt",
+    model_id_suffix="-s3",
+    p_metadata_train="../data/split/metadata_train_split_by_date.json",
+    p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
+    p_metadata_test="../data/split/metadata_test_split_by_date.json")
+```
 
 # <a name="acknowledgements"></a>Acknowledgements
 We thank [GASP](https://gasp-pgh.org/) (Group Against Smog and Pollution), [Clean Air Council](https://cleanair.org/), [ACCAN](https://accan.org/) (Allegheny County Clean Air Now), [Breathe Project](https://breatheproject.org/), [NVIDIA](https://developer.nvidia.com/academic_gpu_seeding), and the [Heinz Endowments](http://www.heinz.org/) for the support of this research. We also greatly appreciate the help of our volunteers, which includes labeling videos and providing feedback in system development.
