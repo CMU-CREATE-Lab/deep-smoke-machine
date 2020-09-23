@@ -15,6 +15,7 @@ import pandas as pd
 from multiprocessing.dummy import Pool
 import time
 from collections import OrderedDict
+from collections import defaultdict
 
 
 # The main function for smoke recognition (using the trained model)
@@ -113,19 +114,26 @@ def process_events(nf=36):
     p = "../data/production/"
     p_out = "../data/event/"
     check_and_create_dir(p_out)
-    #TODO: ignore dates that are processed
-    event_metadata_json = {}
+    if is_file_here(p_out + "event_metadata.json"):
+        event_metadata_json = load_json(p_out + "event_metadata.json")
+    else:
+        event_metadata_json = {}
+    processed_dates = [fn.split(".")[0] for fn in get_all_file_names_in_folder(p_out)]
     for ds in get_all_dir_names_in_folder(p): # date string
+        if ds in processed_dates:
+            # Ignore dates that are processed
+            print("Date %s was processed...skip..." % ds)
+            continue
         print("Process date %s" % ds)
-        event_json = {"url": []}
+        event_json = defaultdict(lambda: {"url": defaultdict(dict)})
         t_to_f = {}
         f_to_t = {}
-        event_metadata_json[ds] = {"view_list": []}
-        df_events = [] # collect events from all camera views
+        event_metadata_json[ds] = {"cam_list": defaultdict(lambda: {"view_list": []})}
+        df_events = defaultdict(list) # collect events, group them by camera id
         for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
             print("\tProcess view %s" % vn)
-            event_metadata_json[ds]["view_list"].append(vn)
             cam_id = int(vn.split("-")[0])
+            event_metadata_json[ds]["cam_list"][cam_id]["view_list"].append(vn)
             cam_name = cam_id_to_name(cam_id)
             # Construct the dictionary that maps epochtime to frame number, and also the reverse mapping
             if cam_id not in t_to_f:
@@ -147,49 +155,59 @@ def process_events(nf=36):
                 esdr_json = load_json(fp)
                 esdr_json = add_smoke_events(esdr_json)
                 event_urls, df_event = get_smoke_event_urls(esdr_json, t_to_f, f_to_t, nf, cam_name, ds, b, vn)
-                df_events.append(df_event)
-                event_json["url"] += event_urls
+                event_list, total_event_duration_in_secs = compute_event_list(df_event, t_to_f, f_to_t, nf)
+                df_events[cam_id].append(df_event)
+                event_json[cam_id]["url"][vn]["url"] = event_urls
+                event_json[cam_id]["url"][vn]["event"] = event_list
+                event_json[cam_id]["url"][vn]["total_event_duration_in_secs"] = total_event_duration_in_secs
                 save_json(esdr_json, fp)
-        # Merge events from all camera views
-        df_aggr_event = df_events[0]["event"]
-        for df in df_events[1:]:
-            df_aggr_event = df_aggr_event | df["event"]
-        df_aggr_event = df_aggr_event.to_frame()
-        df_aggr_event["epochtime"] = df_events[0]["epochtime"]
-        # Compute the event list (a list of starting and ending time for each event) and metadata
-        event_list = []
-        start = None # the starting frame number
-        end = None # the ending frame number
-        total_event_duration_in_secs = 0
-        for idx, row in df_aggr_event.iterrows():
-            f = t_to_f[row["epochtime"]]
-            if row["event"] == 1:
-                if start is None and end is None:
-                    start = f - nf
-                    end = f
-                if start is not None and end is not None:
-                    end = f
-            else:
-                if start is not None and end is not None:
-                    start_t = f_to_t[start]
-                    end_t = f_to_t[end]
-                    event_list.append([start_t, end_t])
-                    total_event_duration_in_secs += end_t - start_t
-                    start = None
-                    end = None
-        event_json["event"] = event_list
-        event_metadata_json[ds]["total_event_duration_in_secs"] = total_event_duration_in_secs
-        # Sort urls by camera view
-        event_json["url"] = sort_by_camera_view(event_json["url"], 1)
-        # Sort urls by starting time
-        event_json["url"] = sort_by_number(event_json["url"], 3)
+        # Merge events for all camera ids and compute the event list
+        for cam_id in df_events:
+            df_aggr_event = df_events[cam_id][0]["event"]
+            for df in df_events[cam_id][1:]:
+                df_aggr_event = df_aggr_event | df["event"]
+            df_aggr_event = df_aggr_event.to_frame()
+            df_aggr_event["epochtime"] = df_events[cam_id][0]["epochtime"]
+            event_list, total_event_duration_in_secs = compute_event_list(df_aggr_event, t_to_f, f_to_t, nf)
+            event_json[cam_id]["event"] = event_list
+            event_json[cam_id]["total_event_duration_in_secs"] = total_event_duration_in_secs
+            event_metadata_json[ds]["cam_list"][cam_id]["total_event_duration_in_secs"] = total_event_duration_in_secs
+        # Sort items by camera id
+        for cam_id in event_json:
+            event_json[cam_id]["url"] = OrderedDict(sort_by_camera_view(event_json[cam_id]["url"].items(), 0))
         # Save the events by camera view
         save_json(event_json, p_out + ds + ".json")
     # Save the date list
     event_metadata_json = OrderedDict(sorted(event_metadata_json.items()))
     for k in event_metadata_json:
-        event_metadata_json[k]["view_list"] = sort_camera_view_list(event_metadata_json[k]["view_list"])
+        for cam_id in event_metadata_json[k]["cam_list"]:
+            event_metadata_json[k]["cam_list"][cam_id]["view_list"] = sort_camera_view_list(event_metadata_json[k]["cam_list"][cam_id]["view_list"])
     save_json(event_metadata_json, p_out + "event_metadata.json")
+
+
+# Compute the event list (a list of starting and ending time for each event) and metadata
+def compute_event_list(df_event, t_to_f, f_to_t, nf):
+    event_list = []
+    start = None # the starting frame number
+    end = None # the ending frame number
+    total_event_duration_in_secs = 0
+    for idx, row in df_event.iterrows():
+        f = t_to_f[row["epochtime"]]
+        if row["event"] == 1:
+            if start is None and end is None:
+                start = f - nf
+                end = f
+            if start is not None and end is not None:
+                end = f
+        else:
+            if start is not None and end is not None:
+                start_t = f_to_t[start]
+                end_t = f_to_t[end]
+                event_list.append([start_t, end_t])
+                total_event_duration_in_secs += end_t - start_t
+                start = None
+                end = None
+    return (event_list, total_event_duration_in_secs)
 
 
 # Sort an array by number
