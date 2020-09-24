@@ -22,12 +22,12 @@ from collections import defaultdict
 def main(argv):
     if len(argv) < 2:
         print("Usage:")
-        print("python recognize_smoke.py scan_urls")
         print("python recognize_smoke.py check_and_fix_urls")
         print("python recognize_smoke.py process_all_urls")
         print("python recognize_smoke.py process_events")
         print("python recognize_smoke.py init_data_upload")
         print("python recognize_smoke.py upload_data")
+        print("python recognize_smoke.py scan_urls")
         return
 
     program_start_time = time.time()
@@ -35,18 +35,19 @@ def main(argv):
     # Parameters
     nf = 36 # number of frames of each divided video
 
-    if argv[1] == "scan_urls":
-        scan_urls()
-    elif argv[1] == "check_and_fix_urls":
+    if argv[1] == "check_and_fix_urls":
         check_and_fix_urls()
     elif argv[1] == "process_all_urls":
-        process_all_urls(nf=nf)
+        #process_all_urls(nf=nf)
+        process_all_urls(nf=nf, test_mode=True)
+    elif argv[1] == "process_events":
+        process_events(nf=nf)
     elif argv[1] == "init_data_upload":
         init_data_upload()
     elif argv[1] == "upload_data":
         upload_data()
-    elif argv[1] == "process_events":
-        process_events(nf=nf)
+    elif argv[1] == "scan_urls":
+        scan_urls()
     else:
         print("Wrong usage. Run 'python recognize_smoke.py' for details.")
 
