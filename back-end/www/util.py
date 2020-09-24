@@ -23,6 +23,23 @@ import requests
 import uuid
 
 
+# Given an array of zeros and ones, output a list of events [[start_1, end_1], [start_2, end_2], ...]
+# (start_i and end_i means the starting and ending index in the array for each event)
+# An event means continuous ones in the array
+# For example, if array=[0,0,0,1,1,1,1,0,0,0,0,1,1,1], event=[[3,6],[11,13]]
+def array_to_event(array):
+    event = []
+    array.insert(0, 0) # insert a zero at the begining
+    array.append(0) # append a zero at the end
+    for i in range(len(array)-1):
+        diff = array[i+1] - array[i]
+        if diff == 1: # from 0 to 1
+            event.append([i,i])
+        elif diff == -1: # from 1 to 0
+            event[-1][1] = i-1
+    return event
+
+
 # Check if a file exists
 def is_file_here(file_path):
     return os.path.isfile(file_path)
