@@ -21,23 +21,83 @@ from os import listdir
 from os.path import isfile, join, isdir
 import requests
 import uuid
+import copy
 
 
 # Given an array of zeros and ones, output a list of events [[start_1, end_1], [start_2, end_2], ...]
 # (start_i and end_i means the starting and ending index in the array for each event)
 # An event means continuous ones in the array
 # For example, if array=[0,0,0,1,1,1,1,0,0,0,0,1,1,1], event=[[3,6],[11,13]]
-def array_to_event(array):
+# Input:
+# - array: an array of zeros and ones (e.g., [0,0,0,1,1,1,1,0,0,0,0,1,1,1])
+# - max_len: the max length of the event (e.g., when max_len=2 we get event=[[3,4],[5,6],[11,12],[13,13]])
+# TODO: need to implement an option called stride
+# TODO: by default stride=0
+# TODO: if stride=1 and max_len=2, then we get event=[[3,4],[6,6],[11,12]], where 5 and 13 are ignored due to the stride
+def array_to_event(array, max_len=None):
     event = []
+    array = copy.deepcopy(array)
     array.insert(0, 0) # insert a zero at the begining
-    array.append(0) # append a zero at the end
+    if max_len is not None and max_len < 1: max_len = None
     for i in range(len(array)-1):
-        diff = array[i+1] - array[i]
+        a_i1 = array[i+1]
+        diff = a_i1 - array[i]
         if diff == 1: # from 0 to 1
             event.append([i,i])
-        elif diff == -1: # from 1 to 0
-            event[-1][1] = i-1
+            if max_len == 1:
+                array[i+1] = 0 # restart next event
+        elif diff == 0: # from 0 to 0, or from 1 to 1
+            if a_i1 == 1: # from 1 to 1
+                event[-1][1] = i
+                if max_len is not None and i-event[-1][0]+1 >= max_len:
+                    array[i+1] = 0 # restart next event
     return event
+
+
+# Test the array_to_event function
+def test_array_to_event():
+    test_cases = [
+            ([], None, []),
+            ([0], None, []),
+            ([1], None, [[0,0]]),
+            ([0,0,1,1], None, [[2,3]]),
+            ([1,1,1,0,0], None, [[0,2]]),
+            ([0,0,1,1,1,0,0,0], None, [[2,4]]),
+            ([1,1,1,0,1,1], None, [[0,2],[4,5]]),
+            ([0,0,1,1,1,0,0,0,1,1,0,1], None, [[2,4],[8,9],[11,11]]),
+            ([], 3, []),
+            ([0], 3, []),
+            ([1], 3, [[0,0]]),
+            ([0,0,1,1], 3, [[2,3]]),
+            ([0,0,1,1], 1, [[2,2],[3,3]]),
+            ([1,1,1,0,0], 3, [[0,2]]),
+            ([1,1,1,1,0,0], 4, [[0,3]]),
+            ([1,1,1,1,0,0], 3, [[0,2],[3,3]]),
+            ([1,1,1,1,0,0], 2, [[0,1],[2,3]]),
+            ([1,1,1,1,0,0], 1, [[0,0],[1,1],[2,2],[3,3]]),
+            ([0,0,1,1,1,0,0,0], 4, [[2,4]]),
+            ([0,0,1,1,1,0,0,0], 3, [[2,4]]),
+            ([0,0,1,1,1,0,0,0], 2, [[2,3],[4,4]]),
+            ([0,0,1,1,1,0,0,0], 1, [[2,2],[3,3],[4,4]]),
+            ([0,1,1,1,1,1,0,0,0], 3, [[1,3],[4,5]]),
+            ([1,1,1,0,1,1], 4, [[0,2],[4,5]]),
+            ([1,1,1,0,1,1], 3, [[0,2],[4,5]]),
+            ([1,1,1,0,1,1], 2, [[0,1],[2,2],[4,5]]),
+            ([1,1,1,0,1,1], 1, [[0,0],[1,1],[2,2],[4,4],[5,5]]),
+            ([0,0,1,1,1,0,0,0,1,1,0,1], 3, [[2,4],[8,9],[11,11]]),
+            ([0,0,1,1,1,0,0,0,1,1,1,1,1,1,1,1,0,1], 3, [[2,4],[8,10],[11,13],[14,15],[17,17]]),
+            ([1,1,1,1,1,1,1,1,1,1], 3, [[0,2],[3,5],[6,8],[9,9]]),
+    ]
+    for c in test_cases:
+        output_c = array_to_event(c[0], max_len=c[1])
+        if output_c == c[2]:
+            print("pass")
+        else:
+            print("WRONG!")
+            print("Input: %r max_len=%r" % (c[0], c[1]))
+            print("Output: %r" % array_to_event(c[0], max_len=c[1]))
+            print("Desired output: %r" % c[2])
+            print("-"*50)
 
 
 # Check if a file exists
