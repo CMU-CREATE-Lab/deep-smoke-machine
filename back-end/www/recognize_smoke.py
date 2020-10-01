@@ -116,9 +116,9 @@ def process_events(nf=36):
     p_out = "../data/event/"
     check_and_create_dir(p_out)
     if is_file_here(p_out + "event_metadata.json"):
-        event_metadata_json = load_json(p_out + "event_metadata.json")
+        e_metadata = load_json(p_out + "event_metadata.json")
     else:
-        event_metadata_json = {}
+        e_metadata = {}
     processed_dates = [fn.split(".")[0] for fn in get_all_file_names_in_folder(p_out)]
     for ds in get_all_dir_names_in_folder(p): # date string
         if ds in processed_dates:
@@ -129,12 +129,11 @@ def process_events(nf=36):
         event_json = defaultdict(lambda: {"url": defaultdict(dict)})
         t_to_f = {}
         f_to_t = {}
-        event_metadata_json[ds] = {"cam_list": defaultdict(lambda: {"view_list": []})}
+        e_metadata[ds] = {"cam_list": defaultdict(dict)}
         df_events = defaultdict(list) # collect events, group them by camera id
         for vn in get_all_dir_names_in_folder(p + ds + "/"): # camera view ID
             print("\tProcess view %s" % vn)
             cam_id = int(vn.split("-")[0])
-            event_metadata_json[ds]["cam_list"][cam_id]["view_list"].append(vn)
             cam_name = cam_id_to_name(cam_id)
             # Construct the dictionary that maps epochtime to frame number, and also the reverse mapping
             if cam_id not in t_to_f:
@@ -157,13 +156,13 @@ def process_events(nf=36):
                 esdr_json = add_smoke_events(esdr_json)
                 df_event = pd.DataFrame(data=esdr_json["data"], columns=["epochtime"]+esdr_json["channel_names"])
                 df_event = df_event.sort_values(by=["epochtime"]).reset_index(drop=True)
-                e_idx = array_to_event(list(df_event["event"]))
-                event_urls = get_smoke_event_urls(df_event, e_idx, t_to_f[cam_id], f_to_t[cam_id], nf, cam_name, ds, b, vn)
-                event_times, event_duration = get_event_time_list(df_event, e_idx, t_to_f[cam_id], f_to_t[cam_id], nf)
+                e_frame = get_event_frame_list(df_event, t_to_f[cam_id], nf, max_f=72, min_f=36)
+                event_urls = get_smoke_event_urls(e_frame, f_to_t[cam_id], cam_name, ds, b, vn)
+                e_times, e_duration = get_event_time_list(e_frame, f_to_t[cam_id])
                 df_events[cam_id].append(df_event)
                 event_json[cam_id]["url"][vn]["url"] = event_urls
-                event_json[cam_id]["url"][vn]["event"] = event_times
-                event_json[cam_id]["url"][vn]["total_event_duration_in_secs"] = event_duration
+                event_json[cam_id]["url"][vn]["event"] = e_times
+                event_json[cam_id]["url"][vn]["total_event_duration_in_secs"] = e_duration
                 save_json(esdr_json, fp)
         # Merge events for all camera ids and compute the event list
         for cam_id in df_events:
@@ -172,47 +171,92 @@ def process_events(nf=36):
                 df_aggr_event = df_aggr_event | df["event"]
             df_aggr_event = df_aggr_event.to_frame()
             df_aggr_event["epochtime"] = df_events[cam_id][0]["epochtime"]
-            e_idx = array_to_event(list(df_aggr_event["event"]))
-            event_times, event_duration = get_event_time_list(df_aggr_event, e_idx, t_to_f[cam_id], f_to_t[cam_id], nf)
-            event_json[cam_id]["event"] = event_times
-            event_json[cam_id]["total_event_duration_in_secs"] = event_duration
-            event_metadata_json[ds]["cam_list"][cam_id]["total_event_duration_in_secs"] = event_duration
+            e_frame = get_event_frame_list(df_aggr_event, t_to_f[cam_id], nf, max_f=72, min_f=36)
+            e_times, e_duration = get_event_time_list(e_frame, f_to_t[cam_id])
+            event_json[cam_id]["event"] = e_times
+            event_json[cam_id]["total_event_duration_in_secs"] = e_duration
+            e_metadata[ds]["cam_list"][cam_id]["total_event_duration_in_secs"] = e_duration
         # Sort items by camera id
         for cam_id in event_json:
             event_json[cam_id]["url"] = OrderedDict(sort_by_camera_view(event_json[cam_id]["url"].items(), 0))
         # Save the events by camera view
         save_json(event_json, p_out + ds + ".json")
     # Save the date list
-    event_metadata_json = OrderedDict(sorted(event_metadata_json.items()))
-    for k in event_metadata_json:
-        for cam_id in event_metadata_json[k]["cam_list"]:
-            event_metadata_json[k]["cam_list"][cam_id]["view_list"] = sort_camera_view_list(event_metadata_json[k]["cam_list"][cam_id]["view_list"])
-    save_json(event_metadata_json, p_out + "event_metadata.json")
+    e_metadata = OrderedDict(sorted(e_metadata.items())) # sort by date
+    save_json(e_metadata, p_out + "event_metadata.json")
 
 
-# Given a pandas DataFrame that contains epochtime and smoke events
-# Compute the list of smoke event starting and ending epochtimes and the metadata
+# Given the smoke events, get a list of their corresponding frame numbers
+# TODO: currently the implementation assumes that events do not overlap
+# TODO: we need to edit this function to make sure that when event overlaps, the result is still correct
 # Input:
 #   df_event: the pandas DataFrame that contains epochtime and smoke events
-#   event_idx_list: a list of starting and ending indices of the events
 #   t_to_f: a dictionary that maps epochtime to frame number
-#   f_to_t: a dictionary that maps frame number to epochtime
 #   nf: number of frames of each divided video, e.g., 36
+#   max_f: max number of frames for each event (this is a soft number that will be affected by min_f)
+#   min_f: if the remainig event has less than min_f frames, it will be merged
+# Output:
+#   event_frame_list: the list of smoke event starting and ending frame number
+def get_event_frame_list(df_event, t_to_f, nf, max_f=None, min_f=36):
+    event_idx_list = array_to_event(list(df_event["event"])) # a list of starting and ending indices of the events
+    epochtime = df_event["epochtime"]
+    event_frame_list = []
+    for e in event_idx_list:
+        i, j = e[0], e[1]
+        start_f = t_to_f[epochtime[i]] - nf
+        end_f = t_to_f[epochtime[j]]
+        need_merge = False
+        if max_f is not None:
+            L = end_f - start_f + 1
+            if L > max_f and L % max_f < min_f:
+                need_merge = True
+            while end_f-start_f+1 > max_f:
+                event_frame_list.append([start_f, start_f+max_f-1])
+                start_f += max_f
+        if need_merge:
+            event_frame_list[-1][1] = end_f
+        else:
+            event_frame_list.append([start_f, end_f])
+    return event_frame_list
+
+
+# Given a list of starting and ending frames that represent events
+# Compute the list of smoke event starting and ending epochtimes and the metadata
+# Input:
+#   event_frame_list: list of starting and ending frames that represent events (from get_event_frame_list function)
+#   f_to_t: a dictionary that maps frame number to epochtime
 # Output:
 #   event_time_list: the list of smoke event starting and ending epochtimes
 #   total_event_duration_in_secs: the duration of all the events in seconds
-def get_event_time_list(df_event, event_idx_list, t_to_f, f_to_t, nf):
+def get_event_time_list(event_frame_list, f_to_t):
     total_event_duration_in_secs = 0
-    epochtime = df_event["epochtime"]
     event_time_list = []
-    for e in event_idx_list:
-        start_f = t_to_f[epochtime[e[0]]] - nf
-        end_f = t_to_f[epochtime[e[1]]]
-        start_t = f_to_t[start_f]
-        end_t = f_to_t[end_f]
+    for e in event_frame_list:
+        start_t = f_to_t[e[0]]
+        end_t = f_to_t[e[1]]
         event_time_list.append([start_t, end_t])
-        total_event_duration_in_secs += end_t - start_t
+        total_event_duration_in_secs += end_t-start_t+1
     return (event_time_list, total_event_duration_in_secs)
+
+
+# Given a list of starting and ending frames that represent events
+# Compute the list of thumbnail server urls for each smoke event
+# Input:
+#   event_frame_list: list of starting and ending frames that represent events (from get_event_frame_list function)
+#   f_to_t: a dictionary that maps frame number to epochtime
+#   cam_name: name of the camera, e.g., "clairton1"
+#   ds: date string, e.g., "2019-04-02"
+#   b: bounding box, e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
+#   view_str: the camera view string, e.g., "0-1"
+# Output:
+#   event_urls: the list of thumbnail server urls for each smoke event
+def get_smoke_event_urls(event_frame_list, f_to_t, cam_name, ds, b, view_str):
+    url_root = "https://thumbnails-v2.createlab.org/thumbnail"
+    event_urls = []
+    for e in event_frame_list:
+        url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=e[0], w=180, h=180, nf=e[1]-e[0]+1, label=True)
+        event_urls.append([url_root + url_part, view_str, f_to_t[e[0]], f_to_t[e[1]]])
+    return event_urls
 
 
 # Sort an array by number
@@ -252,34 +296,6 @@ def add_smoke_events(esdr_json):
             if idx_to_fill is not None:
                 idx_to_fill.append(i)
     return esdr_json
-
-
-# Given a pandas DataFrame that contains epochtime and smoke events
-# Compute the list of thumbnail server urls for each smoke event
-# Input:
-#   df_event: the pandas DataFrame that contains epochtime and smoke events
-#   event_idx_list: a list of starting and ending indices of the events
-#   t_to_f: a dictionary that maps epochtime to frame number
-#   f_to_t: a dictionary that maps frame number to epochtime
-#   nf: number of frames of each divided video, e.g., 36
-#   cam_name: name of the camera, e.g., "clairton1"
-#   ds: date string, e.g., "2019-04-02"
-#   b: bounding box, e.g., {"L": 2330, "T": 690, "R": 3730, "B": 2090}
-#   view_str: the camera view string, e.g., "0-1"
-# Output:
-#   event_urls: the list of thumbnail server urls for each smoke event
-def get_smoke_event_urls(df_event, event_idx_list, t_to_f, f_to_t, nf, cam_name, ds, b, view_str):
-    ar = df_event["activation_ratio"].values
-    url_root = "https://thumbnails-v2.createlab.org/thumbnail"
-    event_urls = []
-    epochtime = df_event["epochtime"]
-    for e in event_idx_list:
-        i, j = e[0], e[1]
-        start_f = t_to_f[epochtime[i]] - nf
-        end_f = t_to_f[epochtime[j]]
-        url_part = get_url_part(cam_name=cam_name, ds=ds, b=b, sf=start_f, w=180, h=180, nf=end_f-start_f+1, label=True)
-        event_urls.append([url_root + url_part, view_str, np.mean(ar[i:j+1]), f_to_t[start_f], f_to_t[end_f]])
-    return event_urls
 
 
 # Register the product on the ESDR system
