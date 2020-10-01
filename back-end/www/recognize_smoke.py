@@ -63,7 +63,12 @@ def scan_urls(num_workers=8):
     event_metadata = load_json(p + "event_metadata.json")
     pool = Pool(num_workers)
     for date_str in event_metadata:
-        pool.starmap(url_open_worker, load_json(p + date_str + ".json")["url"])
+        event_json = load_json(p + date_str + ".json")
+        url_list = []
+        for cam_id in event_json:
+            for view_id in event_json[cam_id]["url"]:
+                url_list += event_json[cam_id]["url"][view_id]["url"]
+        pool.starmap(url_open_worker, url_list)
     pool.close()
     pool.join()
 
