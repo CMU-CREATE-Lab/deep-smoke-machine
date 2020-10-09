@@ -1,4 +1,6 @@
 import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
 import sys
 from util import *
 import numpy as np
@@ -38,8 +40,8 @@ def main(argv):
     if argv[1] == "check_and_fix_urls":
         check_and_fix_urls()
     elif argv[1] == "process_all_urls":
-        process_all_urls(nf=nf)
-        #process_all_urls(nf=nf, test_mode=True)
+        #process_all_urls(nf=nf)
+        process_all_urls(nf=nf, test_mode=True)
     elif argv[1] == "process_events":
         process_events(nf=nf)
     elif argv[1] == "init_data_upload":
@@ -378,6 +380,9 @@ def upload_data():
 # Input:
 #   nf: number of frames of each divided video
 def process_all_urls(nf=36, test_mode=False):
+    # Set models
+    learner, grad_cam, transform = set_grad_cam_model()
+
     # Read processed dates
     p_dates = "../data/production/processed_dates.json"
     if is_file_here(p_dates):
@@ -393,25 +398,52 @@ def process_all_urls(nf=36, test_mode=False):
         if date_tr in processed_dates:
             print("Date %s is already processed...skip..." % date_tr)
             continue
-        if test_mode and "2019-02-03" not in fn: continue
+        if test_mode and "2019-02-03" not in fn and "2019-02-04" not in fn: continue
         m = load_json(p + fn)
+        c = 0
         for m in load_json(p + fn):
+            c += 1
+            if test_mode and c > 2: break
             if "url" not in m or "cam_id" not in m or "view_id" not in m: continue
-            flag = process_url(m["url"], m["cam_id"], m["view_id"], nf=nf, test_mode=test_mode)
+            flag = process_url(learner, grad_cam, transform, m["url"], m["cam_id"], m["view_id"], nf=nf, test_mode=test_mode)
             if flag is True and fn not in processed_dates:
                 processed_dates.append(date_tr)
+        # Save processed dates at each step (to avoid errors in the middle)
+        save_json(list(np.unique(processed_dates)), p_dates)
 
-    # Save processed dates
-    save_json(list(np.unique(processed_dates)), p_dates)
+
+# Set the model for processing GradCAM
+# Input:
+#   use_cuda: use cuda (GPU computing) or not
+#   parallel: use nn.DistributedDataParallel or not
+# Output:
+#   learner: the Learner object (e.g., I3dLearner)
+#   grad_cam: the GradCam object
+#   transform: the data preprocessing pipeline
+def set_grad_cam_model(use_cuda=True, parallel=False):
+    # Prepare learner and model
+    if use_cuda:
+        print("Enable GPU computing...")
+    mode = "rgb"
+    learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=parallel)
+    p_model = "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt"
+    model = learner.set_model(0, 1, mode, p_model, parallel, phase="test")
+    model.train(False) # set model to evaluate mode (IMPORTANT)
+    transform = learner.get_transform(mode, image_size=learner.image_size)
+    grad_cam = GradCam(model, use_cuda=use_cuda, normalize=False)
+    return (learner, grad_cam, transform)
 
 
 # Process each url and predict the probability of having smoke for that date and view
 # Input:
+#   learner: the Learner object (e.g., I3dLearner)
+#   grad_cam: the GradCam object
+#   transform: the data preprocessing pipeline
 #   url: the thumbnail server url that we want to process
 #   cam_id: camera ID
 #   view_id: view ID
 #   nf: number of frames of each divided video
-def process_url(url, cam_id, view_id, nf=36, test_mode=False):
+def process_url(learner, grad_cam, transform, url, cam_id, view_id, nf=36, test_mode=False):
     print("Process %s" % url)
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
@@ -451,7 +483,8 @@ def process_url(url, cam_id, view_id, nf=36, test_mode=False):
             video_to_numpy(url, vid_p, rgb_p, fn)
 
     # Apply the smoke recognition model on the video frames
-    smoke_pb_list, activation_ratio_list = recognize_smoke(rgb_p, file_name_list, test_mode=test_mode)
+    smoke_pb_list, activation_ratio_list = recognize_smoke(learner, grad_cam, transform,
+            rgb_p, file_name_list, test_mode=test_mode)
     if test_mode:
         print(smoke_pb_list)
         print(activation_ratio_list)
@@ -759,27 +792,17 @@ def video_to_numpy(url, vid_p, rgb_p, file_name):
 # The core function for smoke recognition
 # Notice that the input rgb frames has shape (time, height, width, channel) = (n, 180, 180, 3)
 # Input:
+#   learner: the Learner object (e.g., I3dLearner)
+#   grad_cam: the GradCam object
+#   transform: the data pre-processing pipeline
 #   rgb_p: file path that points to the numpy.array file that stores rgb frames
 #   file_name_list: list of file names of the numpy.array file
 #   smoke_thr: the threshold (probability between 0 and 1) to determine if smoke exists (e.g., 0.6)
 #   activation_thr: the threshold (ratio between 0 and 1) to determine if a pixel is activated by GradCAM (e.g., 0.85)
 # Output:
-#   smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, probability)
-#   smoke_px_list: list of the estimated number of smoke pixels, with shape (time, num_of_smoke_pixels)
-def recognize_smoke(rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activation_thr=0.85):
-    # Prepare model
-    mode = "rgb"
-    use_cuda = True
-    if use_cuda:
-        print("Enable GPU computing...")
-    learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=False)
-    p_model = "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt"
-    model = learner.set_model(0, 1, mode, p_model, False)
-    model.train(False) # set model to evaluate mode (IMPORTANT)
-    image_size = 224
-    transform = learner.get_transform(mode, image_size=image_size)
-
-    # Iterate
+#   smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, number_of_files)
+#   activation_ratio_list: list of GradCAM activation ratios, with shape (time, number_of_files)
+def recognize_smoke(learner, grad_cam, transform, rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activation_thr=0.85):
     smoke_pb_list = []
     activation_ratio_list = []
     for fn in file_name_list:
@@ -789,9 +812,9 @@ def recognize_smoke(rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activ
         v = np.load(rgb_p + fn + ".npy")
         v = transform(v)
         v = torch.unsqueeze(v, 0)
-        if use_cuda and torch.cuda.is_available:
+        if learner.use_cuda and torch.cuda.is_available:
             v = v.cuda()
-        pred, pred_upsample = learner.make_pred(model, v, upsample=None)
+        pred, pred_upsample = learner.make_pred(grad_cam.model, v, upsample=None)
         pred = F.softmax(pred.squeeze().transpose(0, 1)).cpu().detach().numpy()[:, 1]
         pred_upsample = F.softmax(pred_upsample.squeeze().transpose(0, 1)).cpu().detach().numpy()[:, 1]
         smoke_pb = np.median(pred) # use the median as the probability
@@ -801,15 +824,12 @@ def recognize_smoke(rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activ
         # This can potentially be used to estimate the number of smoke pixels
         # Need to check more papers about weakly supervised learning
         print("Run GradCAM...")
-        grad_cam = GradCam(model, use_cuda=use_cuda, normalize=False)
-        target_class = 1 # has smoke
-        C = grad_cam.generate_cam(v, target_class)
+        C = grad_cam.generate_cam(v, 1) # 1 is the target class, which means having smoke emissions
         C = C.reshape((C.shape[0], -1))
-        if test_mode:
-            print(pd.DataFrame(data={"GradCAM": C.flatten()}).describe().applymap(lambda x: "%.3f" % x))
+        #if test_mode: print(pd.DataFrame(data={"GradCAM": C.flatten()}).describe().applymap(lambda x: "%.3f" % x))
         if smoke_pb > smoke_thr: # only compute the activation ratio when smoke is predicted
             C = np.multiply(C > activation_thr, 1) # make the binary mask
-            activation_ratio = np.sum(C, axis=1, dtype=np.uint32) / (image_size**2)
+            activation_ratio = np.sum(C, axis=1, dtype=np.uint32) / (learner.image_size**2)
             activation_ratio[pred_upsample < smoke_thr] = 0
             activation_ratio = np.mean(activation_ratio) # use the mean as the activation ratio
             activation_ratio_list.append(round(float(activation_ratio), 3))
