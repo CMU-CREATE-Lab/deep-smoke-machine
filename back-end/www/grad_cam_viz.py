@@ -8,7 +8,7 @@ import torch
 import sys
 import os
 import copy
-
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torchvision import models
 from i3d_learner import I3dLearner
 from scipy.ndimage import zoom
@@ -23,6 +23,8 @@ class CamExtractor():
     def __init__(self, model):
         self.model = model
         self.gradients = None
+        if isinstance(self.model, DDP):
+            self.model = model.module
 
     def save_gradient(self, grad):
         self.gradients = grad

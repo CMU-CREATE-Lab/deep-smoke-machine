@@ -20,9 +20,9 @@ from collections import OrderedDict
 from collections import defaultdict
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-import multiprocessing
 import tqdm
 import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
 
 
 # The dataset class for loading RGB numpy files
@@ -81,8 +81,8 @@ def main(argv):
     if argv[1] == "check_and_fix_urls":
         check_and_fix_urls()
     elif argv[1] == "process_all_urls":
-        #process_all_urls(nf=nf, use_cuda=True, parallel=False)
-        process_all_urls(nf=nf, use_cuda=True, parallel=False, test_mode=True)
+        #process_all_urls(nf=nf, use_cuda=True, parallel=True)
+        process_all_urls(nf=nf, use_cuda=True, parallel=True, test_mode=True)
     elif argv[1] == "process_events":
         process_events(nf=nf)
     elif argv[1] == "init_data_upload":
@@ -424,9 +424,15 @@ def upload_data():
 #   parallel: use parallel GPU computing or not
 def process_all_urls(nf=36, use_cuda=False, parallel=False, test_mode=False):
     # Set learner and transform
-    if use_cuda:
-        print("Enable GPU computing...")
     learner = I3dLearner(mode="rgb", use_cuda=use_cuda, parallel=parallel)
+    if learner.use_cuda:
+        print("Enable GPU computing...")
+        if torch.cuda.device_count() == 1:
+            print("Only one GPU...disable parallel computing...")
+            parallel = False
+    else:
+        print("No GPU or do not want to use GPU...disable parallel computing...")
+        parallel = False
     transform = learner.get_transform(learner.mode, image_size=learner.image_size)
 
     # Read processed dates
@@ -826,17 +832,23 @@ def video_to_numpy(url, vid_p, rgb_p, file_name):
 # The function that handles parallel computing
 def recognize_smoke(learner, transform, rgb_p, file_name_list, ct_sub_list, parallel, smoke_thr=0.6, activation_thr=0.85):
     # Spawn processes
-    n_gpu = torch.cuda.device_count()
-    if parallel and n_gpu > 1:
-        self.log("Let's use " + str(n_gpu) + " GPUs!")
+    if parallel:
+        n_gpu = torch.cuda.device_count()
+        print("Let's use " + str(n_gpu) + " GPUs!")
+        queue = mp.get_context("spawn").Queue()
         mp.spawn(recognize_smoke_worker, nprocs=n_gpu,
-                args=(n_gpu, learner, transform, rgb_p, file_name_list, ct_sub_list, parallel, smoke_thr, activation_thr),
-                join=True)
-        #TODO: find how to return data from mp.spawn
+                args=(n_gpu, learner, transform, rgb_p, file_name_list, ct_sub_list,
+                    parallel, smoke_thr, activation_thr, queue), join=True)
         smoke_pb_list, activation_ratio_list, epochtime_list = [], [], []
+        while not queue.empty():
+            x = queue.get()
+            smoke_pb_list += x[0]
+            activation_ratio_list += x[1]
+            epochtime_list += x[2]
+            del x
     else:
         smoke_pb_list, activation_ratio_list, epochtime_list = recognize_smoke_worker(0, 1, learner, transform, rgb_p,
-                file_name_list, ct_sub_list, parallel, smoke_thr, activation_thr)
+                file_name_list, ct_sub_list, parallel, smoke_thr, activation_thr, None)
     return (smoke_pb_list, activation_ratio_list, epochtime_list)
 
 
@@ -853,14 +865,15 @@ def recognize_smoke(learner, transform, rgb_p, file_name_list, ct_sub_list, para
 #   parallel: use GPU parallel computing or not
 #   smoke_thr: the threshold (probability between 0 and 1) to determine if smoke exists (e.g., 0.6)
 #   activation_thr: the threshold (ratio between 0 and 1) to determine if a pixel is activated by GradCAM (e.g., 0.85)
+#   queue: the shared memory for returing data
 # Output:
 #   smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, number_of_files)
 #   activation_ratio_list: list of GradCAM activation ratios, with shape (time, number_of_files)
 #   epochtime_list: list of epochtime for the resulting video clip (using the largest timestamp)
 def recognize_smoke_worker(rank, world_size, learner, transform, rgb_p,
-        file_name_list, ct_sub_list, parallel, smoke_thr, activation_thr):
+        file_name_list, ct_sub_list, parallel, smoke_thr, activation_thr, queue):
     # Set the dataloader
-    num_workers = max(multiprocessing.cpu_count()-2, 0)
+    num_workers = max(mp.cpu_count()-2, 0)
     dataloader = set_dataloader(rank, world_size, file_name_list, ct_sub_list, rgb_p, transform, num_workers, parallel)
 
     # Set model
@@ -899,7 +912,11 @@ def recognize_smoke_worker(rank, world_size, learner, transform, rgb_p,
             activation_ratio_list.append(round(float(activation_ratio), 3))
         else:
             activation_ratio_list.append(0.0)
-    return (smoke_pb_list, activation_ratio_list, epochtime_list)
+
+    if queue is None:
+        return (smoke_pb_list, activation_ratio_list, epochtime_list)
+    else:
+        queue.put((smoke_pb_list, activation_ratio_list, epochtime_list))
 
 
 if __name__ == "__main__":
