@@ -18,6 +18,45 @@ from multiprocessing.dummy import Pool
 import time
 from collections import OrderedDict
 from collections import defaultdict
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+import multiprocessing
+import tqdm
+
+
+# The dataset class for loading RGB numpy files
+class SmokeEventDataset(Dataset):
+    def __init__(self, file_name_list=None, root_dir=None, transform=None):
+        """
+        file_name_list: list of file names of the numpy.array file
+        root_dir (string): the root directory that stores video files
+        transform (callable, optional): optional transform to be applied on a video
+        """
+        self.file_name_list = file_name_list
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.file_name_list)
+
+    def __getitem__(self, idx):
+        fn = self.file_name_list[idx]
+
+        # Load video data
+        file_path = os.path.join(self.root_dir, fn + ".npy")
+        if not is_file_here(file_path):
+            raise ValueError("Cannot find file: %s" % (file_path))
+        frames = np.load(file_path).astype(np.uint8)
+        t = frames.shape[0]
+
+        # Transform video
+        if self.transform:
+            frames = self.transform(frames)
+
+        frames = torch.unsqueeze(frames, 0)
+
+        # Return item
+        return {"frames": frames}
 
 
 # The main function for smoke recognition (using the trained model)
@@ -381,7 +420,7 @@ def upload_data():
 #   nf: number of frames of each divided video
 def process_all_urls(nf=36, test_mode=False):
     # Set models
-    learner, grad_cam, transform = set_grad_cam_model()
+    learner, grad_cam, transform = set_model()
 
     # Read processed dates
     p_dates = "../data/production/processed_dates.json"
@@ -412,7 +451,7 @@ def process_all_urls(nf=36, test_mode=False):
         save_json(list(np.unique(processed_dates)), p_dates)
 
 
-# Set the model for processing GradCAM
+# Set the model for smoke recognition
 # Input:
 #   use_cuda: use cuda (GPU computing) or not
 #   parallel: use nn.DistributedDataParallel or not
@@ -420,18 +459,34 @@ def process_all_urls(nf=36, test_mode=False):
 #   learner: the Learner object (e.g., I3dLearner)
 #   grad_cam: the GradCam object
 #   transform: the data preprocessing pipeline
-def set_grad_cam_model(use_cuda=True, parallel=False):
+def set_model(use_cuda=True, parallel=False):
     # Prepare learner and model
     if use_cuda:
         print("Enable GPU computing...")
     mode = "rgb"
-    learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=parallel)
     p_model = "../data/saved_i3d/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt"
-    model = learner.set_model(0, 1, mode, p_model, parallel, phase="test")
+    rank = 0
+    world_size = 1
+    learner = I3dLearner(mode=mode, use_cuda=use_cuda, parallel=parallel)
+    model = learner.set_model(rank, world_size, mode, p_model, parallel, phase="test")
     model.train(False) # set model to evaluate mode (IMPORTANT)
     transform = learner.get_transform(mode, image_size=learner.image_size)
     grad_cam = GradCam(model, use_cuda=use_cuda, normalize=False)
     return (learner, grad_cam, transform)
+
+
+# Set the dataloader for smoke recognition
+# We need to set the batch_size to 1 because we want each GPU to process one file at one time (not multiple files)
+def set_dataloader(rank, world_size, file_name_list, root_dir, transform, num_workers, parallel):
+    print("Set dataloader...")
+    dataset = SmokeEventDataset(file_name_list=file_name_list, root_dir=root_dir, transform=transform)
+    if parallel:
+        sampler = DistributedSampler(dataset, shuffle=False, num_replicas=world_size, rank=rank)
+        dataloader = DataLoader(dataset, batch_size=1,
+                num_workers=int(num_workers/world_size), pin_memory=True, sampler=sampler)
+    else:
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
+    return dataloader
 
 
 # Process each url and predict the probability of having smoke for that date and view
@@ -444,6 +499,7 @@ def set_grad_cam_model(use_cuda=True, parallel=False):
 #   view_id: view ID
 #   nf: number of frames of each divided video
 def process_url(learner, grad_cam, transform, url, cam_id, view_id, nf=36, test_mode=False):
+    print("="*60)
     print("Process %s" % url)
     url_root = "https://thumbnails-v2.createlab.org/thumbnail"
 
@@ -483,6 +539,7 @@ def process_url(learner, grad_cam, transform, url, cam_id, view_id, nf=36, test_
             video_to_numpy(url, vid_p, rgb_p, fn)
 
     # Apply the smoke recognition model on the video frames
+    print("Recognize smoke emissions...")
     smoke_pb_list, activation_ratio_list = recognize_smoke(learner, grad_cam, transform,
             rgb_p, file_name_list, test_mode=test_mode)
     if test_mode:
@@ -725,8 +782,7 @@ def gen_url_parts(url, cam_id, view_id, video_size=180, nf=36, overlap=18):
 #   num_try: the number of times that the function has been called
 #   num_workers: the number of workers to download the frames
 def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, num_workers=8):
-    print("="*100)
-    print("="*100)
+    print("-"*60)
     print("This function has been called for %d times." % num_try)
     if num_try > 30:
         print("Terminate the recursive call due to many errors. Please check manually.")
@@ -763,7 +819,7 @@ def download_video(url_part_list, file_name_list, url_root, vid_p, num_try=0, nu
 def urlretrieve_worker(url, file_p):
     error = False
     if os.path.isfile(file_p): # skip if the file exists
-        print("\t{File exists} %s\n" % file_p)
+        print("\t{Exist} %s\n" % file_p)
         return error
     try:
         print("\t{Request} %s\n" % url)
@@ -803,15 +859,19 @@ def video_to_numpy(url, vid_p, rgb_p, file_name):
 #   smoke_pb_list: list of the estimated probabilities of having smoke, with shape (time, number_of_files)
 #   activation_ratio_list: list of GradCAM activation ratios, with shape (time, number_of_files)
 def recognize_smoke(learner, grad_cam, transform, rgb_p, file_name_list, test_mode=False, smoke_thr=0.6, activation_thr=0.85):
+    # Set the dataloader
+    rank = 0
+    world_size = 1
+    num_workers = max(multiprocessing.cpu_count()-2, 0)
+    parallel = False
+    dataloader = set_dataloader(rank, world_size, file_name_list, rgb_p, transform, num_workers, parallel)
+
+    # Iterate over batch data
     smoke_pb_list = []
     activation_ratio_list = []
-    for fn in file_name_list:
-        print("Process file:", fn)
+    for d in tqdm.tqdm(dataloader):
         # Compute probability of having smoke
-        print("Estimate the probability of having smoke...")
-        v = np.load(rgb_p + fn + ".npy")
-        v = transform(v)
-        v = torch.unsqueeze(v, 0)
+        v = d["frames"][0]
         if learner.use_cuda and torch.cuda.is_available:
             v = v.cuda()
         pred, pred_upsample = learner.make_pred(grad_cam.model, v, upsample=None)
@@ -823,7 +883,6 @@ def recognize_smoke(learner, grad_cam, transform, rgb_p, file_name_list, test_mo
         # Compute the ratio of the activated region that will affect the probability
         # This can potentially be used to estimate the number of smoke pixels
         # Need to check more papers about weakly supervised learning
-        print("Run GradCAM...")
         C = grad_cam.generate_cam(v, 1) # 1 is the target class, which means having smoke emissions
         C = C.reshape((C.shape[0], -1))
         #if test_mode: print(pd.DataFrame(data={"GradCAM": C.flatten()}).describe().applymap(lambda x: "%.3f" % x))
