@@ -81,8 +81,8 @@ def main(argv):
     if argv[1] == "check_and_fix_urls":
         check_and_fix_urls()
     elif argv[1] == "process_all_urls":
-        #process_all_urls(nf=nf, use_cuda=True, parallel=True)
-        process_all_urls(nf=nf, use_cuda=True, parallel=True, test_mode=True)
+        process_all_urls(nf=nf, use_cuda=True, parallel=True)
+        #process_all_urls(nf=nf, use_cuda=True, parallel=True, test_mode=True)
     elif argv[1] == "process_events":
         process_events(nf=nf)
     elif argv[1] == "init_data_upload":
@@ -623,9 +623,10 @@ def divide_start_frame(ct_list, nf=36, overlap=0):
     sf_dt_list = [] # the starting datetime
     ef_dt_list = [] # the ending datetime
     ct_sub_list = [] # the captured time array for each frame (in epochtime format)
+    L = len(ct_list)
     for sf in r:
         ef = sf + nf - 1 # end frame
-        if ef > frame_max: break
+        if ef > frame_max or ef >= L: break
         sf_list.append(sf)
         sf_dt_list.append(str_to_time(ct_list[sf]))
         ef_dt_list.append(str_to_time(ct_list[ef]))
