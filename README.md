@@ -443,7 +443,18 @@ First, for a date that you want to process, create a JSON file under the [back-e
   "view_id": 1
 }]
 ```
-The URL indicates the cropped video clips, which is obtained by using the thumbnail tool on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)). To access the thumbnail tool, click the "share" button at the bottom-right near the timeline slider and then select the "Share as image or video" tab. A tutorial about how to use the thumbnail tool for sharing videos can be found [here](https://vimeo.com/140196813#t=415s).
+The URL indicates the cropped video clips, which is obtained by using the thumbnail tool on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)). To access the thumbnail tool, click the "share" button at the bottom-right near the timeline slider and then select the "Share as image or video" tab. A tutorial about how to use the thumbnail tool for sharing videos can be found [here](https://vimeo.com/140196813#t=415s). The cam_id and view_id correspond to the camera views presented in the "Dataset" section in this READEME. For example, if cam_id is 0 and view_id is 1, this means that the camera view is 0-1, as shown in [this graph](back-end/data/dataset/2020-02-24/dataset_1.png). After creating the JSON files or adding video URLs to existing JSON files, run the following to perform a sanity check, which will identify problems related to the camera data and attemp to fix the problems:
+```sh
+python recognize_smoke.py check_and_fix_urls
+```
+Next, run the following at the background (this step will take a long time) to process each clip and predict the probability of having smoke:
+```sh
+sh bg.sh python recognize_smoke.py process_all_urls
+```
+This will create a "production" folder under [back-end/data/](back-end/data) to store the processed results. Then, run the following to identify events based on the probabilities of having smoke:
+```sh
+python recognize_smoke.py process_events
+```
 
 (**not finished**)
 
