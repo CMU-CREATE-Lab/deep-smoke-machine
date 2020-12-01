@@ -431,6 +431,20 @@ model.fit(
 # <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
 We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions. This script only works for the videos on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)) or others that are created using the [timemachine-creator](https://github.com/CMU-CREATE-Lab/timemachine-creator) and [timemachine-viewer](https://github.com/CMU-CREATE-Lab/timemachine-viewer). In sum, the script takes a list of video URLs (examples can be found [here](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/improve-documentation/back-end/data/production_url_list/2019-01-03.json)), gets their date and camera view boundary information, generates a bunch of cropped clips, and run the model on these clips to recognize smoke emissions. Here are the steps:
 
+First, for a date that you want to process, create a JSON file under the [back-end/data/production_url_list/](back-end/data/production_url_list/) folder to add video URLs. The format of the file name must be "YYYY-MM-DD.json" (such as "2019-01-03.json"). If the file for that date exists, just open the file and add more video URLs. Each video URL is specified using a dictionary, and you need to put the video URLs in a list in each JSON file. For example:
+```json
+[{
+	 "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-01-03.timemachine/&width=180&height=180&startFrame=9716&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=6304,884,6807,1387&nframes=36",
+	 "cam_id": 0,
+	 "view_id": 0
+	 },{
+	 "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-01-03.timemachine/&width=180&height=180&startFrame=9716&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=6007,928,6509,1430&nframes=36",
+	 "cam_id": 0,
+	 "view_id": 1
+}]
+```
+The URL indicates the cropped video clips, which is obtained by using the thumbnail tool on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)). To access the thumbnail tool, click the "share" button at the bottom-right near the timeline slider and then select the "Share as image or video" tab. A tutorial about how to use the thumbnail tool for sharing videos can be found [here](https://vimeo.com/140196813#t=415s).
+
 (**not finished**)
 
 # <a name="acknowledgements"></a>Acknowledgements
