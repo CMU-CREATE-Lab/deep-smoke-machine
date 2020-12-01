@@ -20,6 +20,7 @@ The following figures show how the [I3D model](https://arxiv.org/abs/1705.07750)
 - [Code infrastructure](#code-infrastructure)
 - [Dataset](#dataset)
 - [Pretrained models](#pretrained-models)
+- [Deploy models to recognize smoke](#deploy-models-to-recognize-smoke)
 - [Acknowledgements](#acknowledgements)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
@@ -426,6 +427,9 @@ model.fit(
     p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
     p_metadata_test="../data/split/metadata_test_split_by_date.json")
 ```
+
+# <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
+We provide an example script to show how you can deploy the trained models to recognize industrial smoke emissions.
 
 # <a name="acknowledgements"></a>Acknowledgements
 We thank [GASP](https://gasp-pgh.org/) (Group Against Smog and Pollution), [Clean Air Council](https://cleanair.org/), [ACCAN](https://accan.org/) (Allegheny County Clean Air Now), [Breathe Project](https://breatheproject.org/), [NVIDIA](https://developer.nvidia.com/academic_gpu_seeding), and the [Heinz Endowments](http://www.heinz.org/) for the support of this research. We also greatly appreciate the help of our volunteers, which includes labeling videos and providing feedback in system development.
