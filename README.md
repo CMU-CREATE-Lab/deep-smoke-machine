@@ -429,7 +429,9 @@ model.fit(
 ```
 
 # <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
-We provide an example script to show how you can deploy the trained models to recognize industrial smoke emissions.
+We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions.
+
+(**not finished**)
 
 # <a name="acknowledgements"></a>Acknowledgements
 We thank [GASP](https://gasp-pgh.org/) (Group Against Smog and Pollution), [Clean Air Council](https://cleanair.org/), [ACCAN](https://accan.org/) (Allegheny County Clean Air Now), [Breathe Project](https://breatheproject.org/), [NVIDIA](https://developer.nvidia.com/academic_gpu_seeding), and the [Heinz Endowments](http://www.heinz.org/) for the support of this research. We also greatly appreciate the help of our volunteers, which includes labeling videos and providing feedback in system development.
