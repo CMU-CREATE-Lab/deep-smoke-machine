@@ -429,7 +429,7 @@ model.fit(
 ```
 
 # <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
-We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions.
+We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions. This script only works for the videos on our camera monitoring system [http://mon.createlab.org/](http://mon.createlab.org/) or others that are created using the [timemachine-creator](https://github.com/CMU-CREATE-Lab/timemachine-creator) and [timemachine-viewer](https://github.com/CMU-CREATE-Lab/timemachine-viewer). In sum, the script takes a list of video URLs, gets their date and camera view boundary information, generates a bunch of cropped clips, and run the model on these clips to recognize smoke emissions. Here are the steps:
 
 (**not finished**)
 
