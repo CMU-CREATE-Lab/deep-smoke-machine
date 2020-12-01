@@ -455,8 +455,10 @@ This will create a "production" folder under [back-end/data/](back-end/data) to 
 ```sh
 python recognize_smoke.py process_events
 ```
-
-(**not finished**)
+This will create an "event" folder under [back-end/data/](back-end/data) to store the links to the video clips that are identified as having smoke emissions. To visualize the smoke events, copy the folder (with the same folder name, "event") to the front-end of the [video labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool/tree/master/front-end). Then, the [event page](https://smoke.createlab.org/event.html?date=2019-04-02&camera=0&view=all) will be able to access the "event" folder and show the results. You may also want to consider running the following to scan the video clips so that users do not need to wait for the [thumbnail server](https://thumbnails-v2.createlab.org/status) to render videos:
+```sh
+sh bg.sh python recognize_smoke.py scan_urls
+```
 
 # <a name="acknowledgements"></a>Acknowledgements
 We thank [GASP](https://gasp-pgh.org/) (Group Against Smog and Pollution), [Clean Air Council](https://cleanair.org/), [ACCAN](https://accan.org/) (Allegheny County Clean Air Now), [Breathe Project](https://breatheproject.org/), [NVIDIA](https://developer.nvidia.com/academic_gpu_seeding), and the [Heinz Endowments](http://www.heinz.org/) for the support of this research. We also greatly appreciate the help of our volunteers, which includes labeling videos and providing feedback in system development.
