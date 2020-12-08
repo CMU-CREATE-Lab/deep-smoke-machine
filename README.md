@@ -20,6 +20,7 @@ The following figures show how the [I3D model](https://arxiv.org/abs/1705.07750)
 - [Code infrastructure](#code-infrastructure)
 - [Dataset](#dataset)
 - [Pretrained models](#pretrained-models)
+- [Deploy models to recognize smoke](#deploy-models-to-recognize-smoke)
 - [Acknowledgements](#acknowledgements)
 
 # <a name="install-nvidia"></a>Install Nvidia drivers, cuda, and cuDNN
@@ -425,6 +426,38 @@ model.fit(
     p_metadata_train="../data/split/metadata_train_split_by_date.json",
     p_metadata_validation="../data/split/metadata_validation_split_by_date.json",
     p_metadata_test="../data/split/metadata_test_split_by_date.json")
+```
+
+# <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
+We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions. This script only works for the videos on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)) or others that are created using the [timemachine-creator](https://github.com/CMU-CREATE-Lab/timemachine-creator) and [timemachine-viewer](https://github.com/CMU-CREATE-Lab/timemachine-viewer). In sum, the script takes a list of video URLs (examples can be found [here](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/improve-documentation/back-end/data/production_url_list/2019-01-03.json)), gets their date and camera view boundary information, generates a bunch of cropped clips, and run the model on these clips to recognize smoke emissions. Here are the steps:
+
+First, for a date that you want to process, create a JSON file under the [back-end/data/production_url_list/](back-end/data/production_url_list/) folder to add video URLs. The format of the file name must be "YYYY-MM-DD.json" (such as "2019-01-03.json"). If the file for that date exists, just open the file and add more video URLs. Each video URL is specified using a dictionary, and you need to put the video URLs in a list in each JSON file. For example:
+```json
+[{
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-01-03.timemachine/&width=180&height=180&startFrame=9716&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=6304,884,6807,1387&nframes=36",
+  "cam_id": 0,
+  "view_id": 0
+  },{
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2019-01-03.timemachine/&width=180&height=180&startFrame=9716&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=6007,928,6509,1430&nframes=36",
+  "cam_id": 0,
+  "view_id": 1
+}]
+```
+The URL indicates the cropped video clips, which is obtained by using the thumbnail tool on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)). To access the thumbnail tool, click the "share" button at the bottom-right near the timeline slider and then select the "Share as image or video" tab. A tutorial about how to use the thumbnail tool for sharing videos can be found [here](https://vimeo.com/140196813#t=415s). The cam_id and view_id correspond to the camera views presented in the "Dataset" section in this READEME. For example, if cam_id is 0 and view_id is 1, this means that the camera view is 0-1, as shown in [this graph](back-end/data/dataset/2020-02-24/dataset_1.png). After creating the JSON files or adding video URLs to existing JSON files, run the following to perform a sanity check, which will identify problems related to the camera data and attemp to fix the problems:
+```sh
+python recognize_smoke.py check_and_fix_urls
+```
+Next, run the following at the background (this step will take a long time) to process each clip and predict the probability of having smoke:
+```sh
+sh bg.sh python recognize_smoke.py process_all_urls
+```
+This will create a "production" folder under [back-end/data/](back-end/data) to store the processed results. Then, run the following to identify events based on the probabilities of having smoke:
+```sh
+python recognize_smoke.py process_events
+```
+This will create an "event" folder under [back-end/data/](back-end/data) to store the links to the video clips that are identified as having smoke emissions. To visualize the smoke events, copy the folder (with the same folder name, "event") to the front-end of the [video labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool/tree/master/front-end). Then, the [event page](https://smoke.createlab.org/event.html?date=2019-04-02&camera=0&view=all) will be able to access the "event" folder and show the results. You may also want to consider running the following to scan the video clips so that users do not need to wait for the [thumbnail server](https://thumbnails-v2.createlab.org/status) to render videos:
+```sh
+sh bg.sh python recognize_smoke.py scan_urls
 ```
 
 # <a name="acknowledgements"></a>Acknowledgements
