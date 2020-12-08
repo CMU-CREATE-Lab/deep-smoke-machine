@@ -162,14 +162,14 @@ sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
 
 # <a name="use-this-tool"></a>Use this tool
-Obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata. This will create a metadata.json file under deep-smoke-machine/back-end/data/.
-```sh
-python get_metadata.py confirm
-```
-For others who wish to use the publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we include [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. You need to copy, move, and rename this file to deep-smoke-machine/back-end/data/metadata.json.
+To use our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we include [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. You need to copy, move, and rename this file to deep-smoke-machine/back-end/data/metadata.json.
 ```sh
 cd deep-smoke-machine/back-end/data/
 cp dataset/2020-02-24/metadata_02242020.json metadata.json
+```
+For researchers in our team, if you wish to update the dataset, you need to obtain user token from the [smoke labeling tool](https://smoke.createlab.org/gallery.html) and put the user_token.js file in the deep-smoke-machine/back-end/data/ directory. You need permissions from the system administrator to download the user token. After getting the token, get the video metadata (using the command below). This will create a metadata.json file under deep-smoke-machine/back-end/data/.
+```sh
+python get_metadata.py confirm
 ```
 Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our technical report. The method for splitting the dataset will be explained in the next "Dataset" section.
 ```sh
