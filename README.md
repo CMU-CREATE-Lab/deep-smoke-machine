@@ -1,7 +1,7 @@
 # deep-smoke-machine
 Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. The code is released under the BSD 3-clause license, and the dataset is released under the Creative Commons Zero (CC0) license. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our technical report below:
 
-Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Randy Sargent, and Illah Nourbakhsh. 2020. Project RISE: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:2005.06111. https://arxiv.org/abs/2005.06111
+Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Randy Sargent, and Illah Nourbakhsh. 2020. Project RISE: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:2005.06111. https://arxiv.org/abs/2005.06111 (to be appeared in AAAI 2021)
 
 ![This figure shows different types of videos (high-opacity smoke, low-opacity smoke, steam, and steam with smoke).](back-end/data/dataset/2020-02-24/smoke-type.gif)
 
@@ -401,6 +401,8 @@ The dataset contains 12,567 clips with 19 distinct views from cameras on three s
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_3.png)
 
 ![This figure shows a part of the dataset.](back-end/data/dataset/2020-02-24/dataset_4.png)
+
+We made sure that we were not invading the privacy of surrounding residential neighbors. Areas in the videos that look inside house windows were cropped or blocked. Also, there is no law in our region to prohibit the monitoring of industrial activities.
 
 # <a name="pretrained-models"></a>Pretrained models
 We release two of our best baseline models: [RGB-I3D](back-end/data/pretrained_models/RGB-I3D-S3.pt) and [RGB-TC](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/master/back-end/data/pretrained_models/RGB-TC-S3.pt), both trained and tested on split S<sub>3</sub>. Please feel free to finetune your models based on our baseline. Our technical report describes the details of these models. RGB-I3D uses [I3D ConvNet architecture with Inception-v1 layers](https://arxiv.org/pdf/1705.07750.pdf) and RGB frame input. RGB-TC is finetuned from RGB-I3D, with additional [Timeception](https://arxiv.org/pdf/1812.01289.pdf) layers. Below shows an example usage:
