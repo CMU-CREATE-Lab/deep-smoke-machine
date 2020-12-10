@@ -1,0 +1,45 @@
+[{
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=6369,1015,6905,1551&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 0
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=6042,1036,6578,1572&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 1
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=5605,1028,6141,1564&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 2
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=5303,1045,5839,1581&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 3
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=4859,1027,5395,1563&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 4
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=4350,1058,4886,1594&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 5
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=http://tiles.cmucreatelab.org/ecam/timemachines/clairton1/2020-11-12.timemachine/&boundsLTRB=3977,1077,4513,1613&width=180&height=180&startFrame=4675&format=mp4&fps=12&tileFormat=mp4&nframes=36",
+  "cam_id": 0,
+  "view_id": 6
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/westmifflin1/2020-11-12.timemachine/&width=180&height=180&startFrame=6948&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=2562,1402,3131,1971&nframes=36",
+  "cam_id": 2,
+  "view_id": 0
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/westmifflin1/2020-11-12.timemachine/&width=180&height=180&startFrame=6948&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=665,1418,1235,1988&nframes=36",
+  "cam_id": 2,
+  "view_id": 1
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/westmifflin1/2020-11-12.timemachine/&width=180&height=180&startFrame=6948&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=260,1424,829,1993&nframes=36",
+  "cam_id": 2,
+  "view_id": 2
+}, {
+  "url": "https://thumbnails-v2.createlab.org/thumbnail?root=https://tiles.cmucreatelab.org/ecam/timemachines/westmifflin1/2020-11-12.timemachine/&width=180&height=180&startFrame=6948&format=mp4&fps=12&tileFormat=mp4&startDwell=0&endDwell=0&boundsLTRB=2157,1424,2727,1994&nframes=36",
+  "cam_id": 2,
+  "view_id": 3
+}]
