@@ -1,5 +1,5 @@
 # deep-smoke-machine
-Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. The code is released under the BSD 3-clause license, and the dataset is released under the Creative Commons Zero (CC0) license. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our technical report below:
+Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. The code is released under the BSD 3-clause license, and the dataset is released under the Creative Commons Zero (CC0) license. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our paper below:
 
 Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Jessica Pachuta, Randy Sargent, and Illah Nourbakhsh. 2020. Project RISE: Recognizing Industrial Smoke Emissions. arXiv preprint arXiv:2005.06111 (to be appeared in AAAI 2021). https://arxiv.org/abs/2005.06111
 
@@ -171,7 +171,7 @@ For researchers in our team, if you wish to update the dataset, you need to obta
 ```sh
 python get_metadata.py confirm
 ```
-Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our technical report. The method for splitting the dataset will be explained in the next "Dataset" section.
+Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our paper. The method for splitting the dataset will be explained in the next "Dataset" section.
 ```sh
 python split_metadata.py confirm
 ```
@@ -221,7 +221,7 @@ python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/300
 sh bg.sh python extract_features.py i3d-rgb
 sh bg.sh python extract_features.py i3d-flow
 ```
-Train the model with cross-validation on all dataset splits, using different hyper-parameters. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our technical report. Note that by default the PyTorch [DistributedDataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html) GPU parallel computing is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py)).
+Train the model with cross-validation on all dataset splits, using different hyper-parameters. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the deep-smoke-machine/back-end/data/saved_i3d/ folder. For the description of the models, please refer to our paper. Note that by default the PyTorch [DistributedDataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html) GPU parallel computing is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py)).
 ```sh
 python train.py [method] [optional_model_path]
 
@@ -329,7 +329,7 @@ Note that the url_root and url_part point to videos with 180 by 180 resolutions.
 - URL for the 180 by 180 version: https://smoke.createlab.org/videos/180/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-180-180-9722-1561410615-1561410790.mp4
 - URL for the 320 by 320 version: https://smoke.createlab.org/videos/320/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-320-320-9722-1561410615-1561410790.mp4
 
-Each video is reviewed by at least two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our technical report describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
+Each video is reviewed by at least two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our paper describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
 - 23 : strong positive
   - Two volunteers both agree (or one researcher says) that the video has smoke.
 - 16 : strong negative
@@ -345,11 +345,11 @@ Each video is reviewed by at least two citizen science volunteers (or one resear
 - 3 : has discord
   - Two volunteers have different answers (one says yes, and another one says no).
 - -1 : no data, no discord
-  - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our technical report about these three cases.
+  - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our paper about these three cases.
 
 After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the JSON files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively. 
 
-Also, the dataset will be divided into several splits, based on camera views or dates. The file names (without ".json" file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the technical report.
+Also, the dataset will be divided into several splits, based on camera views or dates. The file names (without ".json" file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the paper.
 
 | Split | Train | Validate | Test |
 | --- | --- | --- | --- |
@@ -405,7 +405,7 @@ The dataset contains 12,567 clips with 19 distinct views from cameras on three s
 We made sure that we were not invading the privacy of surrounding residential neighbors. Areas in the videos that look inside house windows were cropped or blocked. Also, there is no law in our region to prohibit the monitoring of industrial activities.
 
 # <a name="pretrained-models"></a>Pretrained models
-We release two of our best baseline models: [RGB-I3D](back-end/data/pretrained_models/RGB-I3D-S3.pt) and [RGB-TC](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/master/back-end/data/pretrained_models/RGB-TC-S3.pt), both trained and tested on split S<sub>3</sub> using four NVIDIA GTX 1080 Ti GPUs. Please feel free to finetune your models based on our baseline. Our technical report describes the details of these models. RGB-I3D uses [I3D ConvNet architecture with Inception-v1 layers](https://arxiv.org/pdf/1705.07750.pdf) and RGB frame input. RGB-TC is finetuned from RGB-I3D, with additional [Timeception](https://arxiv.org/pdf/1812.01289.pdf) layers. Below shows an example usage:
+We release two of our best baseline models: [RGB-I3D](back-end/data/pretrained_models/RGB-I3D-S3.pt) and [RGB-TC](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/master/back-end/data/pretrained_models/RGB-TC-S3.pt), both trained and tested on split S<sub>3</sub> using four NVIDIA GTX 1080 Ti GPUs. Please feel free to finetune your models based on our baseline. Our paper describes the details of these models. RGB-I3D uses [I3D ConvNet architecture with Inception-v1 layers](https://arxiv.org/pdf/1705.07750.pdf) and RGB frame input. RGB-TC is finetuned from RGB-I3D, with additional [Timeception](https://arxiv.org/pdf/1812.01289.pdf) layers. Below shows an example usage:
 ```python
 # Import I3D
 from i3d_learner import I3dLearner
