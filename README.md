@@ -139,7 +139,6 @@ conda activate deep-smoke-machine
 conda install python=3.7
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
-sh deep-smoke-machine/back-end/www/optical_flow/install_packages.sh
 sh deep-smoke-machine/back-end/install_packages.sh
 ```
 If the environment already exists and you want to remove it before installing packages, use the following:
