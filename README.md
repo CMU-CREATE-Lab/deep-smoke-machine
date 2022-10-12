@@ -42,8 +42,12 @@ sudo reboot now
 ```
 Remove old nvidia drivers.
 ```
+# For drivers that are installed using sudo apt-get
 sudo apt-get remove --purge '^nvidia-.*'
 sudo apt-get autoremove
+
+# For drivers that are installed from NVIDIA website file
+sudo nvidia-uninstall
 ```
 If using a desktop version of Ubuntu (not the server version), run the following:
 ```
