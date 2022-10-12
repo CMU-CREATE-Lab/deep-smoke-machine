@@ -80,7 +80,7 @@ sudo vim /etc/environment
 # add :/usr/local/cuda/bin (including the ":") at the end of the PATH="/[some_path]:/[some_path]" string (inside the quotes)
 sudo reboot now
 ```
-Check cuda installation.
+Check cuda installation. This step is optional.
 ```sh
 cd /usr/local/cuda/samples
 sudo make
