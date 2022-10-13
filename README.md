@@ -137,6 +137,13 @@ conda activate deep-smoke-machine
 conda install python=3.7
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
+```
+Install PyTorch.
+```sh
+conda install pytorch torchvision -c pytorch
+```
+Install packages.
+```sh
 sh deep-smoke-machine/back-end/install_packages.sh
 ```
 If the environment already exists and you want to remove it before installing packages, use the following:
@@ -148,10 +155,6 @@ Update the optical_flow submodule.
 cd deep-smoke-machine/back-end/www/optical_flow/
 git submodule update --init --recursive
 git checkout master
-```
-Install PyTorch.
-```sh
-conda install pytorch torchvision -c pytorch
 ```
 Install system packages for OpenCV.
 ```sh
