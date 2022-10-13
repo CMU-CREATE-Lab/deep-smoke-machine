@@ -53,12 +53,12 @@ If using a desktop version of Ubuntu (not the server version), run the following
 ```
 sudo apt-get install ubuntu-desktop # only for desktop version, not server version
 ```
-Install cuda and the nvidia driver. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/cuda/).
+Install cuda and the nvidia driver from [Nvidia's website](https://developer.nvidia.com/cuda-toolkit). Old versions of cuda can be found [here](https://developer.nvidia.com/cuda-toolkit-archive).
 ```sh
 sudo apt install build-essential
 sudo apt-get install linux-headers-$(uname -r)
-wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run
-sudo sh cuda_10.1.168_418.67_linux.run
+wget https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run
+sudo sh cuda_11.6.2_510.47.03_linux.run
 ```
 Check if Nvidia driver is installed. Should be no nouveau.
 ```sh
@@ -89,7 +89,7 @@ cd /usr/local/cuda/samples/bin/x86_64/linux/release
 ```
 Install cuDNN. Documentation can be found on [Nvidia's website](https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#install-linux). Visit [Nvidia's page](https://developer.nvidia.com/cudnn) to download cuDNN to your local machine. Then, move the file to the Ubuntu server (using the rsync command below) and follow the instructions on the website to unzip the cuDNN package and copy the files into the CUDA toolkit directory.
 ```sh
-rsync -av /[path_on_local]/cudnn-10.1-linux-x64-v7.6.0.64.tgz [user_name]@[server_name]:[path_on_server]
+rsync -av /[path_on_local]/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz [user_name]@[server_name]:[path_on_server]
 ```
  
 # <a name="setup-tool"></a>Setup this tool
@@ -138,9 +138,9 @@ conda install python=3.7
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
 ```
-Install PyTorch.
+Install PyTorch by checking the command on the [PyTorch website](https://pytorch.org). An example for Ubuntu is below:
 ```sh
-conda install pytorch torchvision -c pytorch
+conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge
 ```
 Install packages.
 ```sh
