@@ -95,8 +95,8 @@ rsync -av /[path_on_local]/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz [u
 # <a name="setup-tool"></a>Setup this tool
 Install conda. This assumes that Ubuntu is installed. A detailed documentation is [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). First visit [here](https://conda.io/miniconda.html) to obtain the downloading path. The following script install conda for all users:
 ```sh
-wget https://repo.continuum.io/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh
-sudo sh Miniconda3-4.7.12.1-Linux-x86_64.sh -b -p /opt/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+sudo sh Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda3
 
 sudo vim /etc/bash.bashrc
 # Add the following lines to this file
@@ -134,7 +134,7 @@ Create conda environment and install packages. It is important to install pip fi
 ```sh
 conda create -n deep-smoke-machine
 conda activate deep-smoke-machine
-conda install python=3.7
+conda install python=3.9
 conda install pip
 which pip # make sure this is the pip inside the deep-smoke-machine environment
 ```
