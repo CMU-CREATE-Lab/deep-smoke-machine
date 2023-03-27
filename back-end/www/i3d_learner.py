@@ -205,6 +205,10 @@ class I3dLearner(BaseLearner):
         if self.use_tsm:
             model.add_tsm_to_i3d()
 
+        # Add NL blocks
+        if self.use_nl:
+            model.add_nl_to_i3d()
+
         # Use GPU or not
         if self.use_cuda:
             if parallel:
