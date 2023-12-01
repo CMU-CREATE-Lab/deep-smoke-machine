@@ -1,5 +1,5 @@
 # RISE-Dataset-2023-12-01
-This dataset is a snapshot of the database's state on December 1 in the year 2023. It is released under the Creative Commons Zero (CC0) license.
+[This dataset](metadata_12012023.json) is a snapshot of the database's state on December 1 in the year 2023. It is released under the Creative Commons Zero (CC0) license.
 
 Note that this dataset **contains data with and without labels**. This dataset is also not checked by reseachers and may have data quality issues. If you need data that only has labels and was checked by reseachers to confirm good data quality, [here is an older snapshot](../2020-02-24/).
 
