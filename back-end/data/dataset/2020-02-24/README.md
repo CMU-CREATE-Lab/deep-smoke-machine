@@ -1,5 +1,5 @@
 # RISE-Dataset-2020-02-24
-This dataset is a snapshot of the database's state on February 24 in the year 2020. It is released under the Creative Commons Zero (CC0) license.
+This dataset (the [`metadata_02242020.json`](metadata_02242020.json) file) is a snapshot of the database's state on February 24 in the year 2020. It is released under the Creative Commons Zero (CC0) license.
 
 Note that this dataset **only contains the data that has labels**. If you need data that has no labels, [here is a newer snapshot](../2023-12-01/) that contains all data.
 
