@@ -93,7 +93,7 @@ Install cuDNN. Documentation can be found on [Nvidia's website](https://docs.nvi
 ```sh
 rsync -av /[path_on_local]/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz [user_name]@[server_name]:[path_on_server]
 ```
- 
+
 # <a name="setup-tool"></a>Setup this tool
 Install conda. This assumes that Ubuntu is installed. A detailed documentation is [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). First visit [here](https://conda.io/miniconda.html) to obtain the downloading path. The following script install conda for all users:
 ```sh
@@ -349,8 +349,10 @@ Each video is reviewed by at least two citizen science volunteers (or one resear
   - Two volunteers have different answers (one says yes, and another one says no).
 - -1 : no data, no discord
   - No data. If label_state_admin is -1, it means that the label is produced solely by citizen science volunteers. If label_state is -1, it means that the label is produced solely by researchers. Otherwise, the label is jointly produced by both citizen science volunteers and researchers. Please refer to our paper about these three cases.
+- -2 : bad videos
+  - This means that reseachers have checked the data and marked the video as not suitable for labeling (e.g., due to bad data quality such as incorrect image stitching or artifacts during video compression). These bad videos should not be used in building the model.
 
-After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the JSON files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively. 
+After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the JSON files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
 
 Also, the dataset will be divided into several splits, based on camera views or dates. The file names (without ".json" file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the paper.
 
