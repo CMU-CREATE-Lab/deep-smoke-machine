@@ -333,6 +333,10 @@ Note that the url_root and url_part point to videos with 180 by 180 resolutions.
 - URL for the 320 by 320 version: https://smoke.createlab.org/videos/320/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-320-320-9722-1561410615-1561410790.mp4
 
 Each video is reviewed by at least two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our paper describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
+- 47 : gold standard positive
+  - The researcher assigned a positive label to the video and indicated that the video should be used as a gold standard for data quality checks.
+- 32 : gold standard negative
+  - The researcher assigned a negative label to the video and indicated that the video should be used as a gold standard for data quality checks.
 - 23 : strong positive
   - Two volunteers both agree (or one researcher says) that the video has smoke.
 - 16 : strong negative
