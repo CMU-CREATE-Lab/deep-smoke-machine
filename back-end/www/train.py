@@ -96,21 +96,6 @@ def train(method=None, model_path=None):
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgbd", "i3d", model_path=model_path, augment=True, perturb=False)
-    elif method == "cnn-rgb-cv-1":
-        # This model is not used in our AAAI paper
-        cv("rgb", "cnn", model_path=model_path, augment=True, perturb=False)
-    elif method == "cnn-ft-tc-rgb-cv-1":
-        # This model is not used in our AAAI paper
-        if model_path is None:
-            # Need to run the cnn-rgb-cv-1 method first to get the best models
-            model_path = [
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/ce58dec-cnn-rgb-s0/model/1267.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/fbe176a-cnn-rgb-s1/model/1470.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2cf3cdd-cnn-rgb-s2/model/1261.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/a4b4b72-cnn-rgb-s3/model/2005.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/4ba65f6-cnn-rgb-s4/model/1477.pt",
-                    "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2841c96-cnn-rgb-s5/model/1267.pt"]
-        cv("rgb", "cnn-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb-cv-1":
         # This is the "RGB-SVM" model in our AAAI paper
         # To run this model, you need to run the following command to extract i3d-rgb features first
