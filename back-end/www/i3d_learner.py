@@ -1,6 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # use the order in the nvidia-smi command
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3" # specify which GPU(s) to be used
+os.environ["TF_CPP_MIN_LOG_LEVEL"]="2" # specify the tensorflow log level
 from base_learner import BaseLearner
 from torch.utils.data import DataLoader
 from smoke_video_dataset import SmokeVideoDataset
@@ -166,15 +167,17 @@ class I3dLearner(BaseLearner):
         # Try loading pre-trained i3d weights (from the 400-class model trained on the Kinetics dataset)
         error_1 = False
         try:
+            self.log("Try loading pre-trained i3d weights (from the 400-class model trained on the Kinetics dataset)")
             if p_model is not None:
                 if has_extra_layers:
-                    self.load(model.get_i3d_model(), p_model)
+                    self.load(model.get_i3d_model(), p_model, rank=rank)
                 else:
                     if mode == "rgbd":
-                        self.load(model, p_model, fill_dim=True)
+                        self.load(model, p_model, rank=rank, fill_dim=True)
                     else:
-                        self.load(model, p_model)
-        except:
+                        self.load(model, p_model, rank=rank)
+        except Exception as e:
+            self.log(e)
             # This means that the i3d weights are self-trained
             error_1 = True
 
@@ -182,15 +185,17 @@ class I3dLearner(BaseLearner):
         # Note that for the TSM model this function is empty (no need to replace the last layer)
         model.replace_logits(self.num_of_action_classes)
 
-        # Load self-trained weights (from the 2-class model fine-tuned on our dataset)
+        # Try loading self-trained weights (from the 2-class model fine-tuned on our dataset)
         error_2 = False
         try:
+            self.log("Try loading self-trained weights (from the 2-class model fine-tuned on our dataset)")
             if error_1 and p_model is not None:
                 if has_extra_layers:
-                    self.load(model.get_i3d_model(), p_model)
+                    self.load(model.get_i3d_model(), p_model, rank=rank)
                 else:
-                    self.load(model, p_model)
-        except:
+                    self.load(model, p_model, rank=rank)
+        except Exception as e:
+            self.log(e)
             # This means that the model we want to load has extra layers
             error_2 = True
 
@@ -198,9 +203,10 @@ class I3dLearner(BaseLearner):
         if has_extra_layers:
             model.delete_i3d_logits()
 
-        # Load self-trained weights with extra layers
+        # Try loading self-trained weights with extra layers
         if error_2 and p_model is not None:
-            self.load(model, p_model)
+            self.log("Try loading self-trained weights with extra layers")
+            self.load(model, p_model, rank=rank)
 
         # Add TSM
         if self.use_tsm:

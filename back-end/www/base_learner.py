@@ -85,10 +85,10 @@ class BaseLearner(ABC):
             torch.save(state_dict, out_path)
 
     # Load model
-    def load(self, model, in_path, ignore_fc=False, fill_dim=False):
+    def load(self, model, in_path, rank=0, ignore_fc=False, fill_dim=False):
         if model is not None and in_path is not None:
             self.log("Load model weights from " + in_path)
-            sd_loaded = torch.load(in_path)
+            sd_loaded = torch.load(in_path, map_location=lambda storage, loc: storage.cuda(rank))
             if "state_dict" in sd_loaded:
                 sd_loaded = sd_loaded["state_dict"]
             sd_model = model.state_dict()
