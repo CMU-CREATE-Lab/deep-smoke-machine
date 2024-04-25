@@ -25,22 +25,27 @@ def main(argv):
 def train(method=None, model_path=None):
     # Description of the methods are in the cv function
     if method == "i3d-rgb-cv-1":
+        # This is the "RGB-I3D" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-rgb-cv-2":
+        # This is the "RGB-I3D-ND" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=False, perturb=False)
     elif method == "i3d-rgb-cv-3":
+        # This is the "RGB-I3D-FP" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=True)
     elif method == "i3d-flow-cv-1":
+        # This is the "Flow-I3D" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         cv("flow", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-tc-rgb-cv-1":
+        # This is the "RGB-TC" model in our AAAI paper
         if model_path is None:
             # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
@@ -52,18 +57,22 @@ def train(method=None, model_path=None):
                     "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
+        # This model is not used in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tsm-rgb-cv-1":
+        # This is the "RGB-TSM" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d-tsm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-nl-rgb-cv-1":
+        # This is the "RGB-NL" model in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d-nl", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
+        # This is the "RGB-LSTM" model in our AAAI paper
         if model_path is None:
             # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
@@ -75,12 +84,15 @@ def train(method=None, model_path=None):
                     "../data/saved_i3d/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-rgbd-cv-1":
+        # This model is not used in our AAAI paper
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgbd", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "cnn-rgb-cv-1":
+        # This model is not used in our AAAI paper
         cv("rgb", "cnn", model_path=model_path, augment=True, perturb=False)
     elif method == "cnn-ft-tc-rgb-cv-1":
+        # This model is not used in our AAAI paper
         if model_path is None:
             # Need to run the cnn-rgb-cv-1 method first to get the best models
             model_path = [
@@ -92,8 +104,10 @@ def train(method=None, model_path=None):
                     "../data/saved_cnn/paper_result/full-augm-rgb-cnn/2841c96-cnn-rgb-s5/model/1267.pt"]
         cv("rgb", "cnn-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb-cv-1":
+        # This is the "RGB-SVM" model in our AAAI paper
         cv("rgb", "svm")
     elif method == "svm-flow-cv-1":
+        # This is the "Flow-SVM" model in our AAAI paper
         cv("flow", "svm")
     else:
         print("Method not allowed")
@@ -142,6 +156,12 @@ def cv(mode, method, model_path=None, augment=True, perturb=False):
             milestones = [1000, 2000]
         model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
                 init_lr=init_lr, num_steps_per_update=num_steps_per_update, milestones=milestones)
+    elif method == "i3d-tc":
+        # Use Kinetics pretrained weights to train the entire network with Timeception layers
+        # https://arxiv.org/abs/1812.01289
+        model = I3dLearner(mode=mode, augment=augment, p_frame=p_frame,
+                use_tc=True, freeze_i3d=False, batch_size_train=8,
+                milestones=[1000, 2000], num_steps_per_update=1)
     elif method == "i3d-ft-tc":
         # Use I3D model self-trained weights to finetune extra Timeception layers
         # https://arxiv.org/abs/1812.01289

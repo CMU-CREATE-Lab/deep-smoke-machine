@@ -90,6 +90,7 @@ class CnnLearner(BaseLearner):
 
     def log_parameters(self):
         text = "\nParameters:\n"
+        text += "  use_cuda: " + str(self.use_cuda) + "\n"
         text += "  batch_size_train: " + str(self.batch_size_train) + "\n"
         text += "  batch_size_test: " + str(self.batch_size_test) + "\n"
         text += "  batch_size_extract_features: " + str(self.batch_size_extract_features) + "\n"

@@ -46,7 +46,7 @@ class I3dLearner(BaseLearner):
             use_lstm=False, # use LSTM module or not
             freeze_i3d=False, # freeze i3d layers when training Timeception
             batch_size_train=10, # size for each batch for training
-            batch_size_test=50, # size for each batch for testing
+            batch_size_test=20, # size for each batch for testing
             batch_size_extract_features=40, # size for each batch for extracting features
             max_steps=2000, # total number of steps for training
             num_steps_per_update=2, # gradient accumulation (for large batch size that does not fit into memory)
@@ -100,6 +100,7 @@ class I3dLearner(BaseLearner):
 
     def log_parameters(self):
         text = "\nParameters:\n"
+        text += "  use_cuda: " + str(self.use_cuda) + "\n"
         text += "  use_tsm: " + str(self.use_tsm) + "\n"
         text += "  use_nl: " + str(self.use_nl) + "\n"
         text += "  use_tc: " + str(self.use_tc) + "\n"
