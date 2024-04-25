@@ -36,18 +36,25 @@ def train(method=None, model_path=None):
         cv("rgb", "i3d", model_path=model_path, augment=False, perturb=False)
     elif method == "i3d-rgb-cv-3":
         # This is the "RGB-I3D-FP" model in our AAAI paper
+        # To run this model, you need to run the following command to perturb frames first
+        # python perturb_frames.py
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         cv("rgb", "i3d", model_path=model_path, augment=True, perturb=True)
     elif method == "i3d-flow-cv-1":
         # This is the "Flow-I3D" model in our AAAI paper
+        # To run this model, you need to compute optical flow frames first
+        # Go to the process_videos.py file and change flow_type to 1
+        # Then, run the follwing again
+        # python process_videos.py
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         cv("flow", "i3d", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-tc-rgb-cv-1":
         # This is the "RGB-TC" model in our AAAI paper
+        # To run this model, you need to run the i3d-rgb-cv-1 method first to get the best models
+        # Then, change the following path to point to the best models
         if model_path is None:
-            # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
                     "../data/saved_i3d/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
@@ -73,8 +80,9 @@ def train(method=None, model_path=None):
         cv("rgb", "i3d-nl", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-ft-lstm-rgb-cv-1":
         # This is the "RGB-LSTM" model in our AAAI paper
+        # To run this model, you need to run the i3d-rgb-cv-1 method first to get the best models
+        # Then, change the following path to point to the best models
         if model_path is None:
-            # Need to run the i3d-rgb-cv-1 method first to get the best models
             model_path = [
                     "../data/saved_i3d/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
                     "../data/saved_i3d/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
@@ -105,9 +113,14 @@ def train(method=None, model_path=None):
         cv("rgb", "cnn-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "svm-rgb-cv-1":
         # This is the "RGB-SVM" model in our AAAI paper
+        # To run this model, you need to run the following command to extract i3d-rgb features first
+        # python extract_features.py i3d-rgb
         cv("rgb", "svm")
     elif method == "svm-flow-cv-1":
         # This is the "Flow-SVM" model in our AAAI paper
+        # To run this model, you need to compute optical flow frames (see the i3d-flow-cv-1 method above)
+        # Then, run the following command to extract i3d-flow features
+        # python extract_features.py i3d-flow
         cv("flow", "svm")
     else:
         print("Method not allowed")
