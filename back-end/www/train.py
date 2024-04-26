@@ -53,15 +53,16 @@ def train(method=None, model_path=None):
     elif method == "i3d-ft-tc-rgb-cv-1":
         # This is the "RGB-TC" model in our AAAI paper
         # To run this model, you need to run the i3d-rgb-cv-1 method first to get the best models
+        # Or you need to copy the pretained weights from our Figshare (see README)
         # Then, change the following path to point to the best models
         if model_path is None:
             model_path = [
-                    "../data/pretrained_models/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/a8a7205-i3d-rgb-s2/model/679.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
+                    "../data/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
+                    "../data/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
+                    "../data/paper_result/full-augm-rgb/a8a7205-i3d-rgb-s2/model/679.pt",
+                    "../data/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt",
+                    "../data/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
+                    "../data/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-tc", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-tc-rgb-cv-1":
         # This model is not used in our AAAI paper
@@ -81,15 +82,16 @@ def train(method=None, model_path=None):
     elif method == "i3d-ft-lstm-rgb-cv-1":
         # This is the "RGB-LSTM" model in our AAAI paper
         # To run this model, you need to run the i3d-rgb-cv-1 method first to get the best models
+        # Or you need to copy the pretained weights from our Figshare (see README)
         # Then, change the following path to point to the best models
         if model_path is None:
             model_path = [
-                    "../data/pretrained_models/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/a8a7205-i3d-rgb-s2/model/679.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
-                    "../data/pretrained_models/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
+                    "../data/paper_result/full-augm-rgb/5c9e65a-i3d-rgb-s0/model/682.pt",
+                    "../data/paper_result/full-augm-rgb/549f8df-i3d-rgb-s1/model/1176.pt",
+                    "../data/paper_result/full-augm-rgb/a8a7205-i3d-rgb-s2/model/679.pt",
+                    "../data/paper_result/full-augm-rgb/55563e4-i3d-rgb-s3/model/573.pt",
+                    "../data/paper_result/full-augm-rgb/58474a0-i3d-rgb-s4/model/591.pt",
+                    "../data/paper_result/full-augm-rgb/5260727-i3d-rgb-s5/model/585.pt"]
         cv("rgb", "i3d-ft-lstm", model_path=model_path, augment=True, perturb=False)
     elif method == "i3d-rgbd-cv-1":
         # This model is not used in our AAAI paper
