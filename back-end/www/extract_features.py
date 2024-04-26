@@ -21,12 +21,12 @@ def main(argv):
 
 def extract_features(method=None, model_path=None):
     if method == "i3d-rgb":
-        model = I3dLearner(mode="rgb")
+        model = I3dLearner(mode="rgb", p_frame="../data/rgb/")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_rgb_imagenet_kinetics.pt"
         model.extract_features(p_model=model_path, p_feat="../data/i3d_features_rgb/")
     elif method == "i3d-flow":
-        model = I3dLearner(mode="flow")
+        model = I3dLearner(mode="flow", p_frame="../data/flow/")
         if model_path is None:
             model_path = "../data/pretrained_models/i3d_flow_imagenet_kinetics.pt"
         model.extract_features(p_model=model_path, p_feat="../data/i3d_features_flow/")
