@@ -20,12 +20,14 @@ class SvmLearner(BaseLearner):
             C=1, # SVM parameters
             mode="rgb", # can be "rgb" or "flow"
             p_feat="../data/i3d_features_rgb/", # path to load features
+            code_testing=False # a special flag for testing if the code works
             ):
         super().__init__()
 
         self.C = C
         self.mode = mode
         self.p_feat = p_feat
+        self.code_testing = code_testing
 
     def log_parameters(self):
         text = ""
@@ -92,6 +94,16 @@ class SvmLearner(BaseLearner):
                 file_name = d["file_name"]
                 feature = d["feature"].numpy()
                 true_labels = d["label"].numpy()
+                if self.code_testing:
+                    # Filter features where the corresponding label is 0
+                    feature_0 = feature[true_labels==0][:100]
+                    labels_0 = true_labels[true_labels==0][:100]
+                    # Filter features where the corresponding label is 1
+                    feature_1 = feature[true_labels==1][:100]
+                    labels_1 = true_labels[true_labels==1][:100]
+                    # Merge the selected features and labels back
+                    feature = np.vstack((feature_0, feature_1))
+                    true_labels = np.concatenate((labels_0, labels_1))
                 if phase == "train":
                     model.fit(feature, true_labels)
                 pred_labels = model.predict(feature)

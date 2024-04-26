@@ -632,6 +632,7 @@ class I3dLearner(BaseLearner):
         self.log("="*60)
         self.log("Use Two-Stream Inflated 3D ConvNet learner")
         self.log("Start extracting features...")
+        self.log_parameters()
 
         # Set model (currently we use only one GPU for extracting features)
         model = self.set_model(0, 1, self.mode, p_model, False, phase="feature")
