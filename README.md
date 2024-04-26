@@ -19,7 +19,8 @@ The following figures show how the [I3D model](https://arxiv.org/abs/1705.07750)
 ### Table of Content
 - [Install NVIDIA drivers, CUDA, and cuDNN](#install-nvidia)
 - [Setup this tool](#setup-tool)
-- [Use this tool](#use-this-tool)
+- [Prepare data](#prepare-data)
+- [Train and test models](#train-test-models)
 - [Code infrastructure](#code-infrastructure)
 - [Dataset](#dataset)
 - [Pretrained models](#pretrained-models)
@@ -213,20 +214,20 @@ sudo apt update
 sudo apt install -y libsm6 libxext6 libxrender-dev
 ```
 
-# <a name="use-this-tool"></a>Use this tool
+# <a name="prepare-data"></a>Prepare data
 
-To use our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we include [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. You need to copy, move, and rename this file to deep-smoke-machine/back-end/data/metadata.json.
+To use our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020), we include [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the `deep-smoke-machine/back-end/data/dataset/` folder. You need to copy, move, and rename this file to `deep-smoke-machine/back-end/data/metadata.json`.
 ```sh
 cd deep-smoke-machine/back-end/data/
 cp dataset/2020-02-24/metadata_02242020.json metadata.json
 ```
 
-Split the metadata into three sets: train, validation, and test. This will create a deep-smoke-machine/back-end/data/split/ folder that contains all splits, as indicated in our paper. The method for splitting the dataset will be explained in the next "Dataset" section.
+Split the metadata into three sets: train, validation, and test. This will create a `deep-smoke-machine/back-end/data/split/` folder that contains all splits, as indicated in our paper. The method for splitting the dataset will be explained in the next "Dataset" section.
 ```sh
 python split_metadata.py confirm
 ```
 
-Download all videos in the metadata file to deep-smoke-machine/back-end/data/videos/. This will take a very long time, and we recommend running the code on the background using the [screen command](https://www.gnu.org/software/screen/manual/html_node/index.html).
+Download all videos in the metadata file to `deep-smoke-machine/back-end/data/videos/`. This will take a very long time, and we recommend running the code on the background using the [screen command](https://www.gnu.org/software/screen/manual/html_node/index.html).
 ```sh
 python download_videos.py
 ```
@@ -257,7 +258,7 @@ screen -X SCREEN_SESSION_NAME quit
 tail -f screenlog.0
 ```
 
-Process and save all videos into RGB frames (under deep-smoke-machine/back-end/data/rgb/) and optical flow frames (under deep-smoke-machine/back-end/data/flow/). Because computing optical flow takes a very long time, by default, this script will only process RGB frames. If you need the optical flow frames, change the flow_type to 1 in the [`process_videos.py`](back-end/www/process_videos.py) script. The optical flow is only used for the flow-based models in the paper (e.g., `i3d-flow`, `svm-flow`).
+Process and save all videos into RGB frames (under `deep-smoke-machine/back-end/data/rgb/`) and optical flow frames (under `deep-smoke-machine/back-end/data/flow/`). Because computing optical flow takes a very long time, by default, this script will only process RGB frames. If you need the optical flow frames, change the flow_type to 1 in the [`process_videos.py`](back-end/www/process_videos.py) script. The optical flow is only used for the flow-based models in the paper (e.g., `i3d-flow`, `svm-flow`).
 ```sh
 python process_videos.py
 ```
@@ -274,6 +275,8 @@ python extract_features.py i3d-flow
 python extract_features.py i3d-rgb ../data/saved_i3d/ecf7308-i3d-rgb/model/16875.pt
 python extract_features.py i3d-flow ../data/saved_i3d/af00751-i3d-flow/model/30060.pt
 ```
+
+# <a name="train-test-models"></a>Train and test models
 
 Train the model with cross-validation on all dataset splits, using different hyper-parameters. The model will be trained on the training set and validated on the validation set. Pretrained weights are obtained from the [pytorch-i3d repository](https://github.com/piergiaj/pytorch-i3d). By default, the information of the trained I3D model will be placed in the `deep-smoke-machine/back-end/data/saved_i3d/` folder. For the description of the models, please refer to our paper. Note that by default the PyTorch [DistributedDataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html) GPU parallel computing is enabled (see [i3d_learner.py](back-end/www/i3d_learner.py)).
 ```sh
@@ -333,7 +336,7 @@ This section explains the code infrastructure related to the I3D model training 
 - [base_learner.py](back-end/www/base_learner.py)
   - The abstract class for creating model learners. You will need to implement the fit and test function. This script provides shared functions, such as model loading, model saving, data augmentation, and progress logging.
 - [i3d_learner.py](back-end/www/i3d_learner.py)
-  - This script inherits the base_learner.py script for training the I3D models. This script contains code for back-propagation (e.g., loss function, learning rate scheduler, video batch loading) and GPU parallel computing (PyTorch DistributedDataParallel).
+  - This script inherits the base_learner.py script for training the I3D models. This script contains code for back-propagation (e.g., loss function, learning rate scheduler, video batch loading) and GPU parallel computing (PyTorch `DistributedDataParallel`).
 - [check_models.py](back-end/www/check_models.py)
   - Check if a developed model runs in simple cases. This script is used for debugging when developing new models.
 - [smoke_video_dataset.py](back-end/www/smoke_video_dataset.py)
@@ -347,14 +350,14 @@ This section explains the code infrastructure related to the I3D model training 
 
 If you want to develop your own model, here are the steps that I recommend.
 1. Play with the check_models.py script to understand the input and output dimensions.
-2. Create your own model and place it in the deep-smoke-machine/back-end/www/model/ folder. You can take a look at other models to get an idea about how to write the code.
-3. Import your model to the check_models.py script, then run the script to debug your model.
-4. If you need a specific data augmentation pipeline, edit the get_transform function in the base_learner.py file. Depending on your needs, you may also need to edit the opencv_functional.py and video_transforms.py files.
-5. Copy the i3d_learner.py file, import your model, and modify the code to suit your needs. Make sure that you import your customized learner class in the train.py and test.py files.
+2. Create your own model and place it in the `deep-smoke-machine/back-end/www/model/` folder. You can take a look at other models to get an idea about how to write the code.
+3. Import your model to the `check_models.py` script, then run the script to debug your model.
+4. If you need a specific data augmentation pipeline, edit the get_transform function in the `base_learner.py` file. Depending on your needs, you may also need to edit the `opencv_functional.py` and `video_transforms.py` files.
+5. Copy the `i3d_learner.py` file, import your model, and modify the code to suit your needs. Make sure that you import your customized learner class in the `train.py` and `test.py` files.
 
 # <a name="dataset"></a>Dataset
 
-We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the deep-smoke-machine/back-end/data/dataset/ folder. The JSON file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
+We include our publicly released dataset (a snapshot of the [smoke labeling tool](http://smoke.createlab.org/) on 2/24/2020) [metadata_02242020.json](back-end/data/dataset/2020-02-24/metadata_02242020.json) file under the `deep-smoke-machine/back-end/data/dataset/` folder. The JSON file contains an array, with each element in the array representing the metadata for a video. Each element is a dictionary with keys and values, explained below:
 - camera_id
   - ID of the camera (0 means [clairton1](http://mon.createlab.org/#v=3703.5,970,0.61,pts&t=456.42&ps=25&d=2020-04-06&s=clairton1&bt=20200406&et=20200407), 1 means [braddock1](http://mon.createlab.org/#v=2868.5,740.5,0.61,pts&t=540.67&ps=25&d=2020-04-07&s=braddock1&bt=20200407&et=20200408), and 2 means [westmifflin1](http://mon.createlab.org/#v=1722.89321,1348.42994,0.806,pts&t=704.33&ps=25&d=2020-04-07&s=westmifflin1&bt=20200407&et=20200408))
 - view_id
@@ -381,7 +384,7 @@ Note that the url_root and url_part point to videos with 180 by 180 resolutions.
 - URL for the 180 by 180 version: https://smoke.createlab.org/videos/180/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-180-180-9722-1561410615-1561410790.mp4
 - URL for the 320 by 320 version: https://smoke.createlab.org/videos/320/2019-06-24/0-7/0-7-2019-06-24-3504-1067-4125-1688-320-320-9722-1561410615-1561410790.mp4
 
-Each video is reviewed by at least two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our paper describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the metadata_02242020.json is briefly explained below.
+Each video is reviewed by at least two citizen science volunteers (or one researcher who received the [smoke reading training](https://www.eta-is-opacity.com/resources/method-9/)). Our paper describes the details of the labeling and quality control mechanism. The state of the label (label_state and label_state_admin) in the `metadata_02242020.json` is briefly explained below.
 - 47 : gold standard positive
   - The researcher assigned a positive label to the video and indicated that the video should be used as a gold standard for data quality checks.
 - 32 : gold standard negative
@@ -405,7 +408,7 @@ Each video is reviewed by at least two citizen science volunteers (or one resear
 - -2 : bad videos
   - This means that reseachers have checked the data and marked the video as not suitable for labeling (e.g., due to bad data quality such as incorrect image stitching or artifacts during video compression). These bad videos should not be used in building the model.
 
-After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the JSON files in the generated deep-smoke-machine/back-end/data/split/ folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
+After running the [split_metadata.py](back-end/www/split_metadata.py) script, the "label_state" and "label_state_admin" keys in the dictionary will be aggregated into the final label, represented by the new "label" key (see the JSON files in the generated `deep-smoke-machine/back-end/data/split/` folder). Positive (value 1) and negative (value 0) labels mean if the video clip has smoke emissions or not, respectively.
 
 Also, the dataset will be divided into several splits, based on camera views or dates. The file names (without ".json" file extension) are listed below. The Split S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>, S<sub>3</sub>, S<sub>4</sub>, and S<sub>5</sub> correspond to the ones indicated in the paper.
 
