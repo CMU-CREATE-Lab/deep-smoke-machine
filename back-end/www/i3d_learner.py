@@ -203,6 +203,10 @@ class I3dLearner(BaseLearner):
         if has_extra_layers:
             model.delete_i3d_logits()
 
+        # Add NL blocks
+        if self.use_nl:
+            model.add_nl_to_i3d()
+
         # Try loading self-trained weights with extra layers
         if error_2 and p_model is not None:
             self.log("Try loading self-trained weights with extra layers")
@@ -211,10 +215,6 @@ class I3dLearner(BaseLearner):
         # Add TSM
         if self.use_tsm:
             model.add_tsm_to_i3d()
-
-        # Add NL blocks
-        if self.use_nl:
-            model.add_nl_to_i3d()
 
         # Use GPU or not
         if self.use_cuda:
