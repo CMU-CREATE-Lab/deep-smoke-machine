@@ -500,6 +500,46 @@ model.fit(
     p_metadata_test="../data/split/metadata_test_split_by_date.json")
 ```
 
+Besides these two model weights that are included in this repository, we also released the model weights for all the splits for model RGB-I3D and RGB-TC on [a Figshare repository](https://doi.org/10.21942/uva.25705239.v1). To use these weights, first download and extract the zip file. Then, place the extracted `paper_result` folder under the `deep-smoke-machine/back-end/data` directory. The code below is an example:
+```python
+# Import I3D
+from i3d_learner import I3dLearner
+
+# Initialize the model
+model = I3dLearner(
+    mode="rgb",
+    augment=True,
+    p_frame="../data/rgb/",
+    use_tc=True,
+    freeze_i3d=True,
+    batch_size_train=8,
+    milestones=[1000, 2000],
+    num_steps_per_update=1)
+
+# Change this to your split number (can be "s0", "s1", "s2", "s3", "s4", or "s5")
+split_str = "s0"
+
+# Make sure that the "paper_result" folder is in the "data" foler
+model_root_path = "../data/paper_result/RGB-I3D/" + split_str
+
+# Change this to the correct model number under the "model" folder
+p_model = model_root_path + "/model/682.pt"
+
+# No need to change the variables below
+model_id_suffix = "-" + split_str
+p_metadata_train = model_root_path + "/metadata/metadata_train.json"
+p_metadata_validation = model_root_path + "/metadata/metadata_validation.json"
+p_metadata_test = model_root_path + "/metadata/metadata_test.json"
+
+# Finetune the RGB-TC model from the RGB-I3D model
+model.fit(
+    p_model=p_model,
+    model_id_suffix=model_id_suffix,
+    p_metadata_train=p_metadata_train,
+    p_metadata_validation=p_metadata_validation,
+    p_metadata_test=p_metadata_test)
+```
+
 # <a name="deploy-models-to-recognize-smoke"></a>Deploy models to recognize smoke
 
 We provide an example script ([recognize_smoke.py](back-end/www/recognize_smoke.py)) to show how you can deploy the trained models to recognize industrial smoke emissions. This script only works for the videos on our camera monitoring system ([http://mon.createlab.org/](http://mon.createlab.org/)) or others that are created using the [timemachine-creator](https://github.com/CMU-CREATE-Lab/timemachine-creator) and [timemachine-viewer](https://github.com/CMU-CREATE-Lab/timemachine-viewer). In sum, the script takes a list of video URLs (examples can be found [here](https://github.com/CMU-CREATE-Lab/deep-smoke-machine/blob/improve-documentation/back-end/data/production_url_list/2019-01-03.json)), gets their date and camera view boundary information, generates a bunch of cropped clips, and run the model on these clips to recognize smoke emissions. Here are the steps:
