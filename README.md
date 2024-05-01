@@ -1,13 +1,10 @@
 # deep-smoke-machine
 Deep learning models and dataset for recognizing industrial smoke emissions. The videos are from the [smoke labeling tool](https://github.com/CMU-CREATE-Lab/video-labeling-tool). The code in this repository assumes that Ubuntu 18.04 server is installed. The code is released under the BSD 3-clause license, and the dataset is released under the Creative Commons Zero (CC0) license. If you found this dataset and the code useful, we would greatly appreciate it if you could cite our paper below:
 
-Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Jessica Pachuta, Randy Sargent, and Illah Nourbakhsh. 2021. Project RISE: Recognizing Industrial Smoke Emissions. Proceedings of the AAAI Conference on Artificial Intelligence (AAAI 2021). https://ojs.aaai.org/index.php/AAAI/article/view/17739
+Yen-Chia Hsu, Ting-Hao (Kenneth) Huang, Ting-Yao Hu, Paul Dille, Sean Prendi, Ryan Hoffman, Anastasia Tsuhlares, Jessica Pachuta, Randy Sargent, and Illah Nourbakhsh. 2021. Project RISE: Recognizing Industrial Smoke Emissions. Proceedings of the AAAI Conference on Artificial Intelligence (AAAI 2021). https://arxiv.org/abs/2005.06111
 
 > [!WARNING]
-> There was an error in implementing the non-local blocks when we wrote the paper. We are very sorry about this error. The problem has been fixed in the code in this repository. However, the result of model RGB-NL in Table 7 in the paper is incorrect. We ran the experiment for the RGB-NL model again (see the correction of F-scores in Table 7 below). We will submit a corrected version of the paper to arXiv.
-> | Model | S<sub>0</sub> | S<sub>1</sub> | S<sub>2</sub> | S<sub>3</sub> | S<sub>4</sub> | S<sub>5</sub> | Mean |
-> | --- | --- | --- | --- | --- | --- | --- | --- |
-> | RGB-NL | .80 | .84 | .83 | .86 | .82 | .75 | .817 |
+> There was an error in implementing the non-local blocks when we wrote the paper. We are very sorry about that. The problem has been fixed in the code in this repository. However, the result of model RGB-NL in Table 7 in the paper is incorrect. We ran the experiment for the RGB-NL model again and submit an [updated version of the paper to arXiv](https://arxiv.org/abs/2005.06111).
 
 ![This figure shows different types of videos (high-opacity smoke, low-opacity smoke, steam, and steam with smoke).](back-end/data/dataset/2020-02-24/smoke-type.gif)
 
