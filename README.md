@@ -228,7 +228,7 @@ cd deep-smoke-machine/back-end/www/
 python split_metadata.py confirm
 ```
 
-Download all videos in the metadata file to `deep-smoke-machine/back-end/data/videos/`. This will take a very long time, and we recommend running the code on the background using the [screen command](https://www.gnu.org/software/screen/manual/html_node/index.html).
+Download all videos in the metadata file to `deep-smoke-machine/back-end/data/videos/`. This will take a very long time, and we recommend running the code on the background using the [screen command](https://www.gnu.org/software/screen/manual/html_node/index.html). Alternatively, you can also download the video data from this [figshare repository](https://doi.org/10.21942/uva.31752271) and put the videos in the indicated folder.
 ```sh
 python download_videos.py
 ```
